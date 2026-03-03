@@ -1,0 +1,19 @@
+# Governance guardrails - risk limits and trading constraints.
+# PROPOSED - trading-specific rules.
+# EXTRACTED patterns from OrchestrAI_Labs governance enforcement.
+
+maxPositionSizePercent: 10
+maxDailyLossPercent: 5
+maxTradesPerMinute: 6
+maxSlippagePercent: 5
+reviewGateThresholdUsd: 10000
+
+allowlistMints: []
+# Example: ["So11111111111111111111111111111111111111112", "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"]
+
+denylistMints: []
+# Example: [] - add scam/honeypot tokens to block
+
+circuitBreaker:
+  failureThreshold: 5
+  recoveryTimeMs: 60000

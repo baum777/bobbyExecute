@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "tasks": [
+    {
+      "id": "GT-001",
+      "phase": "trading",
+      "title": "Full pipeline - Market to Journal (paper-trade)",
+      "fixtureDir": "GT-001"
+    }
+  ]
+}

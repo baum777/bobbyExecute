@@ -1,0 +1,49 @@
+# Agent profiles - role-based permissions and tool allowlists.
+# MAPPED from OrchestrAI_Labs AgentProfile pattern.
+
+executor:
+  id: executor-bot
+  name: Executor Bot
+  role: executor
+  permissions:
+    - market.read
+    - market.trending
+    - wallet.read
+    - chain.verify
+    - trade.quote
+    - trade.execute
+    - journal.write
+  tools:
+    - market.dexPaprika.getPool
+    - market.dexPaprika.getTrending
+    - market.dexPaprika.getPairs
+    - wallet.moralis.getBalances
+    - wallet.moralis.getTransfers
+    - chain.rpcVerify.token
+    - chain.rpcVerify.balance
+    - chain.rpcVerify.receipt
+    - trade.dex.getQuote
+    - trade.dex.executeSwap
+    - journal.append
+  reviewPolicy:
+    mode: required
+    requiresHumanFor: [trade.execute]
+    reviewerRoles: [senior, admin]
+
+monitor:
+  id: monitor-bot
+  name: Monitor Bot
+  role: monitor
+  permissions:
+    - market.read
+    - wallet.read
+    - alert.send
+  tools:
+    - market.dexPaprika.getPool
+    - market.dexPaprika.getTrending
+    - wallet.moralis.getBalances
+    - alert.send
+  reviewPolicy:
+    mode: none
+    requiresHumanFor: []
+    reviewerRoles: []

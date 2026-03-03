@@ -1,0 +1,9 @@
+{
+  "expect": {
+    "stageReached": "monitor",
+    "blocked": false,
+    "hasDecisionHash": true,
+    "hasResultHash": true,
+    "executionSuccess": true
+  }
+}

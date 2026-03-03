@@ -1,0 +1,19 @@
+# Tool-to-Permission mapping.
+# MAPPED from OrchestrAI_Labs tool-permissions.ts
+
+market.dexPaprika.getPool: market.read
+market.dexPaprika.getTrending: market.trending
+market.dexPaprika.getPairs: market.read
+
+wallet.moralis.getBalances: wallet.read
+wallet.moralis.getTransfers: wallet.read
+
+chain.rpcVerify.token: chain.verify
+chain.rpcVerify.balance: chain.verify
+chain.rpcVerify.receipt: chain.verify
+
+trade.dex.getQuote: trade.quote
+trade.dex.executeSwap: trade.execute
+
+journal.append: journal.write
+alert.send: alert.send
