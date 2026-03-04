@@ -1,49 +1,94 @@
-# dotBot - C__AB_path
+# dotBot / BobbyExecute
 
-## Übersicht
-Dieses Repository enthält eine produktionsreife Implementierung eines Onchain-Trading-Bots, der auf der **OrchestrAI-Architektur** basiert. Der Fokus liegt auf Sicherheit (Governance), Determinismus und einer robusten Pipeline für Handelsentscheidungen.
+Governance-first Trading-Bot-Repository mit deterministischer Ausführung, Memory-Hash-Chains und Chaos-Gates.
 
-## Architektur
-Die Architektur folgt einer strikten Pipeline:
-`Ingest → Research → Signal → Risk → Execute → Verify → Journal → Monitor`
+## Kontext
 
-### Kernkomponenten
-- **Ingest**: Datenerfassung von DEXs (DexPaprika) und Wallets (Moralis).
-- **Signal**: Erzeugung von Handelssignalen auf Basis von Markt-Snapshots (CQD).
-- **Governance (Fail-Closed)**: 
-  - **Review Gates**: Mehrstufige Prüfung von Handelsentscheidungen.
-  - **Guardrails**: Durchsetzung von Slippage-Limits, Allow- und Denylists.
-  - **Circuit Breaker**: Schutz vor fehlerhaften Adaptern.
-- **Determinismus**:
-  - **Canonical JSON**: Strikte Regeln für die Serialisierung (Key-Sorting, Float-Rundung).
-  - **SHA-256 Hashing**: Jede Entscheidung und jeder Journal-Eintrag wird kryptografisch verifiziert.
+Dieses Repo bündelt zwei Welten:
 
-## Logik
-Der Bot implementiert das Prinzip **"C > A == B"** (Governance-first):
-1. **CQD (Compressed Quality Dataset)**: Einziger erlaubter Input für Entscheidungen.
-2. **Decision Tokens**: Fälschungssichere Artefakte, die nach erfolgreicher Prüfung durch Risk/Governance erstellt werden.
-3. **Execution**: Trades werden nur ausgeführt, wenn ein gültiger und verifizierter Decision Token vorliegt.
+- **`bot/`**: aktive TypeScript-Implementierung (Core Runtime, Governance, Tests).
+- **`dor-bot/`**: ältere Python-Referenz/Legacy-Komponenten.
 
-## Repository-Struktur
-- `bot/`: Die Hauptimplementierung in TypeScript.
-- `dor-bot/`: Legacy- oder Referenz-Implementierung in Python.
-- `bot/src/packages/core-trading/`: Gemeinsame Kontrakte und Schemas (V1).
+Die kanonischen Architektur- und Governance-Vorgaben liegen in:
 
-## Installation & Ausführung
-### Voraussetzungen
-- Node.js 20+
-- npm
+- `docs/architecture/master-trading-bot-intelligence-spec.md`
+- `docs/architecture/pattern-recognition-chaos-memory-blueprint.md`
+- `docs/architecture/extended-intelligence-execution-pipeline.md`
+- `docs/operations/secrets-management-blueprint.md`
+- `ops/agent-team/*` (Plan, Findings, Progress, Decisions, Policy)
 
-### Befehle (im `bot`-Verzeichnis)
-```bash
-npm install     # Abhängigkeiten installieren
-npm run build   # TypeScript kompilieren
-npm test        # Unit-Tests ausführen
-npm run test:golden # Golden Tasks Validierung
+## Architektur-Überblick
+
+### 1) Klassische Runtime-Pipeline (`Engine`)
+
+```text
+Ingest → Signal → Risk → Execute → Verify → Journal → Monitor
 ```
 
-## Konfiguration
-Die Konfiguration erfolgt über YAML-Dateien in `bot/src/config/`:
-- `guardrails.yaml`: Risk-Limits und Zugriffskontrolle.
-- `permissions.yaml`: Mapping von Tools auf Berechtigungen.
-- `agents.yaml`: Profile der KI-Agenten.
+Ziel: deterministische Trade-Verarbeitung mit Fail-Closed bei Risk-/Verify-Fehlern.
+
+### 2) Erweiterte Intelligence-/Execution-Pipeline (`Orchestrator`)
+
+```text
+Research → Analyse (MCI/BCI/Hybrid) → Reasoning + Pattern
+→ Compress DB (Snappy + SHA-256) → Chaos Gate (19 Szenarien)
+→ Memory Log (Hash-Chain) → Focused TX Execute
+→ Loop via Action Handbook Lookup
+```
+
+Wichtige Leitplanken:
+
+- `DecisionResult.decision = allow|deny`
+- TX nur bei `allow` + gültigem Vault-Lease (TTL <= 1h)
+- Fail-Closed bei DataQuality < 70 %, Chaos-Fail oder Vault-Problemen
+
+## Zentrale Komponenten
+
+- **Governance:** Review Gates, Policy Engine, Guardrails, Circuit Breaker
+- **Determinismus:** Canonicalize + SHA-256 für Decision/Result/Journal
+- **Memory:** iterative Renewal, Snappy-Kompression, Crash-Recovery
+- **Chaos:** 19 Szenarien in 5 Kategorien (Kategorie 5 = Trading-Edge kritisch)
+- **Tests:** Golden Tasks GT-001 bis GT-018 + Chaos Pre-Merge Gate
+
+## Repository-Struktur
+
+- `bot/` – produktive TS-Codebasis inkl. `npm run premerge`
+- `docs/` – Architektur-/Operations-Blueprints
+- `ops/agent-team/` – Governance- und Team-Artefakte
+- `packages/skills/` – Skill-Manifeste + Instructions
+- `dor-bot/` – Python-Legacy
+
+## Cloud-Agent Umgebung (Cursor)
+
+Die Cloud-Umgebung ist repo-seitig vorbereitet über:
+
+- `.cursor/environment.json`
+- `.cursor/setup.sh`
+- `.nvmrc` (Root + `bot/.nvmrc`)
+
+Setup-Verhalten:
+
+1. Node **22** prüfen (nvm-Fallback, falls verfügbar)
+2. `bot`-Dependencies installieren (`npm install`)
+3. `snappyjs` + `@types/snappyjs` validieren
+
+Dadurch läuft im Agent standardmäßig ohne manuelle Vorarbeit:
+
+```bash
+cd bot
+npm run premerge
+```
+
+## Lokale Entwicklung
+
+```bash
+cd bot
+npm install
+npm run lint
+npm test
+npm run premerge
+```
+
+## Lizenz
+
+Siehe `LICENSE`.
