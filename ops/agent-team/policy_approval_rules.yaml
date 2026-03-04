@@ -1,0 +1,37 @@
+# Policy Approval Rules
+# Version: 1.0.0
+# Owner: Kimi Swarm
+# Last Updated: 2026-03-04T12:00:00Z
+
+triggers:
+  - id: blueprint_or_golden_task_change
+    description: Änderungen an Blueprints oder Golden Tasks
+    approver: Reviewer_Claude
+    required: true
+
+  - id: destructive_ops
+    description: Destructive Operationen (DB Drops, Secret Rotation)
+    approver: Reviewer_Claude
+    required: true
+
+  - id: ci_or_build
+    description: CI/Build Konfigurationsänderungen
+    approver: Reviewer_Claude
+    required: true
+
+  - id: secret_rotation
+    description: Secret Rotation oder Vault-Konfiguration
+    approver: Reviewer_Claude
+    required: true
+
+  - id: chaos_gate_bypass
+    description: Chaos-Gate Bypass oder Skip
+    approver: Reviewer_Claude
+    required: true
+
+  - id: memory_db_schema
+    description: Memory-DB Schema oder Storage-Änderungen
+    approver: Reviewer_Claude
+    required: true
+
+default_policy: require_approval_on_trigger

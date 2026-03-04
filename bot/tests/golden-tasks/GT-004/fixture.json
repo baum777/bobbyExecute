@@ -1,0 +1,28 @@
+{
+  "scoreCard": {
+    "traceId": "gt-004-trace",
+    "timestamp": "2026-03-04T12:00:00.000Z",
+    "mci": 0.5,
+    "bci": -0.3,
+    "hybrid": 0.2,
+    "crossSourceConfidenceScore": 0.9,
+    "ageAdjusted": true
+  },
+  "signalPack": {
+    "traceId": "gt-004-trace",
+    "timestamp": "2026-03-04T12:00:00.000Z",
+    "signals": [
+      {
+        "source": "moralis",
+        "timestamp": "2026-03-04T12:00:00.000Z",
+        "baseToken": "SOL",
+        "quoteToken": "USDC",
+        "priceUsd": 150,
+        "volume24h": 1000000,
+        "liquidity": 50000
+      }
+    ],
+    "dataQuality": { "completeness": 0.9, "freshness": 0.9, "sourceReliability": 0.95 },
+    "sources": ["moralis"]
+  }
+}

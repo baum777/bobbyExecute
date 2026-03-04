@@ -1,0 +1,7 @@
+{
+  "expect": {
+    "renewed": true,
+    "compressed": true,
+    "hasSnapshot": true
+  }
+}

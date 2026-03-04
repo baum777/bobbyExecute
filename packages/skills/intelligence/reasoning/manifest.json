@@ -1,0 +1,11 @@
+{
+  "id": "intelligence.reasoning",
+  "version": "1.0.0",
+  "layer": "intelligence",
+  "autonomyTier": 3,
+  "sideEffects": false,
+  "reviewPolicy": "draft_only",
+  "inputs": ["ScoreCard", "PatternResult[]"],
+  "outputs": ["DecisionResult"],
+  "dependencies": ["reasoning.pattern_recognizer"]
+}

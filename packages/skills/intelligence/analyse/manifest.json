@@ -1,0 +1,10 @@
+{
+  "id": "intelligence.analyse",
+  "version": "1.0.0",
+  "layer": "intelligence",
+  "autonomyTier": 3,
+  "sideEffects": false,
+  "reviewPolicy": "draft_only",
+  "inputs": ["SignalPack", "DataQuality"],
+  "outputs": ["ScoreCard"]
+}

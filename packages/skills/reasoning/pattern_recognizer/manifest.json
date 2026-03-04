@@ -1,0 +1,10 @@
+{
+  "id": "reasoning.pattern_recognizer",
+  "version": "1.1.0",
+  "layer": "reasoning",
+  "autonomyTier": 3,
+  "sideEffects": false,
+  "reviewPolicy": "draft_only",
+  "inputs": ["ScoreCard", "SignalPack"],
+  "outputs": ["PatternResult"]
+}

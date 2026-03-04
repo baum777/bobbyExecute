@@ -1,0 +1,8 @@
+{
+  "expect": {
+    "phaseReached": "focused_tx",
+    "chaosPassed": true,
+    "hasDecisionResult": true,
+    "hasPatternResult": true
+  }
+}

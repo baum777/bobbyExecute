@@ -1,0 +1,7 @@
+{
+  "expect": {
+    "hasPatterns": true,
+    "hasEvidence": true,
+    "confidenceInRange": true
+  }
+}

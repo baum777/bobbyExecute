@@ -1,0 +1,7 @@
+{
+  "dataQuality": {
+    "completeness": 0.9,
+    "freshness": 0.95
+  },
+  "data": { "signals": [], "sources": [] }
+}

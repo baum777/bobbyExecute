@@ -1,0 +1,10 @@
+{
+  "id": "intelligence.research",
+  "version": "1.0.0",
+  "layer": "intelligence",
+  "autonomyTier": 3,
+  "sideEffects": false,
+  "reviewPolicy": "draft_only",
+  "inputs": ["IntentSpec", "DataQuality"],
+  "outputs": ["SignalPack"]
+}

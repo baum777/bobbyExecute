@@ -1,0 +1,11 @@
+{
+  "id": "trading.focused_tx_execute",
+  "version": "1.0.0",
+  "layer": "trading",
+  "autonomyTier": 3,
+  "sideEffects": true,
+  "reviewPolicy": "required",
+  "inputs": ["TradeIntent", "DecisionResult", "SecretLease"],
+  "outputs": ["ExecutionReport"],
+  "dependencies": ["trading.secrets_vault"]
+}

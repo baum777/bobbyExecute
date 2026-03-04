@@ -1,0 +1,10 @@
+{
+  "id": "trading.secrets_vault",
+  "version": "1.0.0",
+  "layer": "trading",
+  "autonomyTier": 3,
+  "sideEffects": true,
+  "reviewPolicy": "required",
+  "inputs": ["SecretRequest"],
+  "outputs": ["SecretLease"]
+}

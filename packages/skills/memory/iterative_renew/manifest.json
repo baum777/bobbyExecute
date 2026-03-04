@@ -1,0 +1,11 @@
+{
+  "id": "memory.iterative_renew",
+  "version": "1.0.0",
+  "layer": "memory",
+  "autonomyTier": 3,
+  "sideEffects": true,
+  "reviewPolicy": "required",
+  "inputs": ["DataQuality", "LastRenewalTimestamp"],
+  "outputs": ["MemorySnapshot"],
+  "triggers": ["45-60s interval", ">4% DataQuality change"]
+}
