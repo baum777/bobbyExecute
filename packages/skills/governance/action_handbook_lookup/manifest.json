@@ -1,0 +1,10 @@
+{
+  "id": "governance.action_handbook_lookup",
+  "version": "1.0.0",
+  "layer": "governance",
+  "autonomyTier": 3,
+  "sideEffects": false,
+  "reviewPolicy": "draft_only",
+  "inputs": ["PhaseState", "DecisionResult"],
+  "outputs": ["NextAction"]
+}

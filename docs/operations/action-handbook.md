@@ -21,6 +21,7 @@ Skills werden über `packages/skills/*/manifest.json` registriert. Der Orchestra
 - chaos_gate → governance.chaos_memory_db_test
 - memory_log → memory.log_append
 - focused_tx → trading.focused_tx_execute
+- loop → governance.action_handbook_lookup
 
 ## Error Handling
 
