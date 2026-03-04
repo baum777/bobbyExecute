@@ -10,3 +10,4 @@ export * from "./scorecard.js";
 export * from "./signalpack.js";
 export * from "./trade.js";
 export * from "./wallet.js";
+export * from "./cqd.js";

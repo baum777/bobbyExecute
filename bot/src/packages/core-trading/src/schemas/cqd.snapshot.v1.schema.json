@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cqd.snapshot.v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "chain",
+    "token",
+    "ts_bucket",
+    "features",
+    "confidence",
+    "anomaly_flags",
+    "evidence_pack",
+    "sources",
+    "hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "cqd.snapshot.v1"
+    },
+    "chain": {
+      "type": "string",
+      "enum": [
+        "solana"
+      ]
+    },
+    "token": {
+      "type": "string",
+      "minLength": 20
+    },
+    "ts_bucket": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "features": {
+      "type": "object"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "anomaly_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_pack": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 7,
+      "items": {
+        "type": "string",
+        "maxLength": 140
+      }
+    },
+    "sources": {
+      "type": "object",
+      "required": [
+        "freshest_source_ts_ms",
+        "max_staleness_ms"
+      ],
+      "properties": {
+        "freshest_source_ts_ms": {
+          "type": "integer"
+        },
+        "max_staleness_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "price_divergence_pct": {
+          "type": "number",
+          "minimum": 0
+        },
+        "volume_divergence_pct": {
+          "type": "number",
+          "minimum": 0
+        },
+        "liquidity_divergence_pct": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "additionalProperties": false
+}

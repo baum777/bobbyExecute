@@ -29,7 +29,7 @@ export type EngineState = {
   timestamp: string;
   market?: MarketSnapshot;
   wallet?: WalletSnapshot;
-  signal?: { direction: string; confidence: number };
+  signal?: { direction: string; confidence: number; cqd?: import("./contracts/cqd.js").CQDSnapshotV1 };
   tradeIntent?: TradeIntent;
   riskAllowed?: boolean;
   executionPlan?: unknown;
@@ -49,6 +49,7 @@ export type IngestHandler = () => Promise<{
 export type SignalHandler = (market: MarketSnapshot) => Promise<{
   direction: string;
   confidence: number;
+  cqd?: import("./contracts/cqd.js").CQDSnapshotV1;
 }>;
 
 export type RiskHandler = (
@@ -171,21 +172,29 @@ export class Engine {
 
   private async log(state: EngineState, action: string): Promise<void> {
     if (!this.actionLogger) return;
+
+    // Use current event hash chain if possible (simplified for now)
+    const payload = {
+      traceId: state.traceId,
+      stage: state.stage,
+      market: state.market,
+      wallet: state.wallet,
+      signal: state.signal,
+      tradeIntent: state.tradeIntent,
+      executionReport: state.executionReport,
+      rpcVerification: state.rpcVerification,
+    };
+
+    const event_hash = hashDecision(payload);
+
     await this.actionLogger.append({
       agentId: "engine",
       userId: "system",
       action,
-      input: {
-        traceId: state.traceId,
-        stage: state.stage,
-        market: state.market,
-        wallet: state.wallet,
-      },
+      input: payload,
       output: {
-        signal: state.signal,
-        tradeIntent: state.tradeIntent,
-        executionReport: state.executionReport,
-        rpcVerification: state.rpcVerification,
+        event_hash, // Log the deterministic hash
+        journalEntry: state.journalEntry,
       },
       ts: state.timestamp,
       blocked: state.blocked,
