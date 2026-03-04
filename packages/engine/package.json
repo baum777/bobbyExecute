@@ -1,0 +1,26 @@
+{
+  "name": "@reducedmode/engine",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@reducedmode/adapters": "workspace:*",
+    "@reducedmode/contracts": "workspace:*",
+    "pino": "^9.5.0"
+  },
+  "devDependencies": {
+    "nock": "^14.0.6"
+  }
+}
