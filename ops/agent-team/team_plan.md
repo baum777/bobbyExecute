@@ -1,21 +1,22 @@
 <!--
-  Version: 1.0.0
+  Version: 1.1.0
   Owner: Kimi Swarm
   Layer: operations
-  Last Updated: 2026-03-04T12:00:00Z
-  DoD: Workstream definiert, Milestones validiert
+  Last Updated: 2026-03-04T17:00:00Z
+  DoD: Workstream definiert, Milestones Phase 0-5 + GT-018, alle Schemas validiert
 -->
 
 # team_plan.md
 
-## Workstream: Kimi-Swarm-Implementation
+## Workstream: Kimi-Swarm-Full-Implementation
 
 | Feld | Wert |
 |------|------|
 | **Owner** | Kimi Swarm |
-| **Status** | Review Ready |
+| **Status** | In Progress |
+| **Blocker** | none |
 | **Start** | 2026-03-04 |
-| **Target** | Review Ready nach Phase 6 |
+| **Target** | Review Ready nach Phase 5 + GT-018 |
 
 ---
 
@@ -23,13 +24,12 @@
 
 | Phase | Beschreibung | DoD |
 |-------|--------------|-----|
-| 0 | Bootstrap & Validation | Master-Spec, 5 Artefakte, Policy Rules |
-| 1 | Core Skills | 10 Skills mit manifest.json + instructions.md |
-| 2 | Extended Contracts | IntentSpec, ScoreCard, SignalPack, DataQuality, DecisionResult, MCI/BCI |
-| 3 | Memory-DB & Pattern Engine | iterative renewal, 8 Patterns, compression |
-| 4 | Chaos-Test Suite | 19 Szenarien, Chaos-Gate |
-| 5 | Orchestrator & Golden Tasks | 7-Phasen Pipeline, GT-001 bis GT-018 |
-| 6 | Final Validation & Handover | PR-Template, Review Request, Reviewer_Claude Approval |
+| 0 | Bootstrap & Repo-Setup | team_plan, JSON-Schemas validiert, MCI/BCI/Hybrid-Formeln validiert |
+| 1 | Skill-Foundation (packages/skills/) | 10 Skills mit manifest.json + instructions.md |
+| 2 | Memory-DB & Pattern-Engine | iterative renewal, Snappy+SHA-256, 8 Patterns in DecisionResult.flags |
+| 3 | Chaos-Test Suite & Gates | 19 Szenarien, Kategorie 5 Trading-Edge, GT-018 Golden Task |
+| 4 | Orchestrator & End-to-End Pipeline | 7-Phasen-Kette, Chaos-Gate, Secrets Vault, Action-Handbook |
+| 5 | Validation, Tests & Handover | GT-001, GT-005, GT-008, GT-009, GT-013-GT-018, Chaos-Suite, PR, Status Review Ready |
 
 ---
 
