@@ -4,3 +4,4 @@
     "resultHashStable": true
   }
 }
+{ "expect": { "passRate": 1, "category3Passed": true } }

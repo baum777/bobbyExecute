@@ -9,3 +9,4 @@
     "requiredPermissions": ["execute"]
   }
 }
+{ "traceId": "gt-009-trace", "category": 5, "scenario": "pattern_spike" }

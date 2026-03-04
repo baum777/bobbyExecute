@@ -4,3 +4,4 @@
     "checksFormat": true
   }
 }
+{ "expect": { "passRate": 1, "category2Passed": true } }

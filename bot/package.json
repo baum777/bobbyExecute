@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "build": "tsc",
@@ -15,14 +15,18 @@
     "test:golden": "vitest run tests/golden-tasks tests/harness",
     "lint": "tsc --noEmit",
     "openapi:validate": "npx @apidevtools/swagger-cli validate openapi.yaml"
+    "test:chaos": "vitest run tests/chaos",
+    "premerge": "npm run lint && npm run test:golden && npm run test:chaos"
   },
   "dependencies": {
-    "zod": "^3.23.8",
     "pino": "^9.5.0",
-    "pino-pretty": "^11.3.0"
+    "pino-pretty": "^11.3.0",
+    "snappyjs": "^0.7.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/snappyjs": "^0.7.1",
     "typescript": "~5.6.0",
     "vitest": "^2.1.0"
   }

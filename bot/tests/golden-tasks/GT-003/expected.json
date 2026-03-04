@@ -3,5 +3,8 @@
     "confidenceMin": 0,
     "confidenceMax": 1,
     "directionOneOf": ["buy", "sell", "hold"]
+    "renewed": true,
+    "compressed": true,
+    "hasSnapshot": true
   }
 }

@@ -1,0 +1,18 @@
+/**
+ * ScoreCard - MCI/BCI/Hybrid Scores (age-adjusted, double-penalty protected).
+ * Version: 1.0.0 | Owner: Kimi Swarm | Layer: core/contracts | Last Updated: 2026-03-04
+ */
+import { z } from "zod";
+
+export const ScoreCardSchema = z.object({
+  traceId: z.string(),
+  timestamp: z.string().datetime(),
+  mci: z.number().min(-1).max(1),
+  bci: z.number().min(-1).max(1),
+  hybrid: z.number().min(-1).max(1),
+  crossSourceConfidenceScore: z.number().min(0).max(1),
+  ageAdjusted: z.boolean().default(true),
+  doublePenaltyApplied: z.boolean().optional(),
+});
+
+export type ScoreCard = z.infer<typeof ScoreCardSchema>;

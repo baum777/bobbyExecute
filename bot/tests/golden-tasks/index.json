@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "tasks": [
     {
       "id": "GT-001",
@@ -61,5 +61,23 @@
       "title": "End-to-End Pipeline determinism",
       "fixtureDir": "GT-010"
     }
+    { "id": "GT-001", "phase": "trading", "title": "Full pipeline - Market to Journal (paper-trade)", "fixtureDir": "GT-001" },
+    { "id": "GT-002", "phase": "pipeline", "title": "Pipeline Integration Test", "fixtureDir": "GT-002" },
+    { "id": "GT-003", "phase": "memory", "title": "Memory-DB Renewal Test", "fixtureDir": "GT-003" },
+    { "id": "GT-004", "phase": "patterns", "title": "Pattern Recognition Test", "fixtureDir": "GT-004" },
+    { "id": "GT-005", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 1", "fixtureDir": "GT-005" },
+    { "id": "GT-006", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 2", "fixtureDir": "GT-006" },
+    { "id": "GT-007", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 3", "fixtureDir": "GT-007" },
+    { "id": "GT-008", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 4", "fixtureDir": "GT-008" },
+    { "id": "GT-009", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 5 Pattern-Spike", "fixtureDir": "GT-009" },
+    { "id": "GT-010", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 5 Narrative", "fixtureDir": "GT-010" },
+    { "id": "GT-011", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 5 Flash-Crash", "fixtureDir": "GT-011" },
+    { "id": "GT-012", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 5 MEV", "fixtureDir": "GT-012" },
+    { "id": "GT-013", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 5 Rug-Pull", "fixtureDir": "GT-013" },
+    { "id": "GT-014", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 5 Oracle", "fixtureDir": "GT-014" },
+    { "id": "GT-015", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 5 PumpDump", "fixtureDir": "GT-015" },
+    { "id": "GT-016", "phase": "chaos", "title": "Chaos Gate Test - Kategorie 5 Liquidation", "fixtureDir": "GT-016" },
+    { "id": "GT-017", "phase": "integration", "title": "Full Integration Test", "fixtureDir": "GT-017" },
+    { "id": "GT-018", "phase": "validation", "title": "Full Kimi Swarm Chaos Validation", "fixtureDir": "GT-018" }
   ]
 }

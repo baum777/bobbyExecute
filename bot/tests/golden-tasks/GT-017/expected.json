@@ -1,0 +1,7 @@
+{
+  "expect": {
+    "phaseReached": "focused_tx",
+    "chaosPassed": true,
+    "memoryLogEntries": ">0"
+  }
+}

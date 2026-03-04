@@ -4,7 +4,7 @@ Production-grade Onchain Trading Bot Architecture transplanting patterns from [O
 
 ## Stack
 
-- **TypeScript** (Node 20+)
+- **TypeScript** (Node 22+)
 - **Zod** for schemas
 - **Pino** for JSON logging
 - **Vitest** for tests
@@ -49,6 +49,7 @@ npm install
 npm run build
 npm test
 npm run test:golden
+npm run premerge
 ```
 
 ## Config

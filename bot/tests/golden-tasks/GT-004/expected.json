@@ -2,5 +2,8 @@
   "expect": {
     "allowed": false,
     "reasonContains": "Slippage"
+    "hasPatterns": true,
+    "hasEvidence": true,
+    "confidenceInRange": true
   }
 }

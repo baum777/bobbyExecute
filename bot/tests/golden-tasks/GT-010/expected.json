@@ -7,3 +7,4 @@
     "hashStableAcrossRuns": true
   }
 }
+{ "expect": { "passRate": 1, "category5Passed": true } }

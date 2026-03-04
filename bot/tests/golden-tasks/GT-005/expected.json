@@ -5,3 +5,4 @@
     "noRealTxSignature": true
   }
 }
+{ "expect": { "passRate": 1, "category1Passed": true } }

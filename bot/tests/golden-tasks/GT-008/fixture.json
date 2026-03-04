@@ -3,3 +3,4 @@
   "failureThreshold": 5,
   "reportSequence": ["success", "success", "fail", "fail", "fail", "fail", "fail"]
 }
+{ "traceId": "gt-008-trace", "category": 4 }

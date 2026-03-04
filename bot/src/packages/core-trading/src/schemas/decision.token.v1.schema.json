@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "decision.token.v1.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "decision_id",
+    "cqd_hash",
+    "policy_hash",
+    "gates_hash",
+    "created_at_bucket",
+    "expires_at_bucket",
+    "action",
+    "prev_journal_hash",
+    "token_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "decision.token.v1"
+    },
+    "decision_id": {
+      "type": "string",
+      "minLength": 8
+    },
+    "cqd_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "pattern_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sizing_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "policy_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "gates_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "created_at_bucket": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "expires_at_bucket": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "EXECUTE",
+        "HOLD",
+        "BLOCK"
+      ]
+    },
+    "prev_journal_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "token_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "signature": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

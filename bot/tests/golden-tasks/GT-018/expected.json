@@ -1,0 +1,7 @@
+{
+  "expect": {
+    "passRate": ">=0.98",
+    "all19ScenariosRun": true,
+    "auditHashChainValid": true
+  }
+}

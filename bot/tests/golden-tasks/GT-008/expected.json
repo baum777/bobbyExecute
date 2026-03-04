@@ -4,3 +4,4 @@
     "healthyCountBefore": 6
   }
 }
+{ "expect": { "passRate": 1, "category4Passed": true } }

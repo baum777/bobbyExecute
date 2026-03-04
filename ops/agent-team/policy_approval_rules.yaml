@@ -1,0 +1,37 @@
+# Policy Approval Rules
+# Version: 1.1.0
+# Owner: Kimi Swarm
+# Last Updated: 2026-03-04T07:41:04Z
+
+triggers:
+  - id: blueprint_or_golden_task_change
+    description: Änderungen an Blueprints oder Golden Tasks
+    approver: Reviewer_Claude
+    required: true
+
+  - id: destructive_ops
+    description: Destructive Operationen (DB Drops, Secret Rotation)
+    approver: Reviewer_Claude
+    required: true
+
+  - id: ci_or_build
+    description: CI/Build Konfigurationsänderungen
+    approver: Reviewer_Claude
+    required: true
+
+  - id: prompt_or_agent_core
+    description: Änderungen an Prompt-/Agent-Core-Logik
+    approver: Reviewer_Claude
+    required: true
+
+  - id: prod_config
+    description: Produktionsnahe Konfigurationsänderungen
+    approver: Reviewer_Claude
+    required: true
+
+  - id: large_change
+    description: Umfangreiche Multi-File Änderungen mit erhöhtem Risiko
+    approver: Reviewer_Claude
+    required: true
+
+default_policy: require_approval_on_trigger

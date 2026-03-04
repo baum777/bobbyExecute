@@ -1,0 +1,10 @@
+{
+  "id": "memory.log_append",
+  "version": "1.0.0",
+  "layer": "memory",
+  "autonomyTier": 3,
+  "sideEffects": true,
+  "reviewPolicy": "required",
+  "inputs": ["LogEntry"],
+  "outputs": ["LogAck"]
+}

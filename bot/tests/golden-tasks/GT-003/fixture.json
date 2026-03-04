@@ -10,4 +10,9 @@
     "volume24h": 1000000,
     "liquidity": 50000000
   }
+  "dataQuality": {
+    "completeness": 0.9,
+    "freshness": 0.95
+  },
+  "data": { "signals": [], "sources": [] }
 }
