@@ -1,0 +1,203 @@
+{
+  "version": "1.0.0",
+  "run_id": "reducedmode-1735689600000",
+  "generated_at": "2026-01-01T00:00:00.000Z",
+  "mode": "dry",
+  "status": "ok",
+  "low_confidence_analysis": false,
+  "config": {
+    "max_unique_tokens": 30,
+    "min_unique_tokens": 20,
+    "discrepancy_threshold": 0.2,
+    "min_data_completeness": 70,
+    "max_recovery_attempts": 3,
+    "social_enabled": false,
+    "moralis_enabled": false,
+    "rpc_verify_enabled": false
+  },
+  "transparency": {
+    "universe_size_pre_dedupe": 60,
+    "universe_size_post_dedupe": 30,
+    "average_completeness_score": 86.5,
+    "average_confidence_score": 82.3,
+    "discrepancy_rate_avg": 0.11,
+    "divergence_histogram": {
+      "cross_source_price_delta": 4,
+      "volume_liquidity_mismatch": 3
+    }
+  },
+  "sections": {
+    "A_universe": {
+      "candidates_total": 60,
+      "unique_tokens": 30,
+      "source_balance": {
+        "dexpaprika": 15,
+        "dexscreener": 15
+      },
+      "notes": [
+        "source_balance_dexscreener=15,dexpaprika=15"
+      ]
+    },
+    "B_quality": {
+      "average_data_completeness_score": 86.5,
+      "average_cross_source_confidence_score": 82.3,
+      "discrepancy_rate": 0.11,
+      "notes": []
+    },
+    "C_structural": {
+      "average_structural_score": 67.2,
+      "liquidity_regime_distribution": {
+        "healthy": 14,
+        "structural": 10,
+        "thin": 6
+      },
+      "notes": []
+    },
+    "D_social": {
+      "enabled": false,
+      "data_status": "disabled",
+      "narrative_mix": {
+        "mixed": 30
+      },
+      "notes": [
+        "social_pipeline_disabled_by_config"
+      ]
+    },
+    "E_risk_divergence": {
+      "average_overall_risk_score": 46.8,
+      "high_risk_count": 3,
+      "divergence_override_count": 1,
+      "notes": []
+    },
+    "F_classification": {
+      "market_structure_distribution": {
+        "contracting": 6,
+        "expanding": 10,
+        "stable": 14
+      },
+      "top_narrative": "mixed",
+      "notes": []
+    }
+  },
+  "tokens": [
+    {
+      "token": {
+        "contract_address": "ExampleContract1111111111111111111111111",
+        "chain": "solana",
+        "symbol": "EXM",
+        "name": "EXM",
+        "pair_id": "DS-PAIR-1",
+        "source_primary": "dexscreener"
+      },
+      "normalized": {
+        "token": {
+          "contract_address": "ExampleContract1111111111111111111111111",
+          "chain": "solana",
+          "symbol": "EXM",
+          "name": "EXM",
+          "pair_id": "DS-PAIR-1",
+          "source_primary": "dexscreener"
+        },
+        "snapshots": [
+          {
+            "source": "dexscreener",
+            "fetched_at": "2026-01-01T00:00:00.000Z",
+            "token": {
+              "contract_address": "ExampleContract1111111111111111111111111",
+              "chain": "solana",
+              "symbol": "EXM",
+              "name": "EXM",
+              "pair_id": "DS-PAIR-1",
+              "source_primary": "dexscreener"
+            },
+            "contract_address": "ExampleContract1111111111111111111111111",
+            "price_usd": 0.25,
+            "liquidity_usd": 180000,
+            "volume_24h_usd": 95000,
+            "txns_24h": 210,
+            "fdv_usd": null,
+            "market_cap_usd": null,
+            "raw": {
+              "source": "seed"
+            }
+          }
+        ],
+        "merged": {
+          "price_usd": 0.25,
+          "liquidity_usd": 180000,
+          "volume_24h_usd": 95000,
+          "txns_24h": 210
+        },
+        "quality": {
+          "data_completeness_score": 90,
+          "cross_source_confidence_score": 84,
+          "discrepancy_rate": 0,
+          "discrepancy_count": 0,
+          "source_coverage": 0.5,
+          "relative_delta_price": null,
+          "notes": []
+        }
+      },
+      "structural": {
+        "liquidity_norm": 5.2553,
+        "volume_norm": 4.9777,
+        "v2l_ratio": 0.5278,
+        "structural_score": 100,
+        "liquidity_regime": "structural",
+        "volatility_regime": "unknown",
+        "notes": [
+          "liquidity_norm=5.255",
+          "volume_norm=4.978",
+          "v2l_ratio=0.528"
+        ]
+      },
+      "social": {
+        "enabled": false,
+        "data_status": "disabled",
+        "sample_size": 0,
+        "weighted_narrative_score": null,
+        "narrative_type": "mixed",
+        "notes": [
+          "social_collection_disabled_by_config"
+        ]
+      },
+      "risk": {
+        "structural_risk_score": 0,
+        "social_risk_score": 50,
+        "quality_risk_score": 16,
+        "divergence_risk_score": 0,
+        "overall_risk_score": 14,
+        "flags": [],
+        "weight_profile": {
+          "profile": "balanced",
+          "weights": {
+            "structural": 0.35,
+            "social": 0.2,
+            "quality": 0.25,
+            "divergence": 0.2
+          },
+          "rationale": "default_balanced_profile"
+        }
+      },
+      "divergence": {
+        "signals": [],
+        "signal_count": 0,
+        "has_override": false
+      },
+      "ecosystem": {
+        "market_structure": "expanding",
+        "narrative_dominance": "mixed",
+        "liquidity_regime": "structural",
+        "classification": "expanding:structural:mixed"
+      },
+      "reasoning_bullets": [
+        "cross_source_confidence_score=84.00 and discrepancy_rate=0.0000",
+        "structural_score=100.00 with liquidity_regime=structural and v2l_ratio=0.5278",
+        "overall_risk_score=14.00 with divergence_signal_count=0 and profile=balanced"
+      ]
+    }
+  ],
+  "top_structural": [],
+  "top_fragile": [],
+  "notes": []
+}

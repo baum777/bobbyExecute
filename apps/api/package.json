@@ -1,0 +1,21 @@
+{
+  "name": "@reducedmode/api",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@reducedmode/adapters": "workspace:*",
+    "@reducedmode/contracts": "workspace:*",
+    "@reducedmode/engine": "workspace:*",
+    "fastify": "^5.0.0",
+    "pino": "^9.5.0",
+    "zod": "^3.23.8"
+  }
+}
