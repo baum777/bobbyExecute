@@ -35,3 +35,16 @@
 | **Action** | Skills-Implementierung abgeschlossen |
 
 **Discovery**: Compression verwendet zlib (gzip) statt Snappy – Snappy kann bei Bedarf nachgerüstet werden. Spezifikation erlaubt Kompatibilität.
+
+---
+
+## F-003
+
+| Feld | Wert |
+|------|------|
+| **ISO-UTC** | 2026-03-04T17:05:00Z |
+| **Owner** | Kimi Swarm |
+| **Impact** | Phase 0 Bootstrap |
+| **Action** | Schemas via Zod validiert, MCI/BCI-Formeln geprüft |
+
+**Discovery**: Pflicht-Blueprints `pattern-recognition-chaos-memory-blueprint.md`, `secrets-management-blueprint.md`, `extended-intelligence-execution-pipeline.md` fehlen im Repo. Master-Spec dient als Single Source of Truth. JSON-Schema-Validierung erfolgt über Zod-Schemas in `bot/src/core/contracts/`; alle 24 Golden-Task-Tests bestanden. MCI/BCI/Hybrid: AGE_DECAY=0.01, DOUBLE_PENALTY_THRESHOLD=0.3, Hybrid mciWeight=0.6/bciWeight=0.4 – konform mit Master-Spec.
