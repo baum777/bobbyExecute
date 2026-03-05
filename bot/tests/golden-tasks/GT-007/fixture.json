@@ -1,1 +1,12 @@
-{ "traceId": "gt-007-trace", "category": 3 }
+{
+  "entry": {
+    "traceId": "gt-007-trace",
+    "timestamp": "2025-03-01T12:00:00.000Z",
+    "stage": "complete",
+    "decisionHash": "abc123",
+    "resultHash": "def456",
+    "input": { "market": { "priceUsd": 100 }, "signal": { "direction": "hold", "confidence": 0.5 } },
+    "output": { "success": true },
+    "blocked": false
+  }
+}

@@ -1,1 +1,6 @@
-{ "expect": { "passRate": 1, "category2Passed": true } }
+{
+  "expect": {
+    "passed": true,
+    "checksFormat": true
+  }
+}

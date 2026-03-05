@@ -1,5 +1,8 @@
 {
   "expect": {
+    "canonicalHashStable": true,
+    "marketPriceUsd": 150.5,
+    "walletTotalUsd": 150.5,
     "phaseReached": "focused_tx",
     "chaosPassed": true,
     "hasDecisionResult": true,

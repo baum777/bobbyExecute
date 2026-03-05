@@ -1,12 +1,23 @@
 /**
  * Journal agent - append-only audit logging.
- * PROPOSED - integrates with ActionLogger.
+ * PROPOSED - integrates with ActionLogger and JournalWriter.
  */
 import type { ActionLogger } from "../observability/action-log.js";
+import type { JournalWriter } from "../journal-writer/writer.js";
 import type { JournalEntry } from "../core/contracts/journal.js";
 
 export function createJournalHandler(
   logger: ActionLogger
+): (entry: JournalEntry) => Promise<void>;
+
+export function createJournalHandler(
+  logger: ActionLogger,
+  writer: JournalWriter
+): (entry: JournalEntry) => Promise<void>;
+
+export function createJournalHandler(
+  logger: ActionLogger,
+  writer?: JournalWriter
 ): (entry: JournalEntry) => Promise<void> {
   return async (entry) => {
     await logger.append({
@@ -20,5 +31,8 @@ export function createJournalHandler(
       reason: entry.reason,
       traceId: entry.traceId,
     });
+    if (writer) {
+      await writer.append(entry);
+    }
   };
 }

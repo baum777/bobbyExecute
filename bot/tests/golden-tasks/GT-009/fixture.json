@@ -1,1 +1,11 @@
-{ "traceId": "gt-009-trace", "category": 5, "scenario": "pattern_spike" }
+{
+  "profile": {
+    "id": "test-agent",
+    "permissions": ["read", "analyze"]
+  },
+  "context": {
+    "hasSideEffects": true,
+    "reviewPolicyMode": "none",
+    "requiredPermissions": ["execute"]
+  }
+}

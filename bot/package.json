@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:golden": "vitest run tests/golden-tasks tests/harness",
     "lint": "tsc --noEmit",
+    "openapi:validate": "npx @apidevtools/swagger-cli validate openapi.yaml",
     "test:chaos": "vitest run tests/chaos",
     "premerge": "npm run lint && npm run test:golden && npm run test:chaos",
     "validate:openapi": "swagger-cli validate docs/architecture/openapi.yaml"

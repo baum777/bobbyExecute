@@ -1,0 +1,313 @@
+openapi: 3.0.3
+info:
+  title: A==B Governance Pipeline API
+  description: OpenAPI-ready endpoint surface for the onchain trading bot (Fail-Closed, deterministisch)
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+paths:
+  /intent:
+    post:
+      summary: Submit trade intent
+      description: Accepts a TradeIntent for evaluation (Signal -> Risk -> Execute pipeline).
+      operationId: submitIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TradeIntent'
+      responses:
+        '202':
+          description: Intent accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentAccepted'
+        '400':
+          description: Invalid intent (validation failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /decision:
+    post:
+      summary: Submit decision context
+      description: Receives market + wallet + signal for decision hash computation.
+      operationId: submitDecision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionContext'
+      responses:
+        '200':
+          description: Decision hash computed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionResponse'
+        '400':
+          description: Invalid context
+
+  /journal:
+    get:
+      summary: Query journal entries
+      description: Retrieve journal entries by traceId or time range.
+      operationId: getJournalEntries
+      parameters:
+        - name: traceId
+          in: query
+          schema:
+            type: string
+          description: Filter by trace ID
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Start of time range (ISO-8601)
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: End of time range (ISO-8601)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Journal entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalEntriesResponse'
+    post:
+      summary: Append journal entry
+      description: Append a canonicalized journal entry (append-only).
+      operationId: appendJournal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JournalEntry'
+      responses:
+        '201':
+          description: Entry appended
+        '400':
+          description: Invalid entry
+
+  /health:
+    get:
+      summary: Health check
+      description: Returns adapter health (Circuit Breaker state).
+      operationId: getHealth
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    TradeIntent:
+      type: object
+      required: [traceId, timestamp, idempotencyKey, tokenIn, tokenOut, amountIn, minAmountOut]
+      properties:
+        traceId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        idempotencyKey:
+          type: string
+        tokenIn:
+          type: string
+        tokenOut:
+          type: string
+        amountIn:
+          type: string
+        minAmountOut:
+          type: string
+        slippagePercent:
+          type: number
+          minimum: 0
+          maximum: 100
+          default: 1
+        deadline:
+          type: string
+          format: date-time
+        dryRun:
+          type: boolean
+          default: false
+
+    IntentAccepted:
+      type: object
+      properties:
+        traceId:
+          type: string
+        status:
+          type: string
+          enum: [accepted]
+        message:
+          type: string
+
+    DecisionContext:
+      type: object
+      required: [market, wallet, signal]
+      properties:
+        market:
+          $ref: '#/components/schemas/MarketSnapshot'
+        wallet:
+          $ref: '#/components/schemas/WalletSnapshot'
+        signal:
+          type: object
+          properties:
+            direction:
+              type: string
+              enum: [buy, sell, hold]
+            confidence:
+              type: number
+              minimum: 0
+              maximum: 1
+
+    DecisionResponse:
+      type: object
+      properties:
+        decisionHash:
+          type: string
+        traceId:
+          type: string
+
+    JournalEntry:
+      type: object
+      required: [traceId, timestamp, stage]
+      properties:
+        traceId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        stage:
+          type: string
+        decisionHash:
+          type: string
+        resultHash:
+          type: string
+        input:
+          type: object
+        output:
+          type: object
+        blocked:
+          type: boolean
+        reason:
+          type: string
+
+    JournalEntriesResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/JournalEntry'
+        total:
+          type: integer
+
+    MarketSnapshot:
+      type: object
+      required: [traceId, timestamp, source, poolId, baseToken, quoteToken, priceUsd]
+      properties:
+        traceId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum: [dexpaprika]
+        poolId:
+          type: string
+        baseToken:
+          type: string
+        quoteToken:
+          type: string
+        priceUsd:
+          type: number
+        volume24h:
+          type: number
+        liquidity:
+          type: number
+
+    WalletSnapshot:
+      type: object
+      required: [traceId, timestamp, source, walletAddress, balances]
+      properties:
+        traceId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum: [moralis]
+        walletAddress:
+          type: string
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/TokenBalance'
+        totalUsd:
+          type: number
+
+    TokenBalance:
+      type: object
+      properties:
+        mint:
+          type: string
+        symbol:
+          type: string
+        decimals:
+          type: integer
+        amount:
+          type: string
+        amountUsd:
+          type: number
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        adapters:
+          type: array
+          items:
+            type: object
+            properties:
+              adapterId:
+                type: string
+              healthy:
+                type: boolean
+              consecutiveFailures:
+                type: integer
+
+    ValidationError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: array

@@ -1,4 +1,33 @@
 {
+  "intent": {
+    "traceId": "gt-004-trace",
+    "timestamp": "2025-03-01T12:00:00.000Z",
+    "idempotencyKey": "gt-004-intent",
+    "tokenIn": "SOL",
+    "tokenOut": "USDC",
+    "amountIn": "1",
+    "minAmountOut": "0.95",
+    "slippagePercent": 15
+  },
+  "market": {
+    "traceId": "gt-004-trace",
+    "timestamp": "2025-03-01T12:00:00.000Z",
+    "source": "dexpaprika",
+    "poolId": "p1",
+    "baseToken": "SOL",
+    "quoteToken": "USD",
+    "priceUsd": 100,
+    "volume24h": 1000,
+    "liquidity": 10000
+  },
+  "wallet": {
+    "traceId": "gt-004-trace",
+    "timestamp": "2025-03-01T12:00:00.000Z",
+    "source": "moralis",
+    "walletAddress": "addr",
+    "balances": [],
+    "totalUsd": 0
+  },
   "scoreCard": {
     "traceId": "gt-004-trace",
     "timestamp": "2026-03-04T12:00:00.000Z",

@@ -1,1 +1,5 @@
-{ "traceId": "gt-008-trace", "category": 4 }
+{
+  "adapterIds": ["dexpaprika", "moralis", "rpc"],
+  "failureThreshold": 5,
+  "reportSequence": ["success", "success", "fail", "fail", "fail", "fail", "fail"]
+}

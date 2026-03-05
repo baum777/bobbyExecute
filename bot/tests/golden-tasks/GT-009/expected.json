@@ -1,1 +1,6 @@
-{ "expect": { "passRate": 1, "category5Passed": true } }
+{
+  "expect": {
+    "allowed": false,
+    "reasonContains": "review"
+  }
+}

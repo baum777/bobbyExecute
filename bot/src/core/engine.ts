@@ -11,6 +11,7 @@ import type { TradeIntent } from "./contracts/trade.js";
 import type { RpcVerificationReport } from "./contracts/trade.js";
 import type { ExecutionReport } from "./contracts/trade.js";
 import type { JournalEntry } from "./contracts/journal.js";
+import type { JournalWriter } from "../journal-writer/writer.js";
 import { SystemClock } from "./clock.js";
 import { hashDecision, hashResult } from "./determinism/hash.js";
 import { createTraceId } from "../observability/trace-id.js";
@@ -68,21 +69,35 @@ export type VerifyHandler = (
   report: ExecutionReport
 ) => Promise<RpcVerificationReport>;
 
+import type { EventBus } from "../eventbus/index.js";
+
 export interface EngineConfig {
   clock?: Clock;
   actionLogger?: ActionLogger;
   dryRun?: boolean;
+  /** For deterministic tests - when set, used as traceId suffix instead of random */
+  traceIdSeed?: string;
+  /** Optional JournalWriter - when provided, journal entries are persisted */
+  journalWriter?: JournalWriter;
+  /** Optional EventBus for stage transitions */
+  eventBus?: EventBus;
 }
 
 export class Engine {
   private readonly clock: Clock;
   private readonly actionLogger?: ActionLogger;
   private readonly dryRun: boolean;
+  private readonly traceIdSeed?: string;
+  private readonly journalWriter?: JournalWriter;
+  private readonly eventBus?: EventBus;
 
   constructor(config: EngineConfig = {}) {
     this.clock = config.clock ?? new SystemClock();
     this.actionLogger = config.actionLogger;
     this.dryRun = config.dryRun ?? true;
+    this.traceIdSeed = config.traceIdSeed;
+    this.journalWriter = config.journalWriter;
+    this.eventBus = config.eventBus;
   }
 
   async run(
@@ -93,7 +108,12 @@ export class Engine {
     verifyFn: VerifyHandler
   ): Promise<EngineState> {
     const timestamp = this.clock.now().toISOString();
-    const traceId = createTraceId({ timestamp, prefix: "trace" });
+    const traceId = createTraceId({
+      timestamp,
+      prefix: "trace",
+      seed: this.traceIdSeed,
+      mode: this.traceIdSeed || process.env.REPLAY_MODE === "true" ? "replay" : "live",
+    });
     const state: EngineState = {
       stage: "ingest",
       traceId,
@@ -109,6 +129,7 @@ export class Engine {
       const signal = await signalFn(market);
       state.signal = signal;
       state.stage = "risk";
+      await this.emitStageTransition(state, "signal", "risk");
 
       const intent: TradeIntent = {
         traceId,
@@ -134,9 +155,11 @@ export class Engine {
 
       state.blocked = false;
       state.stage = "execute";
+      await this.emitStageTransition(state, "risk", "execute");
       const execReport = await executeFn(intent);
       state.executionReport = execReport;
       state.stage = "verify";
+      await this.emitStageTransition(state, "execute", "verify");
 
       const rpcVerify = await verifyFn(intent, execReport);
       state.rpcVerification = rpcVerify;
@@ -148,6 +171,7 @@ export class Engine {
       }
 
       state.stage = "journal";
+      await this.emitStageTransition(state, "verify", "journal");
       const decisionHash = hashDecision({ market, wallet, signal });
       const resultHash = hashResult({ execReport, rpcVerify });
       state.journalEntry = {
@@ -160,7 +184,11 @@ export class Engine {
         output: { execReport, rpcVerify },
         blocked: false,
       };
+      if (this.journalWriter) {
+        await this.journalWriter.append(state.journalEntry);
+      }
       await this.log(state, "complete");
+      await this.emitStageTransition(state, "journal", "monitor");
 
       state.stage = "monitor";
       return state;
@@ -170,6 +198,29 @@ export class Engine {
       await this.log(state, "error");
       throw err;
     }
+  }
+
+  private async emitStageTransition(
+    state: EngineState,
+    fromStage: string,
+    toStage: string
+  ): Promise<void> {
+    if (!this.eventBus) return;
+    await this.eventBus.emit({
+      type: "StageTransition",
+      traceId: state.traceId,
+      timestamp: this.clock.now().toISOString(),
+      fromStage,
+      toStage,
+      payload: {
+        market: state.market,
+        wallet: state.wallet,
+        signal: state.signal,
+        tradeIntent: state.tradeIntent,
+        executionReport: state.executionReport,
+        rpcVerification: state.rpcVerification,
+      },
+    });
   }
 
   private async log(state: EngineState, action: string): Promise<void> {

@@ -1,1 +1,7 @@
-{ "expect": { "passRate": 1, "category1Passed": true } }
+{
+  "expect": {
+    "success": true,
+    "dryRun": true,
+    "noRealTxSignature": true
+  }
+}

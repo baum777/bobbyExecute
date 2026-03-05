@@ -1,1 +1,6 @@
-{ "expect": { "passRate": 1, "category4Passed": true } }
+{
+  "expect": {
+    "afterFiveFailures": "unhealthy",
+    "healthyCountBefore": 6
+  }
+}

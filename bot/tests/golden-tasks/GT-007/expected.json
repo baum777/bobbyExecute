@@ -1,1 +1,6 @@
-{ "expect": { "passRate": 1, "category3Passed": true } }
+{
+  "expect": {
+    "decisionHashStable": true,
+    "resultHashStable": true
+  }
+}

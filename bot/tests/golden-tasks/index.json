@@ -1,6 +1,66 @@
 {
   "version": "1.1",
   "tasks": [
+    {
+      "id": "GT-001",
+      "phase": "trading",
+      "title": "Full pipeline - Market to Journal (paper-trade)",
+      "fixtureDir": "GT-001"
+    },
+    {
+      "id": "GT-002",
+      "phase": "trading",
+      "title": "Ingest-Agent determinism (Markt-Daten Eingabe)",
+      "fixtureDir": "GT-002"
+    },
+    {
+      "id": "GT-003",
+      "phase": "trading",
+      "title": "Signal-Agent bounded output (Confidence-Range)",
+      "fixtureDir": "GT-003"
+    },
+    {
+      "id": "GT-004",
+      "phase": "trading",
+      "title": "Risk-Agent fail-closed (Reject bei unklaren Daten)",
+      "fixtureDir": "GT-004"
+    },
+    {
+      "id": "GT-005",
+      "phase": "trading",
+      "title": "Execution-Agent side-effect isolation",
+      "fixtureDir": "GT-005"
+    },
+    {
+      "id": "GT-006",
+      "phase": "trading",
+      "title": "Verify-Agent RPC-Konsistenz",
+      "fixtureDir": "GT-006"
+    },
+    {
+      "id": "GT-007",
+      "phase": "trading",
+      "title": "Journal-Agent canonical hash",
+      "fixtureDir": "GT-007"
+    },
+    {
+      "id": "GT-008",
+      "phase": "governance",
+      "title": "Circuit-Breaker state transition",
+      "fixtureDir": "GT-008"
+    },
+    {
+      "id": "GT-009",
+      "phase": "governance",
+      "title": "Guardrails permission enforcement",
+      "fixtureDir": "GT-009"
+    },
+    {
+      "id": "GT-010",
+      "phase": "trading",
+      "title": "End-to-End Pipeline determinism",
+      "fixtureDir": "GT-010"
+    }
     { "id": "GT-001", "phase": "trading", "title": "Full pipeline - Market to Journal (paper-trade)", "fixtureDir": "GT-001" },
     { "id": "GT-002", "phase": "pipeline", "title": "Pipeline Integration Test", "fixtureDir": "GT-002" },
     { "id": "GT-003", "phase": "memory", "title": "Memory-DB Renewal Test", "fixtureDir": "GT-003" },

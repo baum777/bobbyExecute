@@ -45,6 +45,9 @@ export {
 } from "./adapters/adapters-with-cb.js";
 export * from "./storage/idempotency-store.js";
 export { InMemoryIdempotencyStore } from "./storage/inmemory-kv.js";
+export * from "./eventbus/index.js";
+export * from "./journal-writer/index.js";
+export * from "./config-loader/index.js";
 export * from "./memory/index.js";
 export { checkHealth, type HealthReport } from "./observability/health.js";
 export { recordLatency, getP95 } from "./observability/metrics.js";
