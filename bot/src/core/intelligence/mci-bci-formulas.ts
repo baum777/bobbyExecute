@@ -1,6 +1,7 @@
 /**
  * MCI/BCI/Hybrid Formeln - age-adjusted, double-penalty protected.
- * Version: 1.0.0 | Owner: Kimi Swarm | Layer: core/intelligence | Last Updated: 2026-03-04
+ * Version: 1.1.0 | Owner: Kimi Swarm | Layer: core/intelligence | Last Updated: 2026-03-05
+ * Changes: Hybrid weights updated to 0.55/0.45 per Target Architecture
  */
 import type { SignalPack } from "../contracts/signalpack.js";
 import type { ScoreCard } from "../contracts/scorecard.js";
@@ -38,12 +39,13 @@ export function applyDoublePenalty(
 
 /**
  * Hybrid Score: Gewichtete Kombination MCI + BCI.
+ * Target Architecture: 0.55 MCI / 0.45 BCI
  */
 export function computeHybrid(
   mci: number,
   bci: number,
-  mciWeight = 0.6,
-  bciWeight = 0.4
+  mciWeight = 0.55,  // CHANGED from 0.6 to 0.55 per Target Architecture
+  bciWeight = 0.45   // CHANGED from 0.4 to 0.45 per Target Architecture
 ): number {
   return clamp(mci * mciWeight + bci * bciWeight, -1, 1);
 }

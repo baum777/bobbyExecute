@@ -1,6 +1,7 @@
 /**
  * Onchain Trading Bot - main entry point.
- * Version: 1.0.0 | Owner: Kimi Swarm | Last Updated: 2026-03-04
+ * Version: 1.1.0 | Owner: Kimi Swarm | Last Updated: 2026-03-05
+ * Changes: Added DexScreenerAdapter exports for Milestone 1
  */
 export { Clock, SystemClock, FakeClock } from "./core/clock.js";
 export { ToolRouter } from "./core/tool-router.js";
@@ -21,3 +22,8 @@ export * from "./observability/action-log.js";
 export * from "./memory/index.js";
 export * from "./chaos/index.js";
 export * from "./patterns/pattern-engine.js";
+
+// Milestone 1: DexScreenerAdapter exports
+export * from "./adapters/dexscreener/client.js";
+export * from "./adapters/dexscreener/types.js";
+export * from "./adapters/dexscreener/mapper.js";

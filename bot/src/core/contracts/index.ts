@@ -11,3 +11,4 @@ export * from "./signalpack.js";
 export * from "./trade.js";
 export * from "./wallet.js";
 export * from "./cqd.js";
+export * from "./tokenuniverse.js";
