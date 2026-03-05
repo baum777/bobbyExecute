@@ -11,9 +11,11 @@ async function main() {
   const ds = new DexScreenerAdapter();
   const dp = new DexPaprikaAdapter();
 
-  ds.fetchTrendingSolanaPairs = async () => generatePairs(25);
-  dp.fetchSolanaTrending = async () => generateDPTokens(25);
-  dp.fetchSolanaTopVolume = async () => generateDPTokens(25, 25);
+  ds.fetchTrendingPairs = async () => ({ ok: true, data: generatePairs(25), source: "dexscreener" });
+  dp.fetchPairsMix = async () => ({
+    trending: { ok: true, data: generateDPTokens(25), source: "dexpaprika" },
+    volume: { ok: true, data: generateDPTokens(25, 25), source: "dexpaprika" },
+  });
 
   const run = await executeReducedModeRun(ds, dp, { mode: "dry" });
 

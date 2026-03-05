@@ -87,3 +87,16 @@
 | **Action** | Snappy + Chaos Pre-Merge/CI-Gate aktiviert |
 
 **Discovery**: Memory-Kompression wurde von gzip auf Snappy (`snappyjs`) umgestellt. Pre-Merge-Gate (`npm run premerge`) und CI-Workflow (`.github/workflows/chaos-premerge-gate.yml`) erzwingen Lint + Golden Tasks + Chaos-Suite (inkl. Kategorie 5/GT-018).
+
+---
+
+## F-007
+
+| Feld | Wert |
+|------|------|
+| **ISO-UTC** | 2026-03-05T08:30:00Z |
+| **Owner** | Kimi Swarm |
+| **Impact** | Architecture |
+| **Action** | ReducedMode V1 Lean Edge monorepo implemented |
+
+**Discovery**: Node 22 native `fetch` is not intercepted by nock; integration tests use `vi.spyOn` on adapter methods instead. Circuit breaker uses rolling 5-minute window with approximate p95 via sorted array percentile. Completeness formula: `presentRatio * 90 + sourceBonus(max 10)` over 4 core fields (price_usd, volume_24h, liquidity_usd, fdv). Risk profiles: thin_fragile (Fragile/Thin liquidity), volatile_expansion (High volatility + low structural), default. Divergence includes price_leading_vs_structural_mismatch signal (priceChange>20% AND structural_score<40).

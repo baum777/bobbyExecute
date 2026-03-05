@@ -26,3 +26,4 @@
 | 2026-03-04T17:41:28Z | Phase 3 Chaos & Gates (Final Prompt) | Completed | Chaos-Pre-Merge-Test hinzugefügt, CI-Workflow chaos-premerge-gate.yml, GT-018 weiterhin aktiv |
 | 2026-03-04T17:41:36Z | Phase 4 Orchestrator & Pipeline (Final Prompt) | Completed | Decision allow/deny, Vault-Lease-Validation (TTL <= 1h), Review-Gate + Action-Handbook-Lookup integriert |
 | 2026-03-04T17:41:44Z | Phase 5 Validation & Review Ready (Final Prompt) | Completed | npm run premerge + npm test erfolgreich (28 Tests), Workstream Status Review Ready, Approval Gates dokumentiert |
+| 2026-03-05T08:30:00Z | ReducedMode V1 Lean Edge — Full Implementation | Completed | pnpm monorepo (5 packages), 11 Zod schemas, flat adapters (http.client + circuit_breaker with rolling 5m + p95), 9-phase engine, reducedmode.run.ts orchestrator, Fastify API, worker scheduler, 66 tests passing |

@@ -1,65 +1,57 @@
-import type { DynamicWeightProfileV1, WeightProfile, SocialIntelV1 } from "@bobby/contracts";
+import type { DynamicWeightProfileV1, StructuralMetricsV1, SocialIntelV1 } from "@bobby/contracts";
 
-const PROFILES: Record<WeightProfile, Omit<DynamicWeightProfileV1, "profile">> = {
-  balanced: {
-    structural_weight: 0.35,
-    social_weight: 0.20,
-    divergence_weight: 0.25,
-    data_quality_weight: 0.20,
-  },
-  structural_heavy: {
-    structural_weight: 0.50,
-    social_weight: 0.10,
-    divergence_weight: 0.20,
-    data_quality_weight: 0.20,
-  },
-  social_heavy: {
-    structural_weight: 0.20,
-    social_weight: 0.40,
-    divergence_weight: 0.20,
-    data_quality_weight: 0.20,
-  },
-  risk_averse: {
-    structural_weight: 0.25,
-    social_weight: 0.10,
-    divergence_weight: 0.35,
-    data_quality_weight: 0.30,
-  },
+export type RiskProfile = "thin_fragile" | "volatile_expansion" | "default";
+
+interface ProfileWeights {
+  liquidity: number;
+  manipulation: number;
+  exhaustion: number;
+  structural: number;
+}
+
+const PROFILES: Record<RiskProfile, ProfileWeights> = {
+  thin_fragile: { liquidity: 0.45, manipulation: 0.30, exhaustion: 0.15, structural: 0.10 },
+  volatile_expansion: { liquidity: 0.35, exhaustion: 0.30, manipulation: 0.20, structural: 0.15 },
+  default: { liquidity: 0.30, exhaustion: 0.25, manipulation: 0.20, structural: 0.25 },
 };
 
+export function selectProfile(
+  structural: StructuralMetricsV1,
+  social: SocialIntelV1,
+  discrepancyRate: number,
+): RiskProfile {
+  if (structural.liquidity_regime === "Fragile" || structural.liquidity_regime === "Thin") {
+    return "thin_fragile";
+  }
+  if (structural.volatility_regime === "High" && structural.structural_score < 50) {
+    return "volatile_expansion";
+  }
+  void social;
+  void discrepancyRate;
+  return "default";
+}
+
+export function getProfileWeights(profile: RiskProfile): ProfileWeights {
+  return PROFILES[profile];
+}
+
 export function selectWeightProfile(
+  structural: StructuralMetricsV1,
   social: SocialIntelV1,
   discrepancyRate: number,
 ): DynamicWeightProfileV1 {
-  let profile: WeightProfile;
+  const profile = selectProfile(structural, social, discrepancyRate);
+  const w = PROFILES[profile];
 
-  if (discrepancyRate > 0.3) {
-    profile = "risk_averse";
-  } else if (social.data_status === "ok" && social.mention_count_24h !== null && social.mention_count_24h > 50) {
-    profile = "social_heavy";
-  } else if (social.data_status === "disabled" || social.data_status === "data_insufficient") {
-    profile = "structural_heavy";
-  } else {
-    profile = "balanced";
-  }
+  const profileName = profile === "thin_fragile" ? "risk_averse"
+    : profile === "volatile_expansion" ? "structural_heavy"
+    : "balanced";
 
-  const weights = PROFILES[profile];
-
-  if (social.data_status === "disabled" || social.data_status === "data_insufficient") {
-    const redistribute = weights.social_weight;
-    return {
-      profile,
-      structural_weight: round(weights.structural_weight + redistribute * 0.5, 4),
-      social_weight: 0,
-      divergence_weight: round(weights.divergence_weight + redistribute * 0.3, 4),
-      data_quality_weight: round(weights.data_quality_weight + redistribute * 0.2, 4),
-    };
-  }
-
-  return { profile, ...weights };
-}
-
-function round(v: number, decimals: number): number {
-  const f = Math.pow(10, decimals);
-  return Math.round(v * f) / f;
+  return {
+    profile: profileName,
+    structural_weight: w.structural,
+    social_weight: 0,
+    divergence_weight: w.manipulation,
+    data_quality_weight: w.exhaustion + w.liquidity,
+  };
 }

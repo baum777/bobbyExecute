@@ -1,5 +1,5 @@
 import type { TokenSourceSnapshotV1 } from "@bobby/contracts";
-import { HttpClient, type HttpClientConfig } from "./http/http.client.js";
+import { HttpClient, type HttpClientConfig } from "./http.client.js";
 
 const BASE_URL = "https://api.dexscreener.com";
 
@@ -8,21 +8,11 @@ export interface DexScreenerPair {
   dexId: string;
   url: string;
   pairAddress: string;
-  baseToken: {
-    address: string;
-    name: string;
-    symbol: string;
-  };
-  quoteToken: {
-    address: string;
-    name: string;
-    symbol: string;
-  };
+  baseToken: { address: string; name: string; symbol: string };
+  quoteToken: { address: string; name: string; symbol: string };
   priceNative: string;
   priceUsd: string;
-  txns: {
-    h24: { buys: number; sells: number };
-  };
+  txns: { h24: { buys: number; sells: number } };
   volume: { h24: number };
   priceChange: { h24: number };
   liquidity: { usd: number };
@@ -30,47 +20,57 @@ export interface DexScreenerPair {
   marketCap: number;
 }
 
+export interface AdapterResult<T> {
+  ok: boolean;
+  data: T | null;
+  error?: string;
+  source: string;
+}
+
 export class DexScreenerAdapter {
   private readonly client: HttpClient;
 
   constructor(clientConfig?: HttpClientConfig) {
-    this.client = new HttpClient({
-      name: "dexscreener",
-      defaultTimeoutMs: 8000,
-      ...clientConfig,
-    });
+    this.client = new HttpClient({ name: "dexscreener", defaultTimeoutMs: 8000, ...clientConfig });
   }
 
-  getBreakerState() {
-    return this.client.getBreakerState();
+  getBreakerState() { return this.client.getBreakerState(); }
+  getBreakerStats() { return this.client.getBreakerStats(); }
+
+  async fetchTrendingPairs(target: number): Promise<AdapterResult<DexScreenerPair[]>> {
+    try {
+      const resp = await this.client.requestJson<DexScreenerPair[]>({
+        url: `${BASE_URL}/token-boosts/top/v1`,
+        query: { chainId: "solana" },
+      });
+      const solanaPairs = (resp.data ?? []).filter((p) => p.chainId === "solana");
+      return { ok: true, data: solanaPairs.slice(0, target), source: "dexscreener" };
+    } catch (err) {
+      return { ok: false, data: null, error: err instanceof Error ? err.message : String(err), source: "dexscreener" };
+    }
   }
 
-  async fetchTrendingSolanaPairs(limit: number): Promise<DexScreenerPair[]> {
-    const resp = await this.client.request<DexScreenerPair[]>({
-      url: `${BASE_URL}/token-boosts/top/v1`,
-      query: { chainId: "solana" },
-    });
-    const solanaPairs = (resp.data ?? []).filter(
-      (p) => p.chainId === "solana",
-    );
-    return solanaPairs.slice(0, limit);
+  async fetchPairDetails(pairId: string): Promise<AdapterResult<DexScreenerPair | null>> {
+    try {
+      const resp = await this.client.requestJson<{ pairs?: DexScreenerPair[] }>({
+        url: `${BASE_URL}/latest/dex/pairs/solana/${pairId}`,
+      });
+      return { ok: true, data: resp.data.pairs?.[0] ?? null, source: "dexscreener" };
+    } catch (err) {
+      return { ok: false, data: null, error: err instanceof Error ? err.message : String(err), source: "dexscreener" };
+    }
   }
 
-  async fetchPairDetails(pairId: string): Promise<DexScreenerPair | null> {
-    const resp = await this.client.request<{ pairs?: DexScreenerPair[] }>({
-      url: `${BASE_URL}/latest/dex/pairs/solana/${pairId}`,
-    });
-    const pairs = resp.data.pairs ?? [];
-    return pairs[0] ?? null;
+  resolveContractAddressFromPair(pair: DexScreenerPair): string | null {
+    return pair.baseToken?.address || null;
   }
 
   pairToSnapshot(pair: DexScreenerPair, fetchedAt: string): TokenSourceSnapshotV1 {
-    const contractAddress = pair.baseToken?.address ?? "";
     return {
       token_ref: {
         symbol: pair.baseToken?.symbol ?? "UNKNOWN",
         name: pair.baseToken?.name ?? "Unknown",
-        contract_address: contractAddress,
+        contract_address: pair.baseToken?.address ?? "",
         source: "dexscreener",
         pair_id: pair.pairAddress,
       },
@@ -81,9 +81,7 @@ export class DexScreenerAdapter {
       fdv: pair.fdv ?? null,
       market_cap_usd: pair.marketCap ?? null,
       price_change_24h_pct: pair.priceChange?.h24 ?? null,
-      tx_count_24h: pair.txns?.h24
-        ? pair.txns.h24.buys + pair.txns.h24.sells
-        : null,
+      tx_count_24h: pair.txns?.h24 ? pair.txns.h24.buys + pair.txns.h24.sells : null,
       fetched_at: fetchedAt,
       raw: pair as unknown as Record<string, unknown>,
     };

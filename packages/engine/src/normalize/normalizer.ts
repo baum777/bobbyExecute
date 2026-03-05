@@ -1,5 +1,5 @@
 import type { TokenSourceSnapshotV1, NormalizedTokenV1 } from "@bobby/contracts";
-import { computeDataQuality } from "./crosssource.confidence.js";
+import { computeDataQuality } from "./data.quality.js";
 
 export function normalizeToken(
   contractAddress: string,
@@ -9,7 +9,6 @@ export function normalizeToken(
   if (snapshots.length === 0) {
     throw new Error(`No snapshots for contract ${contractAddress}`);
   }
-
   const primary = snapshots[0];
   const dataQuality = computeDataQuality(snapshots, discrepancyThreshold);
 
@@ -23,30 +22,23 @@ export function normalizeToken(
     fdv: mergeNumeric(snapshots, "fdv"),
     market_cap_usd: mergeNumeric(snapshots, "market_cap_usd"),
     price_change_24h_pct: mergeNumeric(snapshots, "price_change_24h_pct"),
-    tx_count_24h: mergeNumericOptional(snapshots, "tx_count_24h"),
+    tx_count_24h: mergeNumericOpt(snapshots),
     source_snapshots: snapshots,
     data_quality: dataQuality,
   };
 }
 
 function mergeNumeric(
-  snapshots: TokenSourceSnapshotV1[],
+  snaps: TokenSourceSnapshotV1[],
   field: "price_usd" | "volume_24h" | "liquidity_usd" | "fdv" | "market_cap_usd" | "price_change_24h_pct",
 ): number | null {
-  const values = snapshots
-    .map((s) => s[field])
-    .filter((v): v is number => v !== null && v !== undefined);
+  const values = snaps.map((s) => s[field]).filter((v): v is number => v !== null && v !== undefined);
   if (values.length === 0) return null;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-function mergeNumericOptional(
-  snapshots: TokenSourceSnapshotV1[],
-  field: "tx_count_24h",
-): number | null | undefined {
-  const values = snapshots
-    .map((s) => s[field])
-    .filter((v): v is number => v !== null && v !== undefined);
+function mergeNumericOpt(snaps: TokenSourceSnapshotV1[]): number | null | undefined {
+  const values = snaps.map((s) => s.tx_count_24h).filter((v): v is number => v !== null && v !== undefined);
   if (values.length === 0) return null;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }

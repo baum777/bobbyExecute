@@ -1,5 +1,5 @@
 import type { TokenSourceSnapshotV1 } from "@bobby/contracts";
-import { HttpClient, type HttpClientConfig } from "./http/http.client.js";
+import { HttpClient, type HttpClientConfig } from "./http.client.js";
 
 const BASE_URL = "https://api.dexpaprika.com";
 
@@ -18,51 +18,77 @@ export interface DexPaprikaToken {
   tx_count_24h?: number;
 }
 
+export interface AdapterResult<T> {
+  ok: boolean;
+  data: T | null;
+  error?: string;
+  source: string;
+}
+
 export class DexPaprikaAdapter {
   private readonly client: HttpClient;
 
   constructor(clientConfig?: HttpClientConfig) {
-    this.client = new HttpClient({
-      name: "dexpaprika",
-      defaultTimeoutMs: 8000,
-      ...clientConfig,
-    });
+    this.client = new HttpClient({ name: "dexpaprika", defaultTimeoutMs: 8000, ...clientConfig });
   }
 
-  getBreakerState() {
-    return this.client.getBreakerState();
+  getBreakerState() { return this.client.getBreakerState(); }
+  getBreakerStats() { return this.client.getBreakerStats(); }
+
+  async fetchPairsMix(target: number): Promise<{ trending: AdapterResult<DexPaprikaToken[]>; volume: AdapterResult<DexPaprikaToken[]> }> {
+    const half = Math.ceil(target / 2);
+    const [trending, volume] = await Promise.all([
+      this.fetchSolanaTrending(half),
+      this.fetchSolanaTopVolume(half),
+    ]);
+    return { trending, volume };
   }
 
-  async fetchSolanaTrending(limit: number): Promise<DexPaprikaToken[]> {
-    const resp = await this.client.request<DexPaprikaToken[]>({
-      url: `${BASE_URL}/networks/solana/tokens/trending`,
-      query: { limit },
-    });
-    return (resp.data ?? []).slice(0, limit);
+  async fetchSolanaTrending(limit: number): Promise<AdapterResult<DexPaprikaToken[]>> {
+    try {
+      const resp = await this.client.requestJson<DexPaprikaToken[]>({
+        url: `${BASE_URL}/networks/solana/tokens/trending`,
+        query: { limit },
+      });
+      return { ok: true, data: (resp.data ?? []).slice(0, limit), source: "dexpaprika" };
+    } catch (err) {
+      return { ok: false, data: null, error: err instanceof Error ? err.message : String(err), source: "dexpaprika" };
+    }
   }
 
-  async fetchSolanaTopVolume(limit: number): Promise<DexPaprikaToken[]> {
-    const resp = await this.client.request<DexPaprikaToken[]>({
-      url: `${BASE_URL}/networks/solana/tokens/top-volume`,
-      query: { limit },
-    });
-    return (resp.data ?? []).slice(0, limit);
+  async fetchSolanaTopVolume(limit: number): Promise<AdapterResult<DexPaprikaToken[]>> {
+    try {
+      const resp = await this.client.requestJson<DexPaprikaToken[]>({
+        url: `${BASE_URL}/networks/solana/tokens/top-volume`,
+        query: { limit },
+      });
+      return { ok: true, data: (resp.data ?? []).slice(0, limit), source: "dexpaprika" };
+    } catch (err) {
+      return { ok: false, data: null, error: err instanceof Error ? err.message : String(err), source: "dexpaprika" };
+    }
   }
 
-  async fetchTokenOrPairDetails(id: string): Promise<DexPaprikaToken | null> {
-    const resp = await this.client.request<DexPaprikaToken>({
-      url: `${BASE_URL}/networks/solana/tokens/${id}`,
-    });
-    return resp.data ?? null;
+  async fetchPairDetails(pairId: string): Promise<AdapterResult<DexPaprikaToken | null>> {
+    try {
+      const resp = await this.client.requestJson<DexPaprikaToken>({
+        url: `${BASE_URL}/networks/solana/tokens/${pairId}`,
+      });
+      return { ok: true, data: resp.data ?? null, source: "dexpaprika" };
+    } catch (err) {
+      return { ok: false, data: null, error: err instanceof Error ? err.message : String(err), source: "dexpaprika" };
+    }
+  }
+
+  resolveContractAddress(token: DexPaprikaToken): string | null {
+    return token.address || null;
   }
 
   tokenToSnapshot(token: DexPaprikaToken, fetchedAt: string): TokenSourceSnapshotV1 {
-    const contractAddress = token.address ?? "";
     return {
       token_ref: {
         symbol: token.symbol ?? "UNKNOWN",
         name: token.name ?? "Unknown",
-        contract_address: contractAddress,
+        contract_address: token.address ?? "",
         source: "dexpaprika",
         pair_id: token.id,
       },

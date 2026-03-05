@@ -1,5 +1,5 @@
-import type { DivergenceV1, DivergenceType, TokenSourceSnapshotV1 } from "@bobby/contracts";
-import { computeRelativeDelta } from "../normalize/crosssource.confidence.js";
+import type { DivergenceV1, DivergenceType, TokenSourceSnapshotV1, NormalizedTokenV1, StructuralMetricsV1 } from "@bobby/contracts";
+import { relativeDelta } from "../normalize/data.quality.js";
 
 interface FieldMapping {
   type: DivergenceType;
@@ -17,49 +17,49 @@ export function detectDivergences(
   contractAddress: string,
   snapshots: TokenSourceSnapshotV1[],
   threshold: number,
+  normalized?: NormalizedTokenV1,
+  structural?: StructuralMetricsV1,
 ): DivergenceV1 {
   const divergences: DivergenceV1["divergences"] = [];
 
   for (const mapping of FIELD_MAPPINGS) {
-    const values = snapshots
+    const vals = snapshots
       .map((s) => ({ source: s.source, value: s[mapping.field] as number | null }))
       .filter((v) => v.value !== null && v.value !== undefined);
 
-    for (let i = 0; i < values.length; i++) {
-      for (let j = i + 1; j < values.length; j++) {
-        const a = values[i];
-        const b = values[j];
+    for (let i = 0; i < vals.length; i++) {
+      for (let j = i + 1; j < vals.length; j++) {
+        const a = vals[i], b = vals[j];
         if (a.value === null || b.value === null) continue;
-
-        const delta = computeRelativeDelta(a.value, b.value);
-        const exceeded = delta > threshold;
-
-        if (exceeded) {
+        const delta = relativeDelta(a.value, b.value);
+        if (delta > threshold) {
           divergences.push({
-            type: mapping.type,
-            source_a: a.source,
-            source_b: b.source,
-            relative_delta: round(delta, 4),
-            threshold,
-            exceeded,
+            type: mapping.type, source_a: a.source, source_b: b.source,
+            relative_delta: round(delta, 4), threshold, exceeded: true,
           });
         }
       }
     }
   }
 
+  if (normalized && structural) {
+    const priceChange = Math.abs(normalized.price_change_24h_pct ?? 0);
+    if (priceChange > 20 && structural.structural_score < 40) {
+      divergences.push({
+        type: "price_divergence",
+        source_a: "dexscreener",
+        source_b: "dexpaprika",
+        relative_delta: round(priceChange / 100, 4),
+        threshold,
+        exceeded: true,
+      });
+    }
+  }
+
   const divergenceCount = divergences.filter((d) => d.exceeded).length;
   const classificationOverride = divergenceCount >= 2 ? "Fragile Expansion" : null;
 
-  return {
-    contract_address: contractAddress,
-    divergences,
-    divergence_count: divergenceCount,
-    classification_override: classificationOverride,
-  };
+  return { contract_address: contractAddress, divergences, divergence_count: divergenceCount, classification_override: classificationOverride };
 }
 
-function round(v: number, decimals: number): number {
-  const f = Math.pow(10, decimals);
-  return Math.round(v * f) / f;
-}
+function round(v: number, d: number): number { const f = Math.pow(10, d); return Math.round(v * f) / f; }

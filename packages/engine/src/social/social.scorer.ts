@@ -14,11 +14,11 @@ export function scoreSocial(
       sentiment_score: null,
       mention_count_24h: null,
       weighted_narrative_score: null,
-      notes: "Social intelligence collection is disabled in V1 configuration.",
+      notes: "disabled_in_v1_lean_edge",
     };
   }
 
-  if (!raw || (raw.mentions < 10)) {
+  if (!raw || raw.mentions < 10) {
     return {
       contract_address: contractAddress,
       data_status: "data_insufficient",
@@ -26,7 +26,7 @@ export function scoreSocial(
       sentiment_score: null,
       mention_count_24h: raw?.mentions ?? null,
       weighted_narrative_score: null,
-      notes: "Insufficient social data sample (< 10 mentions).",
+      notes: "sample_size_total=0",
     };
   }
 
@@ -37,23 +37,15 @@ export function scoreSocial(
     sentiment_score: clamp(raw.sentiment, -1, 1),
     mention_count_24h: raw.mentions,
     weighted_narrative_score: raw.sentiment * (raw.mentions / 100),
-    notes: undefined,
   };
 }
 
 function mapNarrative(raw: string): SocialIntelV1["narrative"] {
-  const mapping: Record<string, SocialIntelV1["narrative"]> = {
-    defi: "DeFi",
-    gaming: "Gaming",
-    ai: "AI",
-    meme: "Meme",
-    infrastructure: "Infrastructure",
-    rwa: "RWA",
-    social: "Social",
+  const m: Record<string, SocialIntelV1["narrative"]> = {
+    defi: "DeFi", gaming: "Gaming", ai: "AI", meme: "Meme",
+    infrastructure: "Infrastructure", rwa: "RWA", social: "Social",
   };
-  return mapping[raw.toLowerCase()] ?? "Mixed";
+  return m[raw.toLowerCase()] ?? "Mixed";
 }
 
-function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v));
-}
+function clamp(v: number, min: number, max: number): number { return Math.max(min, Math.min(max, v)); }

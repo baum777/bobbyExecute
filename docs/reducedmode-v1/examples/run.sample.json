@@ -1,9 +1,9 @@
 {
-  "run_id": "555414b1-e32d-4cda-874c-7110c1dfbd67",
+  "run_id": "29cf02b0-33c3-4c2f-8e2f-369ea0deeb55",
   "mode": "dry",
-  "started_at": "2026-03-04T20:38:40.232Z",
-  "completed_at": "2026-03-04T20:38:40.237Z",
-  "duration_ms": 5,
+  "started_at": "2026-03-05T08:30:54.915Z",
+  "completed_at": "2026-03-05T08:30:54.919Z",
+  "duration_ms": 4,
   "config": {
     "max_unique_tokens": 30,
     "min_unique_tokens": 20,
@@ -53,7 +53,7 @@
             "market_cap_usd": 500000,
             "price_change_24h_pct": 5,
             "tx_count_24h": 150,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -106,7 +106,7 @@
             "market_cap_usd": 2600000,
             "price_change_24h_pct": 7.8,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-16",
               "name": "DPToken 16",
@@ -163,14 +163,6 @@
               "value_a": 1000000,
               "value_b": 5200000,
               "relative_delta": 0.8077
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 500000,
-              "value_b": 2600000,
-              "relative_delta": 0.8077
             }
           ]
         }
@@ -191,21 +183,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tk18222222222222222222222222222222222222",
-        "overall_risk_score": 53.07,
-        "structural_component": 15.066,
+        "overall_risk_score": 47.62,
+        "structural_component": 12.555,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 15.066,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -255,9 +247,9 @@
       "reasoning": {
         "token": "TK0",
         "bullets": [
-          "structural_score=49.78, liquidity_regime=Healthy, v2l_ratio=0.2613",
-          "overall_risk_score=53.07, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=49.78, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2613",
+          "risk_divergence: overall_risk=47.62, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -290,7 +282,7 @@
             "market_cap_usd": 550000,
             "price_change_24h_pct": 5.5,
             "tx_count_24h": 152,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -343,7 +335,7 @@
             "market_cap_usd": 2700000,
             "price_change_24h_pct": 8.1,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-17",
               "name": "DPToken 17",
@@ -400,14 +392,6 @@
               "value_a": 1100000,
               "value_b": 5400000,
               "relative_delta": 0.7963
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 550000,
-              "value_b": 2700000,
-              "relative_delta": 0.7963
             }
           ]
         }
@@ -428,21 +412,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tk29222222222222222222222222222222222222",
-        "overall_risk_score": 53.06,
-        "structural_component": 15.06,
+        "overall_risk_score": 47.61,
+        "structural_component": 12.55,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 15.06,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -492,9 +476,9 @@
       "reasoning": {
         "token": "TK1",
         "bullets": [
-          "structural_score=49.8, liquidity_regime=Healthy, v2l_ratio=0.2538",
-          "overall_risk_score=53.06, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=49.8, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2538",
+          "risk_divergence: overall_risk=47.61, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -527,7 +511,7 @@
             "market_cap_usd": 600000,
             "price_change_24h_pct": 6,
             "tx_count_24h": 154,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -580,7 +564,7 @@
             "market_cap_usd": 2800000,
             "price_change_24h_pct": 8.399999999999999,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-18",
               "name": "DPToken 18",
@@ -637,14 +621,6 @@
               "value_a": 1200000,
               "value_b": 5600000,
               "relative_delta": 0.7857
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 600000,
-              "value_b": 2800000,
-              "relative_delta": 0.7857
             }
           ]
         }
@@ -665,21 +641,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tk3A222222222222222222222222222222222222",
-        "overall_risk_score": 53.05,
-        "structural_component": 15.051,
+        "overall_risk_score": 47.59,
+        "structural_component": 12.5425,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 15.051,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -729,9 +705,9 @@
       "reasoning": {
         "token": "TK2",
         "bullets": [
-          "structural_score=49.83, liquidity_regime=Healthy, v2l_ratio=0.2471",
-          "overall_risk_score=53.05, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=49.83, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2471",
+          "risk_divergence: overall_risk=47.59, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -764,7 +740,7 @@
             "market_cap_usd": 650000,
             "price_change_24h_pct": 6.5,
             "tx_count_24h": 156,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -817,7 +793,7 @@
             "market_cap_usd": 2900000,
             "price_change_24h_pct": 8.7,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-19",
               "name": "DPToken 19",
@@ -874,14 +850,6 @@
               "value_a": 1300000,
               "value_b": 5800000,
               "relative_delta": 0.7759
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 650000,
-              "value_b": 2900000,
-              "relative_delta": 0.7759
             }
           ]
         }
@@ -902,21 +870,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tk4B222222222222222222222222222222222222",
-        "overall_risk_score": 53.04,
-        "structural_component": 15.042,
+        "overall_risk_score": 47.58,
+        "structural_component": 12.535,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 15.042,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -966,9 +934,9 @@
       "reasoning": {
         "token": "TK3",
         "bullets": [
-          "structural_score=49.86, liquidity_regime=Healthy, v2l_ratio=0.2408",
-          "overall_risk_score=53.04, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=49.86, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2408",
+          "risk_divergence: overall_risk=47.58, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -1001,7 +969,7 @@
             "market_cap_usd": 700000,
             "price_change_24h_pct": 7,
             "tx_count_24h": 158,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -1054,7 +1022,7 @@
             "market_cap_usd": 3000000,
             "price_change_24h_pct": 9,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-20",
               "name": "DPToken 20",
@@ -1111,14 +1079,6 @@
               "value_a": 1400000,
               "value_b": 6000000,
               "relative_delta": 0.7667
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 700000,
-              "value_b": 3000000,
-              "relative_delta": 0.7667
             }
           ]
         }
@@ -1139,21 +1099,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tk5C222222222222222222222222222222222222",
-        "overall_risk_score": 53.03,
-        "structural_component": 15.033,
+        "overall_risk_score": 47.56,
+        "structural_component": 12.5275,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 15.033,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -1203,9 +1163,9 @@
       "reasoning": {
         "token": "TK4",
         "bullets": [
-          "structural_score=49.89, liquidity_regime=Healthy, v2l_ratio=0.2351",
-          "overall_risk_score=53.03, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=49.89, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2351",
+          "risk_divergence: overall_risk=47.56, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -1238,7 +1198,7 @@
             "market_cap_usd": 750000,
             "price_change_24h_pct": 7.5,
             "tx_count_24h": 160,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -1291,7 +1251,7 @@
             "market_cap_usd": 3100000,
             "price_change_24h_pct": 9.3,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-21",
               "name": "DPToken 21",
@@ -1348,14 +1308,6 @@
               "value_a": 1500000,
               "value_b": 6200000,
               "relative_delta": 0.7581
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 750000,
-              "value_b": 3100000,
-              "relative_delta": 0.7581
             }
           ]
         }
@@ -1376,21 +1328,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tk6D222222222222222222222222222222222222",
-        "overall_risk_score": 53.02,
-        "structural_component": 15.021,
+        "overall_risk_score": 47.54,
+        "structural_component": 12.5175,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 15.021,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -1440,9 +1392,9 @@
       "reasoning": {
         "token": "TK5",
         "bullets": [
-          "structural_score=49.93, liquidity_regime=Healthy, v2l_ratio=0.2299",
-          "overall_risk_score=53.02, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=49.93, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2299",
+          "risk_divergence: overall_risk=47.54, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -1475,7 +1427,7 @@
             "market_cap_usd": 800000,
             "price_change_24h_pct": 8,
             "tx_count_24h": 162,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -1528,7 +1480,7 @@
             "market_cap_usd": 3200000,
             "price_change_24h_pct": 9.6,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-22",
               "name": "DPToken 22",
@@ -1585,14 +1537,6 @@
               "value_a": 1600000,
               "value_b": 6400000,
               "relative_delta": 0.75
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 800000,
-              "value_b": 3200000,
-              "relative_delta": 0.75
             }
           ]
         }
@@ -1613,21 +1557,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tk7E222222222222222222222222222222222222",
-        "overall_risk_score": 53.01,
-        "structural_component": 15.012,
+        "overall_risk_score": 47.52,
+        "structural_component": 12.51,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 15.012,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -1677,9 +1621,9 @@
       "reasoning": {
         "token": "TK6",
         "bullets": [
-          "structural_score=49.96, liquidity_regime=Healthy, v2l_ratio=0.225",
-          "overall_risk_score=53.01, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=49.96, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.225",
+          "risk_divergence: overall_risk=47.52, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -1712,7 +1656,7 @@
             "market_cap_usd": 850000,
             "price_change_24h_pct": 8.5,
             "tx_count_24h": 164,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -1765,7 +1709,7 @@
             "market_cap_usd": 3300000,
             "price_change_24h_pct": 9.899999999999999,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-23",
               "name": "DPToken 23",
@@ -1822,14 +1766,6 @@
               "value_a": 1700000,
               "value_b": 6600000,
               "relative_delta": 0.7424
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 850000,
-              "value_b": 3300000,
-              "relative_delta": 0.7424
             }
           ]
         }
@@ -1850,21 +1786,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tk8F222222222222222222222222222222222222",
-        "overall_risk_score": 53,
-        "structural_component": 15,
+        "overall_risk_score": 47.5,
+        "structural_component": 12.5,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 15,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -1914,9 +1850,9 @@
       "reasoning": {
         "token": "TK7",
         "bullets": [
-          "structural_score=50, liquidity_regime=Healthy, v2l_ratio=0.2205",
-          "overall_risk_score=53, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2205",
+          "risk_divergence: overall_risk=47.5, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -1949,7 +1885,7 @@
             "market_cap_usd": 900000,
             "price_change_24h_pct": 9,
             "tx_count_24h": 166,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -2002,7 +1938,7 @@
             "market_cap_usd": 3400000,
             "price_change_24h_pct": 10.2,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-24",
               "name": "DPToken 24",
@@ -2059,14 +1995,6 @@
               "value_a": 1800000,
               "value_b": 6800000,
               "relative_delta": 0.7353
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 900000,
-              "value_b": 3400000,
-              "relative_delta": 0.7353
             }
           ]
         }
@@ -2087,21 +2015,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tk9G222222222222222222222222222222222222",
-        "overall_risk_score": 52.99,
-        "structural_component": 14.988,
+        "overall_risk_score": 47.48,
+        "structural_component": 12.49,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.988,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -2151,9 +2079,9 @@
       "reasoning": {
         "token": "TK8",
         "bullets": [
-          "structural_score=50.04, liquidity_regime=Healthy, v2l_ratio=0.2163",
-          "overall_risk_score=52.99, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.04, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2163",
+          "risk_divergence: overall_risk=47.48, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -2186,7 +2114,7 @@
             "market_cap_usd": 950000,
             "price_change_24h_pct": 9.5,
             "tx_count_24h": 168,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -2239,7 +2167,7 @@
             "market_cap_usd": 3500000,
             "price_change_24h_pct": 10.5,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-25",
               "name": "DPToken 25",
@@ -2296,14 +2224,6 @@
               "value_a": 1900000,
               "value_b": 7000000,
               "relative_delta": 0.7286
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 950000,
-              "value_b": 3500000,
-              "relative_delta": 0.7286
             }
           ]
         }
@@ -2324,21 +2244,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkAH222222222222222222222222222222222222",
-        "overall_risk_score": 52.97,
-        "structural_component": 14.973,
+        "overall_risk_score": 47.45,
+        "structural_component": 12.4775,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.973,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -2388,9 +2308,9 @@
       "reasoning": {
         "token": "TK9",
         "bullets": [
-          "structural_score=50.09, liquidity_regime=Healthy, v2l_ratio=0.2124",
-          "overall_risk_score=52.97, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.09, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2124",
+          "risk_divergence: overall_risk=47.45, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -2423,7 +2343,7 @@
             "market_cap_usd": 1000000,
             "price_change_24h_pct": 10,
             "tx_count_24h": 170,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -2476,7 +2396,7 @@
             "market_cap_usd": 3600000,
             "price_change_24h_pct": 10.8,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-26",
               "name": "DPToken 26",
@@ -2533,14 +2453,6 @@
               "value_a": 2000000,
               "value_b": 7200000,
               "relative_delta": 0.7222
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1000000,
-              "value_b": 3600000,
-              "relative_delta": 0.7222
             }
           ]
         }
@@ -2561,21 +2473,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkBJ222222222222222222222222222222222222",
-        "overall_risk_score": 52.96,
-        "structural_component": 14.961,
+        "overall_risk_score": 47.43,
+        "structural_component": 12.4675,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.961,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -2625,9 +2537,9 @@
       "reasoning": {
         "token": "TK10",
         "bullets": [
-          "structural_score=50.13, liquidity_regime=Healthy, v2l_ratio=0.2087",
-          "overall_risk_score=52.96, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.13, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2087",
+          "risk_divergence: overall_risk=47.43, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -2660,7 +2572,7 @@
             "market_cap_usd": 1050000,
             "price_change_24h_pct": 10.5,
             "tx_count_24h": 172,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -2713,7 +2625,7 @@
             "market_cap_usd": 3700000,
             "price_change_24h_pct": 11.1,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-27",
               "name": "DPToken 27",
@@ -2770,14 +2682,6 @@
               "value_a": 2100000,
               "value_b": 7400000,
               "relative_delta": 0.7162
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1050000,
-              "value_b": 3700000,
-              "relative_delta": 0.7162
             }
           ]
         }
@@ -2798,21 +2702,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkCK222222222222222222222222222222222222",
-        "overall_risk_score": 52.95,
-        "structural_component": 14.949,
+        "overall_risk_score": 47.41,
+        "structural_component": 12.4575,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.949,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -2862,9 +2766,9 @@
       "reasoning": {
         "token": "TK11",
         "bullets": [
-          "structural_score=50.17, liquidity_regime=Healthy, v2l_ratio=0.2053",
-          "overall_risk_score=52.95, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.17, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.2053",
+          "risk_divergence: overall_risk=47.41, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -2897,7 +2801,7 @@
             "market_cap_usd": 1100000,
             "price_change_24h_pct": 11,
             "tx_count_24h": 174,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -2950,7 +2854,7 @@
             "market_cap_usd": 3800000,
             "price_change_24h_pct": 11.4,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-28",
               "name": "DPToken 28",
@@ -3007,14 +2911,6 @@
               "value_a": 2200000,
               "value_b": 7600000,
               "relative_delta": 0.7105
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1100000,
-              "value_b": 3800000,
-              "relative_delta": 0.7105
             }
           ]
         }
@@ -3035,21 +2931,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkDL222222222222222222222222222222222222",
-        "overall_risk_score": 52.93,
-        "structural_component": 14.934,
+        "overall_risk_score": 47.38,
+        "structural_component": 12.445,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.934,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -3099,9 +2995,9 @@
       "reasoning": {
         "token": "TK12",
         "bullets": [
-          "structural_score=50.22, liquidity_regime=Healthy, v2l_ratio=0.202",
-          "overall_risk_score=52.93, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.22, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.202",
+          "risk_divergence: overall_risk=47.38, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -3134,7 +3030,7 @@
             "market_cap_usd": 1150000,
             "price_change_24h_pct": 11.5,
             "tx_count_24h": 176,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -3187,7 +3083,7 @@
             "market_cap_usd": 3900000,
             "price_change_24h_pct": 11.7,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-29",
               "name": "DPToken 29",
@@ -3244,14 +3140,6 @@
               "value_a": 2300000,
               "value_b": 7800000,
               "relative_delta": 0.7051
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1150000,
-              "value_b": 3900000,
-              "relative_delta": 0.7051
             }
           ]
         }
@@ -3272,21 +3160,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkEM222222222222222222222222222222222222",
-        "overall_risk_score": 52.92,
-        "structural_component": 14.922,
+        "overall_risk_score": 47.36,
+        "structural_component": 12.435,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.922,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -3336,9 +3224,9 @@
       "reasoning": {
         "token": "TK13",
         "bullets": [
-          "structural_score=50.26, liquidity_regime=Healthy, v2l_ratio=0.199",
-          "overall_risk_score=52.92, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.26, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.199",
+          "risk_divergence: overall_risk=47.36, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -3371,7 +3259,7 @@
             "market_cap_usd": 1200000,
             "price_change_24h_pct": 12,
             "tx_count_24h": 178,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -3424,7 +3312,7 @@
             "market_cap_usd": 4000000,
             "price_change_24h_pct": 12,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-30",
               "name": "DPToken 30",
@@ -3481,14 +3369,6 @@
               "value_a": 2400000,
               "value_b": 8000000,
               "relative_delta": 0.7
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1200000,
-              "value_b": 4000000,
-              "relative_delta": 0.7
             }
           ]
         }
@@ -3509,21 +3389,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkFN222222222222222222222222222222222222",
-        "overall_risk_score": 52.91,
-        "structural_component": 14.91,
+        "overall_risk_score": 47.33,
+        "structural_component": 12.425,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.91,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -3573,9 +3453,9 @@
       "reasoning": {
         "token": "TK14",
         "bullets": [
-          "structural_score=50.3, liquidity_regime=Healthy, v2l_ratio=0.1962",
-          "overall_risk_score=52.91, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.3, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.1962",
+          "risk_divergence: overall_risk=47.33, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -3608,7 +3488,7 @@
             "market_cap_usd": 1250000,
             "price_change_24h_pct": 12.5,
             "tx_count_24h": 180,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -3661,7 +3541,7 @@
             "market_cap_usd": 4100000,
             "price_change_24h_pct": 12.299999999999999,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-31",
               "name": "DPToken 31",
@@ -3718,14 +3598,6 @@
               "value_a": 2500000,
               "value_b": 8200000,
               "relative_delta": 0.6951
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1250000,
-              "value_b": 4100000,
-              "relative_delta": 0.6951
             }
           ]
         }
@@ -3746,21 +3618,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkGP222222222222222222222222222222222222",
-        "overall_risk_score": 52.9,
-        "structural_component": 14.895,
+        "overall_risk_score": 47.31,
+        "structural_component": 12.4125,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.895,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -3810,9 +3682,9 @@
       "reasoning": {
         "token": "TK15",
         "bullets": [
-          "structural_score=50.35, liquidity_regime=Healthy, v2l_ratio=0.1935",
-          "overall_risk_score=52.9, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.35, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.1935",
+          "risk_divergence: overall_risk=47.31, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -3845,7 +3717,7 @@
             "market_cap_usd": 1300000,
             "price_change_24h_pct": 13,
             "tx_count_24h": 182,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -3898,7 +3770,7 @@
             "market_cap_usd": 4200000,
             "price_change_24h_pct": 12.6,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-32",
               "name": "DPToken 32",
@@ -3955,14 +3827,6 @@
               "value_a": 2600000,
               "value_b": 8400000,
               "relative_delta": 0.6905
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1300000,
-              "value_b": 4200000,
-              "relative_delta": 0.6905
             }
           ]
         }
@@ -3983,21 +3847,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkHQ222222222222222222222222222222222222",
-        "overall_risk_score": 52.88,
-        "structural_component": 14.883,
+        "overall_risk_score": 47.29,
+        "structural_component": 12.4025,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.883,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -4047,9 +3911,9 @@
       "reasoning": {
         "token": "TK16",
         "bullets": [
-          "structural_score=50.39, liquidity_regime=Healthy, v2l_ratio=0.1909",
-          "overall_risk_score=52.88, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.39, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.1909",
+          "risk_divergence: overall_risk=47.29, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -4082,7 +3946,7 @@
             "market_cap_usd": 1350000,
             "price_change_24h_pct": 13.5,
             "tx_count_24h": 184,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -4135,7 +3999,7 @@
             "market_cap_usd": 4300000,
             "price_change_24h_pct": 12.9,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-33",
               "name": "DPToken 33",
@@ -4192,14 +4056,6 @@
               "value_a": 2700000,
               "value_b": 8600000,
               "relative_delta": 0.686
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1350000,
-              "value_b": 4300000,
-              "relative_delta": 0.686
             }
           ]
         }
@@ -4220,21 +4076,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkJR222222222222222222222222222222222222",
-        "overall_risk_score": 52.87,
-        "structural_component": 14.868,
+        "overall_risk_score": 47.26,
+        "structural_component": 12.39,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.868,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -4284,9 +4140,9 @@
       "reasoning": {
         "token": "TK17",
         "bullets": [
-          "structural_score=50.44, liquidity_regime=Healthy, v2l_ratio=0.1885",
-          "overall_risk_score=52.87, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.44, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.1885",
+          "risk_divergence: overall_risk=47.26, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -4319,7 +4175,7 @@
             "market_cap_usd": 1400000,
             "price_change_24h_pct": 14,
             "tx_count_24h": 186,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -4372,7 +4228,7 @@
             "market_cap_usd": 4400000,
             "price_change_24h_pct": 13.2,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-34",
               "name": "DPToken 34",
@@ -4429,14 +4285,6 @@
               "value_a": 2800000,
               "value_b": 8800000,
               "relative_delta": 0.6818
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1400000,
-              "value_b": 4400000,
-              "relative_delta": 0.6818
             }
           ]
         }
@@ -4457,21 +4305,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkKS222222222222222222222222222222222222",
-        "overall_risk_score": 52.85,
-        "structural_component": 14.853,
+        "overall_risk_score": 47.23,
+        "structural_component": 12.3775,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.853,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -4521,9 +4369,9 @@
       "reasoning": {
         "token": "TK18",
         "bullets": [
-          "structural_score=50.49, liquidity_regime=Healthy, v2l_ratio=0.1862",
-          "overall_risk_score=52.85, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.49, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.1862",
+          "risk_divergence: overall_risk=47.23, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -4556,7 +4404,7 @@
             "market_cap_usd": 1450000,
             "price_change_24h_pct": 14.5,
             "tx_count_24h": 188,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -4609,7 +4457,7 @@
             "market_cap_usd": 4500000,
             "price_change_24h_pct": 13.5,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-35",
               "name": "DPToken 35",
@@ -4666,14 +4514,6 @@
               "value_a": 2900000,
               "value_b": 9000000,
               "relative_delta": 0.6778
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1450000,
-              "value_b": 4500000,
-              "relative_delta": 0.6778
             }
           ]
         }
@@ -4694,21 +4534,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkLT222222222222222222222222222222222222",
-        "overall_risk_score": 52.84,
-        "structural_component": 14.841,
+        "overall_risk_score": 47.21,
+        "structural_component": 12.3675,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.841,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -4758,9 +4598,9 @@
       "reasoning": {
         "token": "TK19",
         "bullets": [
-          "structural_score=50.53, liquidity_regime=Healthy, v2l_ratio=0.184",
-          "overall_risk_score=52.84, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.53, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.184",
+          "risk_divergence: overall_risk=47.21, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -4793,7 +4633,7 @@
             "market_cap_usd": 1500000,
             "price_change_24h_pct": 15,
             "tx_count_24h": 190,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -4846,7 +4686,7 @@
             "market_cap_usd": 4600000,
             "price_change_24h_pct": 13.799999999999999,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-36",
               "name": "DPToken 36",
@@ -4903,14 +4743,6 @@
               "value_a": 3000000,
               "value_b": 9200000,
               "relative_delta": 0.6739
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1500000,
-              "value_b": 4600000,
-              "relative_delta": 0.6739
             }
           ]
         }
@@ -4931,21 +4763,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkMU222222222222222222222222222222222222",
-        "overall_risk_score": 52.83,
-        "structural_component": 14.826,
+        "overall_risk_score": 47.18,
+        "structural_component": 12.355,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.826,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -4995,9 +4827,9 @@
       "reasoning": {
         "token": "TK20",
         "bullets": [
-          "structural_score=50.58, liquidity_regime=Healthy, v2l_ratio=0.182",
-          "overall_risk_score=52.83, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.58, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.182",
+          "risk_divergence: overall_risk=47.18, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -5030,7 +4862,7 @@
             "market_cap_usd": 1550000,
             "price_change_24h_pct": 15.5,
             "tx_count_24h": 192,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -5083,7 +4915,7 @@
             "market_cap_usd": 4700000,
             "price_change_24h_pct": 14.1,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-37",
               "name": "DPToken 37",
@@ -5140,14 +4972,6 @@
               "value_a": 3100000,
               "value_b": 9400000,
               "relative_delta": 0.6702
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1550000,
-              "value_b": 4700000,
-              "relative_delta": 0.6702
             }
           ]
         }
@@ -5168,21 +4992,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkNV222222222222222222222222222222222222",
-        "overall_risk_score": 52.81,
-        "structural_component": 14.814,
+        "overall_risk_score": 47.16,
+        "structural_component": 12.345,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.814,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -5232,9 +5056,9 @@
       "reasoning": {
         "token": "TK21",
         "bullets": [
-          "structural_score=50.62, liquidity_regime=Healthy, v2l_ratio=0.18",
-          "overall_risk_score=52.81, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.62, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.18",
+          "risk_divergence: overall_risk=47.16, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -5267,7 +5091,7 @@
             "market_cap_usd": 1600000,
             "price_change_24h_pct": 16,
             "tx_count_24h": 194,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -5320,7 +5144,7 @@
             "market_cap_usd": 4800000,
             "price_change_24h_pct": 14.4,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-38",
               "name": "DPToken 38",
@@ -5377,14 +5201,6 @@
               "value_a": 3200000,
               "value_b": 9600000,
               "relative_delta": 0.6667
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1600000,
-              "value_b": 4800000,
-              "relative_delta": 0.6667
             }
           ]
         }
@@ -5405,21 +5221,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkPW222222222222222222222222222222222222",
-        "overall_risk_score": 52.8,
-        "structural_component": 14.799,
+        "overall_risk_score": 47.13,
+        "structural_component": 12.3325,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.799,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -5469,9 +5285,9 @@
       "reasoning": {
         "token": "TK22",
         "bullets": [
-          "structural_score=50.67, liquidity_regime=Healthy, v2l_ratio=0.1781",
-          "overall_risk_score=52.8, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.67, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.1781",
+          "risk_divergence: overall_risk=47.13, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -5504,7 +5320,7 @@
             "market_cap_usd": 1650000,
             "price_change_24h_pct": 16.5,
             "tx_count_24h": 196,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -5557,7 +5373,7 @@
             "market_cap_usd": 4900000,
             "price_change_24h_pct": 14.7,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-39",
               "name": "DPToken 39",
@@ -5614,14 +5430,6 @@
               "value_a": 3300000,
               "value_b": 9800000,
               "relative_delta": 0.6633
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1650000,
-              "value_b": 4900000,
-              "relative_delta": 0.6633
             }
           ]
         }
@@ -5642,21 +5450,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkQX222222222222222222222222222222222222",
-        "overall_risk_score": 52.79,
-        "structural_component": 14.787,
+        "overall_risk_score": 47.11,
+        "structural_component": 12.3225,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.787,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -5706,9 +5514,9 @@
       "reasoning": {
         "token": "TK23",
         "bullets": [
-          "structural_score=50.71, liquidity_regime=Healthy, v2l_ratio=0.1763",
-          "overall_risk_score=52.79, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.71, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.1763",
+          "risk_divergence: overall_risk=47.11, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -5741,7 +5549,7 @@
             "market_cap_usd": 1700000,
             "price_change_24h_pct": 17,
             "tx_count_24h": 198,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "chainId": "solana",
               "dexId": "raydium",
@@ -5794,7 +5602,7 @@
             "market_cap_usd": 5000000,
             "price_change_24h_pct": 15,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-40",
               "name": "DPToken 40",
@@ -5851,14 +5659,6 @@
               "value_a": 3400000,
               "value_b": 10000000,
               "relative_delta": 0.66
-            },
-            {
-              "field": "market_cap_usd",
-              "source_a": "dexscreener",
-              "source_b": "dexpaprika",
-              "value_a": 1700000,
-              "value_b": 5000000,
-              "relative_delta": 0.66
             }
           ]
         }
@@ -5879,21 +5679,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "TkRY222222222222222222222222222222222222",
-        "overall_risk_score": 52.77,
-        "structural_component": 14.772,
+        "overall_risk_score": 47.08,
+        "structural_component": 12.31,
         "social_component": 0,
-        "divergence_component": 38,
-        "data_quality_component": 0,
+        "divergence_component": 20,
+        "data_quality_component": 14.772,
         "weight_profile": {
-          "profile": "risk_averse",
-          "structural_weight": 0.3,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.38,
-          "data_quality_weight": 0.32
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": [
           "low_cross_source_confidence",
@@ -5943,9 +5743,9 @@
       "reasoning": {
         "token": "TK24",
         "bullets": [
-          "structural_score=50.76, liquidity_regime=Healthy, v2l_ratio=0.1746",
-          "overall_risk_score=52.77, flags=[low_cross_source_confidence,cross_source_anomaly,multi_divergence], weight_profile=risk_averse",
-          "data_completeness=100%, cross_source_confidence=0.1, divergence_count=4"
+          "data_quality: completeness=100%, cross_source_confidence=0.1, 4 discrepancies detected",
+          "structure: structural_score=50.76, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.1746",
+          "risk_divergence: overall_risk=47.08, divergence_count=4, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -5978,7 +5778,7 @@
             "market_cap_usd": 1000000,
             "price_change_24h_pct": 3,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-0",
               "name": "DPToken 0",
@@ -5995,9 +5795,9 @@
           }
         ],
         "data_quality": {
-          "completeness": 100,
+          "completeness": 90,
           "freshness": 100,
-          "cross_source_confidence": 1,
+          "cross_source_confidence": 0.9,
           "discrepancy_rate": 0,
           "sources_used": [
             "dexpaprika"
@@ -6021,21 +5821,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tkjr222222222222222222222222222222222222",
-        "overall_risk_score": 27.01,
-        "structural_component": 27.0105,
+        "overall_risk_score": 29.51,
+        "structural_component": 12.2775,
         "social_component": 0,
         "divergence_component": 0,
-        "data_quality_component": 0,
+        "data_quality_component": 17.233,
         "weight_profile": {
-          "profile": "structural_heavy",
-          "structural_weight": 0.55,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.23,
-          "data_quality_weight": 0.22
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": []
       },
@@ -6048,9 +5848,9 @@
       "reasoning": {
         "token": "DP0",
         "bullets": [
-          "structural_score=50.89, liquidity_regime=Healthy, v2l_ratio=0.4",
-          "overall_risk_score=27.01, flags=[], weight_profile=structural_heavy",
-          "data_completeness=100%, cross_source_confidence=1, divergence_count=0"
+          "data_quality: completeness=90%, cross_source_confidence=0.9, no discrepancies",
+          "structure: structural_score=50.89, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.4",
+          "risk_divergence: overall_risk=29.51, divergence_count=0, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -6083,7 +5883,7 @@
             "market_cap_usd": 1100000,
             "price_change_24h_pct": 3.3,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-1",
               "name": "DPToken 1",
@@ -6100,9 +5900,9 @@
           }
         ],
         "data_quality": {
-          "completeness": 100,
+          "completeness": 90,
           "freshness": 100,
-          "cross_source_confidence": 1,
+          "cross_source_confidence": 0.9,
           "discrepancy_rate": 0,
           "sources_used": [
             "dexpaprika"
@@ -6126,21 +5926,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tkks222222222222222222222222222222222222",
-        "overall_risk_score": 27.1,
-        "structural_component": 27.0985,
+        "overall_risk_score": 29.6,
+        "structural_component": 12.3175,
         "social_component": 0,
         "divergence_component": 0,
-        "data_quality_component": 0,
+        "data_quality_component": 17.281,
         "weight_profile": {
-          "profile": "structural_heavy",
-          "structural_weight": 0.55,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.23,
-          "data_quality_weight": 0.22
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": []
       },
@@ -6153,9 +5953,9 @@
       "reasoning": {
         "token": "DP1",
         "bullets": [
-          "structural_score=50.73, liquidity_regime=Healthy, v2l_ratio=0.3727",
-          "overall_risk_score=27.1, flags=[], weight_profile=structural_heavy",
-          "data_completeness=100%, cross_source_confidence=1, divergence_count=0"
+          "data_quality: completeness=90%, cross_source_confidence=0.9, no discrepancies",
+          "structure: structural_score=50.73, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.3727",
+          "risk_divergence: overall_risk=29.6, divergence_count=0, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -6188,7 +5988,7 @@
             "market_cap_usd": 1200000,
             "price_change_24h_pct": 3.6,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-2",
               "name": "DPToken 2",
@@ -6205,9 +6005,9 @@
           }
         ],
         "data_quality": {
-          "completeness": 100,
+          "completeness": 90,
           "freshness": 100,
-          "cross_source_confidence": 1,
+          "cross_source_confidence": 0.9,
           "discrepancy_rate": 0,
           "sources_used": [
             "dexpaprika"
@@ -6231,21 +6031,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tkmt222222222222222222222222222222222222",
-        "overall_risk_score": 27.16,
-        "structural_component": 27.159,
+        "overall_risk_score": 29.66,
+        "structural_component": 12.345,
         "social_component": 0,
         "divergence_component": 0,
-        "data_quality_component": 0,
+        "data_quality_component": 17.314,
         "weight_profile": {
-          "profile": "structural_heavy",
-          "structural_weight": 0.55,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.23,
-          "data_quality_weight": 0.22
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": []
       },
@@ -6258,9 +6058,9 @@
       "reasoning": {
         "token": "DP2",
         "bullets": [
-          "structural_score=50.62, liquidity_regime=Healthy, v2l_ratio=0.35",
-          "overall_risk_score=27.16, flags=[], weight_profile=structural_heavy",
-          "data_completeness=100%, cross_source_confidence=1, divergence_count=0"
+          "data_quality: completeness=90%, cross_source_confidence=0.9, no discrepancies",
+          "structure: structural_score=50.62, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.35",
+          "risk_divergence: overall_risk=29.66, divergence_count=0, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -6293,7 +6093,7 @@
             "market_cap_usd": 1300000,
             "price_change_24h_pct": 3.9,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-3",
               "name": "DPToken 3",
@@ -6310,9 +6110,9 @@
           }
         ],
         "data_quality": {
-          "completeness": 100,
+          "completeness": 90,
           "freshness": 100,
-          "cross_source_confidence": 1,
+          "cross_source_confidence": 0.9,
           "discrepancy_rate": 0,
           "sources_used": [
             "dexpaprika"
@@ -6336,21 +6136,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tknu222222222222222222222222222222222222",
-        "overall_risk_score": 27.2,
-        "structural_component": 27.203,
+        "overall_risk_score": 29.7,
+        "structural_component": 12.365,
         "social_component": 0,
         "divergence_component": 0,
-        "data_quality_component": 0,
+        "data_quality_component": 17.338,
         "weight_profile": {
-          "profile": "structural_heavy",
-          "structural_weight": 0.55,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.23,
-          "data_quality_weight": 0.22
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": []
       },
@@ -6363,9 +6163,9 @@
       "reasoning": {
         "token": "DP3",
         "bullets": [
-          "structural_score=50.54, liquidity_regime=Healthy, v2l_ratio=0.3308",
-          "overall_risk_score=27.2, flags=[], weight_profile=structural_heavy",
-          "data_completeness=100%, cross_source_confidence=1, divergence_count=0"
+          "data_quality: completeness=90%, cross_source_confidence=0.9, no discrepancies",
+          "structure: structural_score=50.54, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.3308",
+          "risk_divergence: overall_risk=29.7, divergence_count=0, ecosystem=Fragile Expansion"
         ]
       }
     },
@@ -6398,7 +6198,7 @@
             "market_cap_usd": 1400000,
             "price_change_24h_pct": 4.2,
             "tx_count_24h": null,
-            "fetched_at": "2026-03-04T20:38:40.233Z",
+            "fetched_at": "2026-03-05T08:30:54.916Z",
             "raw": {
               "id": "dp-token-4",
               "name": "DPToken 4",
@@ -6415,9 +6215,9 @@
           }
         ],
         "data_quality": {
-          "completeness": 100,
+          "completeness": 90,
           "freshness": 100,
-          "cross_source_confidence": 1,
+          "cross_source_confidence": 0.9,
           "discrepancy_rate": 0,
           "sources_used": [
             "dexpaprika"
@@ -6441,21 +6241,21 @@
         "sentiment_score": null,
         "mention_count_24h": null,
         "weighted_narrative_score": null,
-        "notes": "Social intelligence collection is disabled in V1 configuration."
+        "notes": "disabled_in_v1_lean_edge"
       },
       "risk": {
         "contract_address": "Tkov222222222222222222222222222222222222",
-        "overall_risk_score": 27.23,
-        "structural_component": 27.2305,
+        "overall_risk_score": 29.73,
+        "structural_component": 12.3775,
         "social_component": 0,
         "divergence_component": 0,
-        "data_quality_component": 0,
+        "data_quality_component": 17.353,
         "weight_profile": {
-          "profile": "structural_heavy",
-          "structural_weight": 0.55,
+          "profile": "balanced",
+          "structural_weight": 0.25,
           "social_weight": 0,
-          "divergence_weight": 0.23,
-          "data_quality_weight": 0.22
+          "divergence_weight": 0.2,
+          "data_quality_weight": 0.55
         },
         "flags": []
       },
@@ -6468,9 +6268,9 @@
       "reasoning": {
         "token": "DP4",
         "bullets": [
-          "structural_score=50.49, liquidity_regime=Healthy, v2l_ratio=0.3143",
-          "overall_risk_score=27.23, flags=[], weight_profile=structural_heavy",
-          "data_completeness=100%, cross_source_confidence=1, divergence_count=0"
+          "data_quality: completeness=90%, cross_source_confidence=0.9, no discrepancies",
+          "structure: structural_score=50.49, liquidity_regime=Healthy, volume_to_liquidity_ratio=0.3143",
+          "risk_divergence: overall_risk=29.73, divergence_count=0, ecosystem=Fragile Expansion"
         ]
       }
     }
@@ -6481,8 +6281,8 @@
     "liquidity_regime": "Healthy"
   },
   "transparency": {
-    "avg_completeness": 100,
-    "avg_cross_source_confidence": 0.25,
+    "avg_completeness": 98.33,
+    "avg_cross_source_confidence": 0.2333,
     "avg_discrepancy_rate": 0.8333,
     "tokens_below_min_completeness": 0
   },
@@ -6543,61 +6343,61 @@
       {
         "contract_address": "Tk18222222222222222222222222222222222222",
         "symbol": "TK0",
-        "overall_risk_score": 53.07,
+        "overall_risk_score": 47.62,
         "divergence_count": 4
       },
       {
         "contract_address": "Tk29222222222222222222222222222222222222",
         "symbol": "TK1",
-        "overall_risk_score": 53.06,
+        "overall_risk_score": 47.61,
         "divergence_count": 4
       },
       {
         "contract_address": "Tk3A222222222222222222222222222222222222",
         "symbol": "TK2",
-        "overall_risk_score": 53.05,
+        "overall_risk_score": 47.59,
         "divergence_count": 4
       },
       {
         "contract_address": "Tk4B222222222222222222222222222222222222",
         "symbol": "TK3",
-        "overall_risk_score": 53.04,
+        "overall_risk_score": 47.58,
         "divergence_count": 4
       },
       {
         "contract_address": "Tk5C222222222222222222222222222222222222",
         "symbol": "TK4",
-        "overall_risk_score": 53.03,
+        "overall_risk_score": 47.56,
         "divergence_count": 4
       },
       {
         "contract_address": "Tk6D222222222222222222222222222222222222",
         "symbol": "TK5",
-        "overall_risk_score": 53.02,
+        "overall_risk_score": 47.54,
         "divergence_count": 4
       },
       {
         "contract_address": "Tk7E222222222222222222222222222222222222",
         "symbol": "TK6",
-        "overall_risk_score": 53.01,
+        "overall_risk_score": 47.52,
         "divergence_count": 4
       },
       {
         "contract_address": "Tk8F222222222222222222222222222222222222",
         "symbol": "TK7",
-        "overall_risk_score": 53,
+        "overall_risk_score": 47.5,
         "divergence_count": 4
       },
       {
         "contract_address": "Tk9G222222222222222222222222222222222222",
         "symbol": "TK8",
-        "overall_risk_score": 52.99,
+        "overall_risk_score": 47.48,
         "divergence_count": 4
       },
       {
         "contract_address": "TkAH222222222222222222222222222222222222",
         "symbol": "TK9",
-        "overall_risk_score": 52.97,
+        "overall_risk_score": 47.45,
         "divergence_count": 4
       }
     ]
