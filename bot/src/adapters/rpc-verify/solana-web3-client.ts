@@ -54,4 +54,15 @@ export class SolanaWeb3RpcClient implements RpcClient {
       );
     }
   }
+
+  async sendRawTransaction(tx: Uint8Array | Buffer): Promise<string> {
+    try {
+      const buf = Buffer.isBuffer(tx) ? tx : Buffer.from(tx);
+      return await this.connection.sendRawTransaction(buf, { skipPreflight: false });
+    } catch (err) {
+      throw new Error(
+        `RPC sendRawTransaction failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
 }

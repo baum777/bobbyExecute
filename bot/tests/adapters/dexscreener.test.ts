@@ -146,12 +146,14 @@ describe("DexScreener Client", () => {
   });
 
   it("getTokenPairs throws on non-ok response", async () => {
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    const fivexx = {
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
-    });
-    const client = new DexScreenerClient();
+      headers: { get: () => null },
+    } as unknown as Response;
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(fivexx);
+    const client = new DexScreenerClient({ resilience: { maxRetries: 0 } });
     await expect(client.getTokenPairs("mint")).rejects.toThrow("DexScreener error: 500");
   });
 

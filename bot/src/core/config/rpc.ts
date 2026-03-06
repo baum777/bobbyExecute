@@ -12,3 +12,16 @@ export function getRpcMode(): RpcMode {
 export function getRpcUrl(): string {
   return process.env.RPC_URL ?? "https://api.mainnet-beta.solana.com";
 }
+
+/**
+ * Enforce RPC_MODE=real when LIVE_TRADING is enabled.
+ * Throws if live trading is on but RPC is in stub mode.
+ */
+export function assertRealModeForLive(): void {
+  const liveEnabled = process.env.LIVE_TRADING?.toLowerCase() === "true";
+  if (liveEnabled && getRpcMode() !== "real") {
+    throw new Error(
+      "LIVE_TRADING=true requires RPC_MODE=real. Set RPC_MODE=real and RPC_URL for production."
+    );
+  }
+}

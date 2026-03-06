@@ -69,6 +69,16 @@ export async function resilientFetch(
         throw new Error(`Rate limited (429) after ${maxRetries + 1} attempts`);
       }
 
+      if (res.status >= 500 && res.status < 600) {
+        if (attempt < maxRetries) {
+          const delayMs = Math.min(BASE_BACKOFF_MS * Math.pow(2, attempt), MAX_BACKOFF_MS);
+          await sleep(delayMs);
+          continue;
+        }
+        cb?.reportHealth(adapterId, false, latencyMs);
+        return res;
+      }
+
       if (!res.ok) {
         cb?.reportHealth(adapterId, false, latencyMs);
         return res;

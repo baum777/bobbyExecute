@@ -19,13 +19,16 @@ describe("Circuit Breaker Integration (M3)", () => {
   it("consecutive failures open breaker; requireHealthy blocks when open", async () => {
     const { circuitBreaker, dexpaprika } = createAdaptersWithCircuitBreaker({
       circuitBreakerConfig: { failureThreshold: 2 },
+      resilience: { maxRetries: 0 },
     });
 
-    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+    const fivexx = {
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
-    });
+      headers: { get: () => null },
+    } as unknown as Response;
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(fivexx);
 
     await expect(dexpaprika.getToken("token1")).rejects.toThrow(/DexPaprika error: 500/);
     expect(circuitBreaker.isHealthy("dexpaprika")).toBe(true);
@@ -40,11 +43,18 @@ describe("Circuit Breaker Integration (M3)", () => {
   it("success resets consecutive failures", async () => {
     const { circuitBreaker, dexpaprika } = createAdaptersWithCircuitBreaker({
       circuitBreakerConfig: { failureThreshold: 2 },
+      resilience: { maxRetries: 0 },
     });
 
     const fetchFn = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const fivexx = {
+      ok: false,
+      status: 500,
+      statusText: "Error",
+      headers: { get: () => null },
+    } as unknown as Response;
     fetchFn
-      .mockResolvedValueOnce({ ok: false, status: 500, statusText: "Error" })
+      .mockResolvedValueOnce(fivexx)
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: "t1" }) });
 
     await expect(dexpaprika.getToken("x")).rejects.toThrow(/500/);

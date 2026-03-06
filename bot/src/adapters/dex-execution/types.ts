@@ -7,6 +7,8 @@ export interface QuoteResult {
   amountOut: string;
   minAmountOut: string;
   slippageBps: number;
+  /** Raw Jupiter Quote API response for downstream use ( Swap, debugging ). */
+  rawQuotePayload?: unknown;
 }
 
 export interface SwapResult {

@@ -4,7 +4,7 @@
  * Default: false (paper mode).
  * M4: LIVE_TRADING=true requires RPC_MODE=real (policy gate).
  */
-import { getRpcMode } from "../core/config/rpc.js";
+import { assertRealModeForLive } from "../core/config/rpc.js";
 
 const LIVE_TRADING_ENV = "LIVE_TRADING";
 
@@ -24,9 +24,5 @@ export function isLiveTradingEnabled(): boolean {
  */
 export function assertLiveTradingRequiresRealRpc(): void {
   if (!isLiveTradingEnabled()) return;
-  if (getRpcMode() !== "real") {
-    throw new Error(
-      "LIVE_TRADING=true requires RPC_MODE=real. Set RPC_MODE=real and RPC_URL for production."
-    );
-  }
+  assertRealModeForLive();
 }

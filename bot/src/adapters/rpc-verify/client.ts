@@ -3,6 +3,7 @@
  * PROPOSED - truth layer for balance/token verification.
  */
 import { getRpcMode, getRpcUrl } from "../../core/config/rpc.js";
+import { isLiveTradingEnabled } from "../../config/safety.js";
 import { SolanaWeb3RpcClient } from "./solana-web3-client.js";
 
 export interface RpcClientConfig {
@@ -27,18 +28,21 @@ export interface RpcClient {
   getTokenInfo(mint: string): Promise<TokenInfo>;
   getBalance(address: string, mint?: string): Promise<BalanceResult>;
   getTransactionReceipt(signature: string): Promise<unknown>;
+  /** Send raw signed transaction. Returns tx signature. */
+  sendRawTransaction?(serializedTx: Uint8Array | Buffer): Promise<string>;
 }
 
 /**
  * Create RPC client based on RPC_MODE env.
  * stub: StubRpcClient (tests/paper).
  * real: SolanaWeb3RpcClient (live).
+ * Default to real when LIVE_TRADING=true.
  */
 export function createRpcClient(config?: Partial<RpcClientConfig>): RpcClient {
-  const mode = getRpcMode();
   const rpcUrl = config?.rpcUrl ?? getRpcUrl();
+  const useReal = isLiveTradingEnabled() || getRpcMode() === "real";
 
-  if (mode === "real") {
+  if (useReal) {
     return new SolanaWeb3RpcClient({ rpcUrl, ...config });
   }
   return new StubRpcClient({ rpcUrl, ...config });
@@ -69,5 +73,9 @@ export class StubRpcClient implements RpcClient {
 
   async getTransactionReceipt(_signature: string): Promise<unknown> {
     return { status: "confirmed", slot: 12345 };
+  }
+
+  async sendRawTransaction(_tx: Uint8Array | Buffer): Promise<string> {
+    return "stub-tx-signature-" + Date.now();
   }
 }
