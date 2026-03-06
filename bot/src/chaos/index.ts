@@ -10,4 +10,6 @@ export {
   type ChaosScenario,
   type ChaosTestReport,
   type ChaosCategory,
+  type ChaosContext,
 } from "./chaos-suite.js";
+export { detectMevSandwich } from "./signals/mev-sandwich.js";

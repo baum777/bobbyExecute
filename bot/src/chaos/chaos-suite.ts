@@ -8,6 +8,7 @@ import { detectLiquidityDrain } from "./signals/liquidity-delta.js";
 import { detectCrossDexDivergence } from "./signals/cross-dex-divergence.js";
 import { detectPumpVelocityNoHolders } from "./signals/pump-velocity.js";
 import { detectStaleData } from "./signals/stale-data.js";
+import { detectMevSandwich } from "./signals/mev-sandwich.js";
 
 export type ChaosCategory = 1 | 2 | 3 | 4 | 5;
 
@@ -19,6 +20,19 @@ export interface ChaosContext {
   holderGrowth?: number;
   volumeSpike?: number;
   freshnessMs?: number;
+  /** Wave 5: MEV/sandwich detection */
+  mevFrontRun?: boolean;
+  mevBackRun?: boolean;
+  mevSlippageExceeded?: boolean;
+  mevSimilarTxInBlock?: number;
+  mevPriceImpactAnomaly?: number;
+  /** Wave 5: Infrastructure (1-3) */
+  networkPartitionDetected?: boolean;
+  nodeFailureDetected?: boolean;
+  clockSkewMs?: number;
+  /** Wave 5: Data integrity (4, 6) */
+  dataCorruptionDetected?: boolean;
+  sourceManipulationPrices?: number[];
 }
 
 export interface ChaosScenario {
@@ -45,21 +59,29 @@ function scenario(id: number, category: ChaosCategory, name: string, run: (ctx?:
   return { id, category, name, run };
 }
 
-/** Kategorie 1: Infrastructure */
+/** Kategorie 1: Infrastructure - Wave 5 P1 basic detection */
 const cat1: ChaosScenario[] = [
-  scenario(1, 1, "Network Partition", async () => true),
-  scenario(2, 1, "Node Failure", async () => true),
-  scenario(3, 1, "Clock Skew", async () => true),
+  scenario(1, 1, "Network Partition", async (ctx) => !(ctx?.networkPartitionDetected ?? false)),
+  scenario(2, 1, "Node Failure", async (ctx) => !(ctx?.nodeFailureDetected ?? false)),
+  scenario(3, 1, "Clock Skew", async (ctx) => {
+    const skew = ctx?.clockSkewMs ?? 0;
+    return Math.abs(skew) < 5000;
+  }),
 ];
 
-/** Kategorie 2: Data Integrity */
+/** Kategorie 2: Data Integrity - Wave 5 P1 basic detection */
 const cat2: ChaosScenario[] = [
-  scenario(4, 2, "Corruption", async () => true),
+  scenario(4, 2, "Corruption", async (ctx) => !(ctx?.dataCorruptionDetected ?? false)),
   scenario(5, 2, "Stale Data", async (ctx) => {
     const r = detectStaleData({ freshnessMs: ctx?.freshnessMs, maxAgeMs: 30_000 });
     return !r.hit;
   }),
-  scenario(6, 2, "Source Manipulation", async () => true),
+  scenario(6, 2, "Source Manipulation", async (ctx) => {
+    const prices = ctx?.sourceManipulationPrices;
+    if (!prices || prices.length < 2) return true;
+    const r = detectCrossDexDivergence({ prices, threshold: 0.15 });
+    return !r.hit;
+  }),
 ];
 
 /** Kategorie 3: Security & Secrets */
@@ -93,7 +115,16 @@ const cat5: ChaosScenario[] = [
     const r = detectCrossDexDivergence({ prices: ctx?.prices ?? [100, 110], threshold: 0.15 });
     return !r.hit;
   }),
-  scenario(15, 5, "MEV / Sandwich Simulation", async () => true),
+  scenario(15, 5, "MEV / Sandwich Simulation", async (ctx) => {
+    const r = detectMevSandwich({
+      frontRunDetected: ctx?.mevFrontRun,
+      backRunDetected: ctx?.mevBackRun,
+      slippageExceeded: ctx?.mevSlippageExceeded,
+      similarTxInSameBlock: ctx?.mevSimilarTxInBlock,
+      priceImpactAnomaly: ctx?.mevPriceImpactAnomaly,
+    });
+    return !r.hit;
+  }),
   scenario(16, 5, "Simulated Rug-Pull / Liquidity Drain", async (ctx) => {
     const r = detectLiquidityDrain({
       currentLiquidity: ctx?.liquidity ?? 95_000,
@@ -125,16 +156,17 @@ const cat5: ChaosScenario[] = [
 
 export const ALL_SCENARIOS: ChaosScenario[] = [...cat1, ...cat2, ...cat3, ...cat4, ...cat5];
 
-export async function runChaosSuite(traceId: string): Promise<ChaosTestReport> {
+export async function runChaosSuite(traceId: string, ctx?: ChaosContext): Promise<ChaosTestReport> {
   const timestamp = new Date().toISOString();
   const results: ChaosTestReport["results"] = [];
   let prevHash = "";
+  const runCtx = ctx ?? {};
 
   for (const s of ALL_SCENARIOS) {
     let passed = false;
     let error: string | undefined;
     try {
-      passed = await s.run({});
+      passed = await s.run(runCtx);
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
       passed = false;
