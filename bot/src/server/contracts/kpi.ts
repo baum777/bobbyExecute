@@ -6,6 +6,7 @@ export interface HealthResponse {
   status: "OK" | "DEGRADED" | "FAIL";
   uptimeMs: number;
   version: string;
+  killSwitch?: { halted: boolean; reason?: string; triggeredAt?: string };
 }
 
 export interface KpiSummaryResponse {

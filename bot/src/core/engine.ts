@@ -2,8 +2,11 @@
  * Trading engine - state machine orchestrator.
  * MAPPED from OrchestrAI_Labs packages/agent-runtime/src/orchestrator/orchestrator.ts
  * Simplified pipeline: Ingest -> Signal -> Risk -> Execute -> Verify -> Journal -> Monitor
+ * Wave 6 P1: Global error escalation - critical errors trigger kill switch.
  */
 import type { Clock } from "./clock.js";
+import { triggerKillSwitch } from "../governance/kill-switch.js";
+import { ChaosGateError } from "../chaos/chaos-suite.js";
 import type { ActionLogger } from "../observability/action-log.js";
 import type { MarketSnapshot } from "./contracts/market.js";
 import type { WalletSnapshot } from "./contracts/wallet.js";
@@ -195,6 +198,9 @@ export class Engine {
     } catch (err) {
       state.error = err instanceof Error ? err.message : String(err);
       state.blocked = true;
+      if (err instanceof ChaosGateError || /No healthy adapters|CRITICAL|emergency/i.test(state.error)) {
+        triggerKillSwitch(`Engine error escalation: ${state.error}`);
+      }
       await this.log(state, "error");
       throw err;
     }

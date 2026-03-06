@@ -10,6 +10,7 @@ import { recognizePatterns } from "../patterns/pattern-engine.js";
 import { MemoryDB } from "../memory/memory-db.js";
 import { MemoryLog } from "../memory/log-append.js";
 import { runChaosGate } from "../governance/chaos-gate.js";
+import { isKillSwitchHalted } from "../governance/kill-switch.js";
 import { lookupActionHandbook } from "../governance/action-handbook-lookup.js";
 import type { IntentSpec } from "./contracts/intent.js";
 import { createTraceId } from "../observability/trace-id.js";
@@ -122,6 +123,12 @@ export class Orchestrator {
     };
 
     try {
+      if (isKillSwitchHalted()) {
+        state.phase = "research";
+        state.error = "Kill switch active - trading halted. Manual reset required.";
+        throw new Error(state.error);
+      }
+
       const signalPack = await research(intentSpec);
       state.signalPack = signalPack;
       state.phase = "analyse";
@@ -178,6 +185,7 @@ export class Orchestrator {
       state.reviewGateApproved = reviewGateApproved;
 
       const shouldExecuteTx =
+        !isKillSwitchHalted() &&
         !this.dryRun &&
         decisionResult.decision === "allow" &&
         reviewGateApproved &&

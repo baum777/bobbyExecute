@@ -17,6 +17,8 @@ export interface AdapterHealth {
 
 interface AdapterHealthInternal extends AdapterHealth {
   lastSuccessAt?: number;
+  /** When adapter went unhealthy (for time-based recovery). */
+  unhealthySince?: number;
 }
 
 export interface CircuitBreakerConfig {
@@ -66,10 +68,12 @@ export class CircuitBreaker {
       current.consecutiveFailures = 0;
       current.healthy = true;
       current.lastSuccessAt = now;
+      current.unhealthySince = undefined;
     } else {
       current.consecutiveFailures++;
       if (current.consecutiveFailures >= this.config.failureThreshold) {
         current.healthy = false;
+        current.unhealthySince = now;
       }
     }
 
@@ -86,7 +90,14 @@ export class CircuitBreaker {
 
   isHealthy(adapterId: string): boolean {
     const h = this.health.get(adapterId);
-    return h?.healthy ?? false;
+    if (!h) return false;
+    if (h.healthy) return true;
+    if (h.unhealthySince === undefined) return false;
+    const elapsed = this.clock.now().getTime() - h.unhealthySince;
+    if (elapsed >= this.config.recoveryTimeMs) {
+      return true;
+    }
+    return false;
   }
 
   getHealth(): AdapterHealth[] {

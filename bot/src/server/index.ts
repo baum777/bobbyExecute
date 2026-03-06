@@ -5,6 +5,7 @@
 import Fastify from "fastify";
 import { healthRoutes } from "./routes/health.js";
 import { kpiRoutes } from "./routes/kpi.js";
+import { controlRoutes } from "./routes/control.js";
 import type { CircuitBreaker } from "../governance/circuit-breaker.js";
 import type { ActionLogger } from "../observability/action-log.js";
 import type { KpiRouteDeps } from "./routes/kpi.js";
@@ -49,6 +50,7 @@ export async function createServer(config: ServerConfig = {}) {
     riskScore: config.riskScore,
   };
   await fastify.register(kpiRoutes(kpiDeps));
+  await fastify.register(controlRoutes);
 
   await fastify.listen({ port, host });
   return fastify;
