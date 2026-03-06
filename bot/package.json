@@ -17,10 +17,12 @@
     "openapi:validate": "npx @apidevtools/swagger-cli validate openapi.yaml",
     "test:chaos": "vitest run tests/chaos",
     "premerge": "npm run lint && npm run test:golden && npm run test:chaos",
+    "start:server": "node dist/server/run.js",
     "validate:openapi": "swagger-cli validate docs/architecture/openapi.yaml"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.0",
+    "fastify": "^5.1.0",
     "pino": "^9.5.0",
     "pino-pretty": "^11.3.0",
     "snappyjs": "^0.7.0",

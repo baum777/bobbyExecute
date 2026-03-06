@@ -54,6 +54,7 @@ export { recordLatency, getP95 } from "./observability/metrics.js";
 export { incrementIncident, getIncidentCount } from "./observability/incidents.js";
 export * from "./chaos/index.js";
 export * from "./patterns/pattern-engine.js";
+export { createServer, type ServerConfig } from "./server/index.js";
 
 // Milestone 1: DexScreenerAdapter exports
 export * from "./adapters/dexscreener/client.js";

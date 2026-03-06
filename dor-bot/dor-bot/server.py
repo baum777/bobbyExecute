@@ -97,10 +97,26 @@ app = FastAPI(title="BOOBY BOT v30")
 
 # KPI Dashboard V1
 def metrics_tick():
-    """Compute and store metrics snapshot every 15s. Proxies from memory.json."""
+    """Compute and store metrics snapshot every 15s. Prefer bot KPIs via bridge when available."""
     try:
         from datetime import datetime
         from metrics.metrics_store import write_metrics_snapshot
+        ts = datetime.utcnow().isoformat() + "Z"
+        try:
+            from metrics.bridge import get_bot_metrics
+            bot_m = get_bot_metrics()
+            if bot_m:
+                write_metrics_snapshot(
+                    ts,
+                    mci=None,
+                    bci=None,
+                    hybrid=bot_m.get("hybrid"),
+                    data_quality=bot_m.get("data_quality"),
+                    chaos_pass_rate=bot_m.get("chaos_pass_rate"),
+                )
+                return
+        except ImportError:
+            pass
         mem = read_json("memory.json", {})
         s = mem.get("stats", {})
         wr = float(s.get("win_rate", 0.5) or 0.5)
@@ -112,7 +128,6 @@ def metrics_tick():
         hybrid = max(-1, min(1, hybrid))
         data_quality = 0.9
         chaos_pass_rate = 1.0
-        ts = datetime.utcnow().isoformat() + "Z"
         write_metrics_snapshot(ts, mci, bci, hybrid, data_quality, chaos_pass_rate)
     except Exception as e:
         log.warning(f"metrics_tick: {e}")
