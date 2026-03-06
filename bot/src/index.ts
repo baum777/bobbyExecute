@@ -25,6 +25,16 @@ export * from "./governance/tool-permissions.js";
 export * from "./governance/guardrails.js";
 export * from "./governance/circuit-breaker.js";
 export * from "./governance/kill-switch.js";
+export {
+  getLiveTestConfig,
+  type LiveTestConfig,
+} from "./config/safety.js";
+export {
+  createDailyLossTracker,
+  isDailyLimitReached,
+  getDailyLossState,
+  type DailyLossTrackerInterface,
+} from "./governance/daily-loss-tracker.js";
 export * from "./governance/review-gates.js";
 export * from "./governance/chaos-gate.js";
 export * from "./observability/action-log.js";

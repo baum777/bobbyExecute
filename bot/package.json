@@ -18,7 +18,8 @@
     "test:chaos": "vitest run tests/chaos",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "vitest run tests/e2e",
-    "premerge": "npm run lint && npm run test:golden && npm run test:chaos && npm run test:integration && npm run test:e2e",
+    "test:config": "vitest run tests/config",
+    "premerge": "npm run lint && npm run test:golden && npm run test:chaos && npm run test:integration && npm run test:e2e && npm run test:config",
     "start:server": "node dist/server/run.js",
     "validate:openapi": "swagger-cli validate docs/architecture/openapi.yaml"
   },

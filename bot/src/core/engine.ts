@@ -3,6 +3,7 @@
  * MAPPED from OrchestrAI_Labs packages/agent-runtime/src/orchestrator/orchestrator.ts
  * Simplified pipeline: Ingest -> Signal -> Risk -> Execute -> Verify -> Journal -> Monitor
  * Wave 6 P1: Global error escalation - critical errors trigger kill switch.
+ * Wave 8 P0: Daily loss tracking - block when limit reached.
  */
 import type { Clock } from "./clock.js";
 import { triggerKillSwitch } from "../governance/kill-switch.js";
@@ -10,9 +11,7 @@ import { ChaosGateError } from "../chaos/chaos-suite.js";
 import type { ActionLogger } from "../observability/action-log.js";
 import type { MarketSnapshot } from "./contracts/market.js";
 import type { WalletSnapshot } from "./contracts/wallet.js";
-import type { TradeIntent } from "./contracts/trade.js";
-import type { RpcVerificationReport } from "./contracts/trade.js";
-import type { ExecutionReport } from "./contracts/trade.js";
+import type { TradeIntent, ExecutionReport, RpcVerificationReport } from "./contracts/trade.js";
 import type { JournalEntry } from "./contracts/journal.js";
 import type { JournalWriter } from "../journal-writer/writer.js";
 import { SystemClock } from "./clock.js";
@@ -84,6 +83,8 @@ export interface EngineConfig {
   journalWriter?: JournalWriter;
   /** Optional EventBus for stage transitions */
   eventBus?: EventBus;
+  /** Wave 8: Daily loss tracker - block execute when limit reached */
+  dailyLossTracker?: { isLimitReached(): boolean; recordTrade(lossUsd: number): void };
 }
 
 export class Engine {
@@ -93,6 +94,7 @@ export class Engine {
   private readonly traceIdSeed?: string;
   private readonly journalWriter?: JournalWriter;
   private readonly eventBus?: EventBus;
+  private readonly dailyLossTracker?: { isLimitReached(): boolean; recordTrade(lossUsd: number): void };
 
   constructor(config: EngineConfig = {}) {
     this.clock = config.clock ?? new SystemClock();
@@ -101,6 +103,7 @@ export class Engine {
     this.traceIdSeed = config.traceIdSeed;
     this.journalWriter = config.journalWriter;
     this.eventBus = config.eventBus;
+    this.dailyLossTracker = config.dailyLossTracker;
   }
 
   async run(
@@ -156,6 +159,13 @@ export class Engine {
         return state;
       }
 
+      if (this.dailyLossTracker?.isLimitReached()) {
+        state.blocked = true;
+        state.blockedReason = "Daily loss limit reached";
+        await this.log(state, "daily_loss_blocked");
+        return state;
+      }
+
       state.blocked = false;
       state.stage = "execute";
       await this.emitStageTransition(state, "risk", "execute");
@@ -171,6 +181,11 @@ export class Engine {
         state.blockedReason = rpcVerify.reason ?? "RPC verification failed";
         await this.log(state, "verify_failed");
         return state;
+      }
+
+      if (this.dailyLossTracker && !this.dryRun && state.executionReport) {
+        const lossUsd = estimateLossUsd(intent, state.executionReport, state.market?.priceUsd);
+        this.dailyLossTracker.recordTrade(lossUsd);
       }
 
       state.stage = "journal";
@@ -261,4 +276,20 @@ export class Engine {
       traceId: state.traceId,
     });
   }
+}
+
+/** Wave 8: Rough USD loss when actual < expected. Assumes USDC 6 decimals for out. */
+function estimateLossUsd(
+  intent: TradeIntent,
+  report: ExecutionReport,
+  priceUsd?: number
+): number {
+  const minOut = parseFloat(intent.minAmountOut) || 0;
+  const actualOut = parseFloat(report.actualAmountOut ?? "0") || 0;
+  if (actualOut >= minOut) return 0;
+  const lossUnits = minOut - actualOut;
+  if (intent.tokenOut === "USDC") {
+    return lossUnits / 1e6;
+  }
+  return (lossUnits / 1e6) * (priceUsd ?? 1);
 }
