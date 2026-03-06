@@ -63,8 +63,14 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
   } = deps;
 
   return async (fastify) => {
+    const getEntries = async (): Promise<import("../../observability/action-log.js").ActionLogEntry[]> => {
+      const logger = actionLogger as { ensureLoaded?: () => Promise<void>; list?: () => import("../../observability/action-log.js").ActionLogEntry[] } | undefined;
+      if (logger && typeof logger.ensureLoaded === "function") await logger.ensureLoaded();
+      return logger && typeof logger.list === "function" ? logger.list() : [];
+    };
+
     fastify.get<{ Reply: KpiSummaryResponse }>("/kpi/summary", async (_request, reply) => {
-    const entries = actionLogger && "list" in actionLogger ? (actionLogger.list?.() ?? []) : [];
+    const entries = await getEntries();
     const lastEntry = entries[entries.length - 1];
     const lastDecisionAt = lastEntry?.ts ?? null;
     const tradesToday = entries.filter((e) => e.action === "execute" && !e.blocked).length;
@@ -92,7 +98,7 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
     "/kpi/decisions",
     async (request, reply) => {
       const limit = Math.min(parseInt(request.query.limit ?? "50", 10) || 50, 200);
-      const entries = actionLogger && "list" in actionLogger ? (actionLogger.list?.() ?? []) : [];
+      const entries = await getEntries();
       const recent = entries.slice(-limit).reverse();
       const decisions = recent.map((e, i) => actionToKpiDecision(e, entries.length - 1 - i));
       return reply.status(200).send({ decisions });

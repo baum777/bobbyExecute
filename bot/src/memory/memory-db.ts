@@ -1,8 +1,12 @@
 /**
  * Memory-DB - Iterative Renewed, Compressed, Hybrid.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: memory | Last Updated: 2026-03-04
+ * Wave 4: storagePath flush - persist journal to disk when path set.
  */
 import { compress as snappyCompress, uncompress as snappyUncompress } from "snappyjs";
+import { appendFile, readFile, mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { dirname } from "node:path";
 import { canonicalize } from "../core/determinism/canonicalize.js";
 import { sha256 } from "../core/determinism/hash.js";
 import { DATA_QUALITY_MIN_COMPLETENESS } from "../core/contracts/dataquality.js";
@@ -91,7 +95,43 @@ export class MemoryDB {
     };
 
     this.journal.push(entry);
+
+    if (this.storagePath) {
+      await this.flushJournalToDisk(entry);
+    }
     return entry;
+  }
+
+  /** Wave 4 P1: Flush compressed entry to storagePath (JSONL with base64 compressed). */
+  private async flushJournalToDisk(entry: CompressedJournalEntry): Promise<void> {
+    if (!this.storagePath) return;
+    const dir = dirname(this.storagePath);
+    if (!existsSync(dir)) await mkdir(dir, { recursive: true });
+    const line = JSON.stringify({
+      traceId: entry.traceId,
+      timestamp: entry.timestamp,
+      hash: entry.hash,
+      compressed: entry.compressed.toString("base64"),
+      prevHash: entry.prevHash,
+    }) + "\n";
+    await appendFile(this.storagePath, line, "utf8");
+  }
+
+  /** Wave 4 P1: Load journal from disk when storagePath set. Call after construction for recovery. */
+  async loadJournalFromDisk(): Promise<void> {
+    if (!this.storagePath || !existsSync(this.storagePath)) return;
+    const content = await readFile(this.storagePath, "utf8");
+    const lines = content.trim().split("\n").filter(Boolean);
+    for (const line of lines) {
+      const obj = JSON.parse(line) as { traceId: string; timestamp: string; hash: string; compressed: string; prevHash?: string };
+      this.journal.push({
+        traceId: obj.traceId,
+        timestamp: obj.timestamp,
+        hash: obj.hash,
+        compressed: Buffer.from(obj.compressed, "base64"),
+        prevHash: obj.prevHash,
+      });
+    }
   }
 
   getSnapshot(): MemorySnapshot | null {

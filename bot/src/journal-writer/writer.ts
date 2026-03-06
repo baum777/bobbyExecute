@@ -57,6 +57,7 @@ export class InMemoryJournalWriter implements JournalWriter {
 /**
  * File-system journal writer.
  * Appends JSON-lines to a file for persistence.
+ * Wave 4 P1: autoStartPeriodicFlush - starts flush timer for buffered mode / safety.
  */
 export class FileSystemJournalWriter implements JournalWriter {
   private readonly filePath: string;
@@ -66,10 +67,13 @@ export class FileSystemJournalWriter implements JournalWriter {
 
   constructor(
     filePath: string,
-    options?: { flushIntervalMs?: number }
+    options?: { flushIntervalMs?: number; autoStartPeriodicFlush?: boolean }
   ) {
     this.filePath = filePath;
     this.flushIntervalMs = options?.flushIntervalMs ?? 1000;
+    if (options?.autoStartPeriodicFlush !== false) {
+      this.startPeriodicFlush();
+    }
   }
 
   async append(entry: JournalEntry): Promise<void> {
