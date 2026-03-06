@@ -16,7 +16,9 @@
     "lint": "tsc --noEmit",
     "openapi:validate": "npx @apidevtools/swagger-cli validate openapi.yaml",
     "test:chaos": "vitest run tests/chaos",
-    "premerge": "npm run lint && npm run test:golden && npm run test:chaos",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "premerge": "npm run lint && npm run test:golden && npm run test:chaos && npm run test:integration && npm run test:e2e",
     "start:server": "node dist/server/run.js",
     "validate:openapi": "swagger-cli validate docs/architecture/openapi.yaml"
   },
