@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "adapter-health.schema.json",
+  "type": "object",
+  "required": ["adapterId", "healthy", "consecutiveFailures"],
+  "properties": {
+    "adapterId": { "type": "string" },
+    "healthy": { "type": "boolean" },
+    "consecutiveFailures": { "type": "integer", "minimum": 0 },
+    "lastSuccessAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

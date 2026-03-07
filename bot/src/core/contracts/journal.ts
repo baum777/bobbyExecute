@@ -15,6 +15,9 @@ export const JournalEntrySchema = z.object({
   output: z.unknown(),
   blocked: z.boolean().optional(),
   reason: z.string().optional(),
+  /** Normalized: hash chain for append-only audit */
+  eventHash: z.string().optional(),
+  prevEventHash: z.string().optional(),
 });
 
 export type JournalEntry = z.infer<typeof JournalEntrySchema>;

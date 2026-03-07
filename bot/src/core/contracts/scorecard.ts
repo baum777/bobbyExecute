@@ -13,6 +13,10 @@ export const ScoreCardSchema = z.object({
   crossSourceConfidenceScore: z.number().min(0).max(1),
   ageAdjusted: z.boolean().default(true),
   doublePenaltyApplied: z.boolean().optional(),
+  /** Normalized: schema version for audit */
+  version: z.string().optional().default("1.0"),
+  /** Normalized: hash of decision for replay */
+  decisionHash: z.string().optional(),
 });
 
 export type ScoreCard = z.infer<typeof ScoreCardSchema>;

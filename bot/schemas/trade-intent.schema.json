@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trade-intent.schema.json",
+  "type": "object",
+  "required": [
+    "traceId",
+    "timestamp",
+    "idempotencyKey",
+    "tokenIn",
+    "tokenOut",
+    "amountIn",
+    "minAmountOut",
+    "slippagePercent",
+    "dryRun",
+    "executionMode"
+  ],
+  "properties": {
+    "traceId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "idempotencyKey": { "type": "string" },
+    "tokenIn": { "type": "string" },
+    "tokenOut": { "type": "string" },
+    "amountIn": { "type": "string" },
+    "minAmountOut": { "type": "string" },
+    "slippagePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+    "deadline": { "type": "string", "format": "date-time" },
+    "dryRun": { "type": "boolean" },
+    "executionMode": { "type": "string", "enum": ["dry", "paper", "live"] }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "risk-decision.schema.json",
+  "type": "object",
+  "required": ["allowed", "checks"],
+  "properties": {
+    "allowed": { "type": "boolean" },
+    "checks": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "reason": { "type": "string" },
+    "blockReason": { "type": "string" },
+    "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+    "reasonCodes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

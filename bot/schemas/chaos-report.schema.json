@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chaos-report.schema.json",
+  "type": "object",
+  "required": [
+    "traceId",
+    "timestamp",
+    "total",
+    "passed",
+    "failed",
+    "passRate",
+    "results",
+    "auditHashChain"
+  ],
+  "properties": {
+    "traceId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "total": { "type": "integer", "minimum": 0 },
+    "passed": { "type": "integer", "minimum": 0 },
+    "failed": { "type": "integer", "minimum": 0 },
+    "passRate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "category", "name", "passed"],
+        "properties": {
+          "id": { "type": "integer" },
+          "category": { "type": "integer" },
+          "name": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "error": { "type": "string" }
+        }
+      }
+    },
+    "auditHashChain": { "type": "string" }
+  },
+  "additionalProperties": false
+}

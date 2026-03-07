@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "system-health-report.schema.json",
+  "type": "object",
+  "required": ["status", "adapters", "lastChecked"],
+  "properties": {
+    "status": { "type": "string", "enum": ["OK", "DEGRADED", "FAIL"] },
+    "adapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "healthy"],
+        "properties": {
+          "id": { "type": "string" },
+          "healthy": { "type": "boolean" }
+        }
+      }
+    },
+    "lastChecked": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

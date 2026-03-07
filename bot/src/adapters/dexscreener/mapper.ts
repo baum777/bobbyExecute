@@ -20,6 +20,7 @@ export function mapPairToMarketSnapshot(
   rawPayloadHash?: string
 ): MarketSnapshot {
   return {
+    schema_version: "market.v1",
     traceId,
     timestamp,
     source: "dexscreener",
@@ -29,6 +30,7 @@ export function mapPairToMarketSnapshot(
     priceUsd: parseFloat(pair.priceUsd) || 0,
     volume24h: pair.volume?.h24 || 0,
     liquidity: pair.liquidity?.usd || 0,
+    freshnessMs: 0,
     rawPayloadHash,
   };
 }

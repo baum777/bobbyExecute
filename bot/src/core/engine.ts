@@ -147,6 +147,7 @@ export class Engine {
         minAmountOut: "0.95",
         slippagePercent: 1,
         dryRun: this.dryRun,
+        executionMode: this.dryRun ? "dry" : "paper",
       };
       state.tradeIntent = intent;
 

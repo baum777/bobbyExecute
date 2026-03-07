@@ -108,6 +108,7 @@ export function computeScoreCard(
     crossSourceConfidenceScore: crossSource,
     ageAdjusted: true,
     doublePenaltyApplied: applied,
+    version: "1.0",
   };
 }
 

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "execution-record.schema.json",
+  "type": "object",
+  "required": [
+    "traceId",
+    "timestamp",
+    "tradeIntentId",
+    "success",
+    "dryRun"
+  ],
+  "properties": {
+    "traceId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "tradeIntentId": { "type": "string" },
+    "success": { "type": "boolean" },
+    "dryRun": { "type": "boolean" },
+    "txSignature": { "type": "string" },
+    "actualAmountOut": { "type": "string" },
+    "error": { "type": "string" }
+  },
+  "additionalProperties": false
+}

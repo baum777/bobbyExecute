@@ -1,8 +1,11 @@
 /**
  * Trade lifecycle contracts.
- * PROPOSED for onchain trading bot.
+ * Normalized planning package: executionMode, idempotencyKey semantics, RiskDecision.
  */
 import { z } from "zod";
+
+/** Execution mode: dry (no swap), paper (simulated), live (real swap) */
+export const ExecutionModeSchema = z.enum(["dry", "paper", "live"]);
 
 export const TradeIntentSchema = z.object({
   traceId: z.string(),
@@ -15,6 +18,8 @@ export const TradeIntentSchema = z.object({
   slippagePercent: z.number().min(0).max(100),
   deadline: z.string().datetime().optional(),
   dryRun: z.boolean().default(false),
+  /** Normalized: explicit execution mode semantics */
+  executionMode: z.enum(["dry", "paper", "live"]).optional().default("dry"),
 });
 
 export const RiskAssessmentSchema = z.object({
@@ -26,6 +31,18 @@ export const RiskAssessmentSchema = z.object({
   blockReason: z.string().optional(),
   checks: z.record(z.string(), z.boolean()),
 });
+
+/** Risk decision with severity and reason codes (hardened) */
+export const RiskDecisionSchema = z.object({
+  allowed: z.boolean(),
+  checks: z.record(z.string(), z.boolean()),
+  reason: z.string().optional(),
+  blockReason: z.string().optional(),
+  severity: z.enum(["low", "medium", "high", "critical"]).optional(),
+  reasonCodes: z.array(z.string()).optional(),
+});
+
+export type RiskDecision = z.infer<typeof RiskDecisionSchema>;
 
 export const ExecutionPlanSchema = z.object({
   traceId: z.string(),

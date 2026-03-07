@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "incident-event.schema.json",
+  "type": "object",
+  "required": ["adapterId", "timestamp", "errorType", "count"],
+  "properties": {
+    "adapterId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "errorType": { "type": "string" },
+    "count": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

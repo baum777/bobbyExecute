@@ -13,6 +13,9 @@ export const SourceQualitySchema = z.object({
   latency_ms: z.number().optional(),
 });
 
+/** Data quality status: pass (ok), fail (block), degraded (warn) */
+export const DataQualityStatusSchema = z.enum(["pass", "fail", "degraded"]);
+
 export const DataQualityV1Schema = z.object({
   schema_version: z.literal("data_quality.v1"),
   traceId: z.string(),
@@ -26,6 +29,10 @@ export const DataQualityV1Schema = z.object({
   confidence: z.number().min(0).max(1),
   source_breakdown: z.record(SourceQualitySchema).optional(),
   discrepancy_flags: z.array(z.string()).default([]),
+  /** Normalized: status for fail-closed gates */
+  status: DataQualityStatusSchema.optional(),
+  /** Normalized: machine-readable reason codes */
+  reasonCodes: z.array(z.string()).optional(),
 });
 
 // Legacy schema for backwards compatibility

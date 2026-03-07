@@ -15,6 +15,7 @@ export function mapTokenToMarketSnapshot(
   const volume24h = raw.summary?.["24h"]?.volume_usd ?? raw.summary?.["24h"]?.volume ?? 0;
 
   return {
+    schema_version: "market.v1",
     traceId,
     timestamp,
     source: "dexpaprika",
@@ -24,6 +25,7 @@ export function mapTokenToMarketSnapshot(
     priceUsd,
     volume24h: Number(volume24h),
     liquidity: (raw.summary as { liquidity_usd?: number })?.liquidity_usd ?? 0,
+    freshnessMs: 0,
     rawPayloadHash,
   };
 }

@@ -1,14 +1,15 @@
 /**
  * Standalone server entry - run with: node dist/server/run.js (after npm run build)
  * Or: npx tsx src/server/run.ts
+ * Uses bootstrap: config validation + assertLiveTradingRequiresRealRpc before server start.
  */
-import { createServer } from "./index.js";
+import { bootstrap } from "../bootstrap.js";
 
-const port = parseInt(process.env.PORT ?? "3333", 10);
-const host = process.env.HOST ?? "0.0.0.0";
-
-createServer({ port, host })
-  .then((server) => {
+bootstrap()
+  .then(({ server }) => {
+    const addr = server.addresses()[0];
+    const host = addr?.address ?? "0.0.0.0";
+    const port = addr?.port ?? 3333;
     console.log(`Server listening on http://${host}:${port}`);
     console.log("Endpoints: GET /health, GET /kpi/summary, GET /kpi/decisions, GET /kpi/adapters, GET /kpi/metrics");
   })

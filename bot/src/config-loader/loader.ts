@@ -1,26 +1,5 @@
 /**
- * Config loader - load and validate config from env.
- * Fail-closed on invalid configuration.
+ * Config loader - re-exports from normalized config layer.
+ * config/ is the single owner; loadConfig calls assertLiveTradingRequiresRealRpc.
  */
-import { parseConfig, type Config } from "./schema.js";
-
-let cachedConfig: Config | null = null;
-
-/**
- * Load config from process.env.
- * Caches result. Throws on validation failure (fail-closed).
- */
-export function loadConfig(env?: Record<string, string | undefined>): Config {
-  if (cachedConfig) return cachedConfig;
-
-  const source = env ?? process.env;
-  cachedConfig = parseConfig(source);
-  return cachedConfig;
-}
-
-/**
- * Reset cached config (for tests).
- */
-export function resetConfigCache(): void {
-  cachedConfig = null;
-}
+export { loadConfig, resetConfigCache } from "../config/load-config.js";
