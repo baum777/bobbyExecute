@@ -18,6 +18,7 @@ export interface ServerConfig {
   actionLogger?: ActionLogger & { list?: () => import("../observability/action-log.js").ActionLogEntry[] };
   getP95?: (name: string) => number | undefined;
   botStatus?: "running" | "paused" | "stopped";
+  getBotStatus?: () => "running" | "paused" | "stopped";
   chaosPassRate?: number;
   riskScore?: number;
 }
@@ -46,6 +47,7 @@ export async function createServer(config: ServerConfig = {}) {
     actionLogger: config.actionLogger,
     getP95: config.getP95,
     botStatus: config.botStatus,
+    getBotStatus: config.getBotStatus,
     chaosPassRate: config.chaosPassRate,
     riskScore: config.riskScore,
   };

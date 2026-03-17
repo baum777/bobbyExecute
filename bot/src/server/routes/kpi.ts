@@ -20,6 +20,7 @@ export interface KpiRouteDeps {
   actionLogger?: ActionLogger & { list?: () => ActionLogEntry[] };
   getP95?: (name: string) => number | undefined;
   botStatus?: "running" | "paused" | "stopped";
+  getBotStatus?: () => "running" | "paused" | "stopped";
   chaosPassRate?: number;
   riskScore?: number;
 }
@@ -58,6 +59,7 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
     actionLogger,
     getP95: getP95Fn,
     botStatus = "running",
+    getBotStatus,
     chaosPassRate = 1,
     riskScore = 0,
   } = deps;
@@ -84,7 +86,7 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
         : 1;
 
     const body: KpiSummaryResponse = {
-      botStatus,
+      botStatus: getBotStatus?.() ?? botStatus,
       riskScore,
       chaosPassRate,
       dataQuality,

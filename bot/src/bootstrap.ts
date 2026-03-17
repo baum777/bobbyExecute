@@ -6,6 +6,7 @@
 import { loadConfig } from "./config/load-config.js";
 import { createServer } from "./server/index.js";
 import { createDryRunRuntime } from "./runtime/dry-run-runtime.js";
+import { getKillSwitchState } from "./governance/kill-switch.js";
 
 /**
  * Bootstrap the application: validate config, start server.
@@ -35,12 +36,17 @@ export async function bootstrap(options?: {
 
   await runtime.start();
 
+  const getBotStatus = (): "running" | "paused" | "stopped" => {
+    if (getKillSwitchState().halted) return "paused";
+    return runtime.getStatus() === "running" ? "running" : "stopped";
+  };
+
   let server: Awaited<ReturnType<typeof createServer>>;
   try {
     server = await createServer({
       port,
       host,
-      botStatus: runtime.getStatus() === "running" ? "running" : "stopped",
+      getBotStatus,
     });
   } catch (error) {
     await runtime.stop();

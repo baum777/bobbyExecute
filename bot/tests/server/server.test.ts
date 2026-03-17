@@ -40,6 +40,28 @@ describe("Server (Wave 3)", () => {
     expect(body.uptimeMs).toBeGreaterThanOrEqual(0);
   });
 
+  it("GET /kpi/summary uses dynamic bot status resolver", async () => {
+    let status: "running" | "paused" | "stopped" = "running";
+    const srv = await createServer({
+      port: PORT + 2,
+      host: "127.0.0.1",
+      getBotStatus: () => status,
+    });
+
+    try {
+      const runningRes = await fetch(`http://127.0.0.1:${PORT + 2}/kpi/summary`);
+      expect(runningRes.status).toBe(200);
+      expect((await runningRes.json()).botStatus).toBe("running");
+
+      status = "paused";
+      const pausedRes = await fetch(`http://127.0.0.1:${PORT + 2}/kpi/summary`);
+      expect(pausedRes.status).toBe(200);
+      expect((await pausedRes.json()).botStatus).toBe("paused");
+    } finally {
+      await srv.close();
+    }
+  });
+
   it("GET /kpi/summary returns bot status and metrics", async () => {
     const res = await fetch(`${baseUrl}/kpi/summary`);
     expect(res.status).toBe(200);

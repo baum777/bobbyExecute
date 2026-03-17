@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { bootstrap } from "../../src/bootstrap.js";
 import { resetConfigCache } from "../../src/config/load-config.js";
+import { resetKillSwitch } from "../../src/governance/kill-switch.js";
 
 const ORIG_ENV = process.env;
 
@@ -13,6 +14,7 @@ describe("bootstrap runtime closure (phase-1)", () => {
   });
 
   afterEach(() => {
+    resetKillSwitch();
     resetConfigCache();
     process.env = ORIG_ENV;
   });
@@ -32,6 +34,17 @@ describe("bootstrap runtime closure (phase-1)", () => {
 
       const res = await fetch("http://127.0.0.1:3351/health");
       expect(res.status).toBe(200);
+
+      const summaryBefore = await fetch("http://127.0.0.1:3351/kpi/summary");
+      expect(summaryBefore.status).toBe(200);
+      expect((await summaryBefore.json()).botStatus).toBe("running");
+
+      const stopRes = await fetch("http://127.0.0.1:3351/emergency-stop", { method: "POST" });
+      expect(stopRes.status).toBe(200);
+
+      const summaryAfter = await fetch("http://127.0.0.1:3351/kpi/summary");
+      expect(summaryAfter.status).toBe(200);
+      expect((await summaryAfter.json()).botStatus).toBe("paused");
     } finally {
       await runtime.stop();
       await server.close();

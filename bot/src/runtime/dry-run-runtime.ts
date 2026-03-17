@@ -1,6 +1,7 @@
 import { Engine, type EngineState } from "../core/engine.js";
 import type { Config } from "../config/config-schema.js";
 import type { ExecutionReport, RpcVerificationReport, TradeIntent } from "../core/contracts/trade.js";
+import { isKillSwitchHalted } from "../governance/kill-switch.js";
 
 export type RuntimeStatus = "idle" | "running" | "stopped" | "error";
 
@@ -21,6 +22,7 @@ export class DryRunRuntime {
   private intervalRef: NodeJS.Timeout | null = null;
   private status: RuntimeStatus = "idle";
   private lastState: EngineState | null = null;
+  private cycleInFlight = false;
 
   constructor(
     private readonly config: Config,
@@ -57,6 +59,23 @@ export class DryRunRuntime {
   }
 
   private async runCycle(): Promise<void> {
+    if (this.cycleInFlight || this.status !== "running") {
+      return;
+    }
+
+    if (isKillSwitchHalted()) {
+      const now = new Date().toISOString();
+      this.lastState = {
+        stage: "risk",
+        traceId: `runtime-${now}`,
+        timestamp: now,
+        blocked: true,
+        blockedReason: "RUNTIME_PHASE2_KILL_SWITCH_HALTED",
+      };
+      return;
+    }
+
+    this.cycleInFlight = true;
     try {
       const now = new Date().toISOString();
       this.lastState = await this.engine.run(
@@ -108,6 +127,8 @@ export class DryRunRuntime {
     } catch (error) {
       this.status = "error";
       this.logger.error("Dry-run runtime cycle failed", error);
+    } finally {
+      this.cycleInFlight = false;
     }
   }
 }
