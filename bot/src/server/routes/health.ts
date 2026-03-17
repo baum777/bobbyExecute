@@ -42,6 +42,7 @@ export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
             lastDecisionAt: runtime.lastDecisionAt,
             lastBlockedReason: runtime.lastState?.blockedReason,
             lastEngineStage: runtime.lastState?.stage,
+            lastIntakeOutcome: runtime.lastCycleSummary?.intakeOutcome,
           }
         : undefined,
     };

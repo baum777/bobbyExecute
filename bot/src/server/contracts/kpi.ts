@@ -25,6 +25,7 @@ export interface HealthResponse {
     lastDecisionAt?: string;
     lastBlockedReason?: string;
     lastEngineStage?: string;
+    lastIntakeOutcome?: "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
   };
 }
 
@@ -45,6 +46,7 @@ export interface KpiSummaryResponse {
     blockedCount: number;
     errorCount: number;
     lastDecisionAt?: string;
+    lastIntakeOutcome?: "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
   };
 }
 

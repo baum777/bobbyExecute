@@ -84,8 +84,10 @@ describe("bootstrap runtime closure (phase-1)", () => {
       expect(runtime.getSnapshot().mode).toBe("paper");
       expect(body.runtime?.mode).toBe("paper");
       expect(body.runtime?.paperModeActive).toBe(true);
-      expect(body.runtime?.counters?.decisionCount).toBeGreaterThanOrEqual(1);
-      expect(body.runtime?.lastEngineStage).toBe("monitor");
+      expect(body.runtime?.counters?.decisionCount).toBe(0);
+      expect(body.runtime?.lastEngineStage).toBe("ingest");
+      expect(body.runtime?.lastBlockedReason).toContain("PAPER_INGEST_BLOCKED");
+      expect(body.runtime?.lastIntakeOutcome).toMatch(/stale|adapter_error/);
     } finally {
       await runtime.stop();
       await server.close();

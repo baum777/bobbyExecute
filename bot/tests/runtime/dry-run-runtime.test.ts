@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DryRunRuntime } from "../../src/runtime/dry-run-runtime.js";
 import { resetKillSwitch, triggerKillSwitch } from "../../src/governance/kill-switch.js";
+import { InMemoryRuntimeCycleSummaryWriter } from "../../src/persistence/runtime-cycle-summary-repository.js";
 import type { Config } from "../../src/config/config-schema.js";
 
 const TEST_CONFIG: Config = {
@@ -122,7 +123,6 @@ describe("DryRunRuntime (phase-2)", () => {
     await runtime.stop();
   });
 
-
   it("reports paused status and increments blocked counter when kill switch halts paper runtime", async () => {
     const paperConfig: Config = { ...TEST_CONFIG, executionMode: "paper", dryRun: false };
     const run = vi.fn().mockResolvedValue({ stage: "monitor", traceId: "paper", timestamp: new Date().toISOString() });
@@ -139,18 +139,49 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(snapshot.mode).toBe("paper");
     expect(snapshot.paperModeActive).toBe(true);
     expect(snapshot.counters.blockedCount).toBeGreaterThanOrEqual(1);
+    expect(snapshot.lastCycleSummary?.intakeOutcome).toBe("kill_switch_halted");
     expect(run).not.toHaveBeenCalled();
 
     await runtime.stop();
   });
 
-  it("paper mode cycle records execution and decision counters", async () => {
+  it("paper mode ingests via adapter orchestrator and preserves paper execution semantics", async () => {
     const paperConfig: Config = { ...TEST_CONFIG, executionMode: "paper", dryRun: false };
-    const runtime = new DryRunRuntime(paperConfig, { loopIntervalMs: 50 });
+    const fetchMarketDataFn = vi.fn().mockResolvedValue({
+      schema_version: "market.v1",
+      traceId: "m1",
+      timestamp: new Date().toISOString(),
+      source: "dexpaprika",
+      poolId: "pool-1",
+      baseToken: "SOL",
+      quoteToken: "USD",
+      priceUsd: 100,
+      volume24h: 100,
+      liquidity: 1000,
+      freshnessMs: 0,
+      status: "ok",
+    });
+    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
+
+    const runtime = new DryRunRuntime(paperConfig, {
+      loopIntervalMs: 50,
+      fetchMarketDataFn,
+      paperMarketAdapters: [{ id: "primary", fetch: vi.fn() }],
+      fetchPaperWalletSnapshot: async () => ({
+        traceId: "w1",
+        timestamp: new Date().toISOString(),
+        source: "moralis",
+        walletAddress: TEST_CONFIG.walletAddress,
+        balances: [],
+        totalUsd: 0,
+      }),
+      cycleSummaryWriter,
+    });
 
     await runtime.start();
     const snapshot = runtime.getSnapshot();
 
+    expect(fetchMarketDataFn).toHaveBeenCalledTimes(1);
     expect(snapshot.status).toBe("running");
     expect(snapshot.mode).toBe("paper");
     expect(snapshot.paperModeActive).toBe(true);
@@ -160,7 +191,39 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(snapshot.lastState?.executionReport?.paperExecution).toBe(true);
     expect(snapshot.lastState?.rpcVerification?.verificationMode).toBe("paper-simulated");
 
+    const summaries = await cycleSummaryWriter.list();
+    expect(summaries.length).toBe(1);
+    expect(summaries[0].intakeOutcome).toBe("ok");
+    expect(summaries[0].paperExecutionProduced).toBe(true);
+
     await runtime.stop();
   });
 
+  it("blocks paper cycle when adapters are stale/all-failed and writes summary", async () => {
+    const paperConfig: Config = { ...TEST_CONFIG, executionMode: "paper", dryRun: false };
+    const run = vi.fn();
+    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
+    const runtime = new DryRunRuntime(paperConfig, {
+      engine: { run } as never,
+      fetchMarketDataFn: vi.fn().mockResolvedValue({ error: "All adapters failed: data stale" }),
+      paperMarketAdapters: [{ id: "primary", fetch: vi.fn() }],
+      fetchPaperWalletSnapshot: vi.fn(),
+      cycleSummaryWriter,
+    });
+
+    await runtime.start();
+
+    expect(run).not.toHaveBeenCalled();
+    expect(runtime.getSnapshot().counters.blockedCount).toBe(1);
+    expect(runtime.getLastState()?.blocked).toBe(true);
+    expect(runtime.getLastState()?.blockedReason).toContain("PAPER_INGEST_BLOCKED");
+
+    const summaries = await cycleSummaryWriter.list();
+    expect(summaries.length).toBe(1);
+    expect(summaries[0].intakeOutcome).toBe("stale");
+    expect(summaries[0].advanced).toBe(false);
+    expect(summaries[0].executionOccurred).toBe(false);
+
+    await runtime.stop();
+  });
 });
