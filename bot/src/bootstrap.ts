@@ -5,7 +5,7 @@
  */
 import { loadConfig } from "./config/load-config.js";
 import { createServer } from "./server/index.js";
-import { createDryRunRuntime } from "./runtime/dry-run-runtime.js";
+import { createDryRunRuntime, type RuntimeSnapshot } from "./runtime/dry-run-runtime.js";
 import { getKillSwitchState } from "./governance/kill-switch.js";
 
 /**
@@ -36,9 +36,14 @@ export async function bootstrap(options?: {
 
   await runtime.start();
 
+  const getRuntimeSnapshot = (): RuntimeSnapshot => runtime.getSnapshot();
+
   const getBotStatus = (): "running" | "paused" | "stopped" => {
     if (getKillSwitchState().halted) return "paused";
-    return runtime.getStatus() === "running" ? "running" : "stopped";
+    const runtimeStatus = runtime.getStatus();
+    if (runtimeStatus === "running") return "running";
+    if (runtimeStatus === "paused") return "paused";
+    return "stopped";
   };
 
   let server: Awaited<ReturnType<typeof createServer>>;
@@ -47,6 +52,7 @@ export async function bootstrap(options?: {
       port,
       host,
       getBotStatus,
+      getRuntimeSnapshot,
     });
   } catch (error) {
     await runtime.stop();

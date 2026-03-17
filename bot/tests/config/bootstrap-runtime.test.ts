@@ -34,11 +34,16 @@ describe("bootstrap runtime closure (phase-1)", () => {
 
       const res = await fetch("http://127.0.0.1:3351/health");
       expect(res.status).toBe(200);
-      expect((await res.json()).botStatus).toBe("running");
+      const healthBefore = await res.json();
+      expect(healthBefore.botStatus).toBe("running");
+      expect(healthBefore.runtime?.mode).toBe("dry");
+      expect(healthBefore.runtime?.paperModeActive).toBe(false);
 
       const summaryBefore = await fetch("http://127.0.0.1:3351/kpi/summary");
       expect(summaryBefore.status).toBe(200);
-      expect((await summaryBefore.json()).botStatus).toBe("running");
+      const summaryPayload = await summaryBefore.json();
+      expect(summaryPayload.botStatus).toBe("running");
+      expect(summaryPayload.runtime?.mode).toBe("dry");
 
       const stopRes = await fetch("http://127.0.0.1:3351/emergency-stop", { method: "POST" });
       expect(stopRes.status).toBe(200);
@@ -55,6 +60,32 @@ describe("bootstrap runtime closure (phase-1)", () => {
       const summaryAfter = await fetch("http://127.0.0.1:3351/kpi/summary");
       expect(summaryAfter.status).toBe(200);
       expect((await summaryAfter.json()).botStatus).toBe("paused");
+    } finally {
+      await runtime.stop();
+      await server.close();
+    }
+  });
+
+
+  it("starts in paper mode with runtime truth surfaced in health", async () => {
+    process.env.DRY_RUN = "false";
+    delete process.env.LIVE_TRADING;
+
+    const { server, runtime } = await bootstrap({
+      host: "127.0.0.1",
+      port: 3353,
+    });
+
+    try {
+      const res = await fetch("http://127.0.0.1:3353/health");
+      expect(res.status).toBe(200);
+      const body = await res.json();
+
+      expect(runtime.getSnapshot().mode).toBe("paper");
+      expect(body.runtime?.mode).toBe("paper");
+      expect(body.runtime?.paperModeActive).toBe(true);
+      expect(body.runtime?.counters?.decisionCount).toBeGreaterThanOrEqual(1);
+      expect(body.runtime?.lastEngineStage).toBe("monitor");
     } finally {
       await runtime.stop();
       await server.close();

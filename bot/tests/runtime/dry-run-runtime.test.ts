@@ -89,7 +89,7 @@ describe("DryRunRuntime (phase-2)", () => {
     });
 
     await expect(runtime.start()).rejects.toThrow("runtime-ingest-failed");
-    expect(runtime.getStatus()).toBe("error");
+    expect(runtime.getSnapshot().status).toBe("error");
     expect(logger.error).toHaveBeenCalled();
 
     await runtime.stop();
@@ -116,8 +116,49 @@ describe("DryRunRuntime (phase-2)", () => {
     await runtime.start();
     await new Promise((resolve) => setTimeout(resolve, 25));
 
-    expect(runtime.getStatus()).toBe("error");
+    expect(runtime.getSnapshot().status).toBe("error");
     expect(logger.error).toHaveBeenCalled();
+
+    await runtime.stop();
+  });
+
+
+  it("reports paused status and increments blocked counter when kill switch halts paper runtime", async () => {
+    const paperConfig: Config = { ...TEST_CONFIG, executionMode: "paper", dryRun: false };
+    const run = vi.fn().mockResolvedValue({ stage: "monitor", traceId: "paper", timestamp: new Date().toISOString() });
+    const runtime = new DryRunRuntime(paperConfig, {
+      engine: { run } as never,
+      loopIntervalMs: 10,
+    });
+
+    triggerKillSwitch("paper-halt");
+    await runtime.start();
+
+    const snapshot = runtime.getSnapshot();
+    expect(snapshot.status).toBe("paused");
+    expect(snapshot.mode).toBe("paper");
+    expect(snapshot.paperModeActive).toBe(true);
+    expect(snapshot.counters.blockedCount).toBeGreaterThanOrEqual(1);
+    expect(run).not.toHaveBeenCalled();
+
+    await runtime.stop();
+  });
+
+  it("paper mode cycle records execution and decision counters", async () => {
+    const paperConfig: Config = { ...TEST_CONFIG, executionMode: "paper", dryRun: false };
+    const runtime = new DryRunRuntime(paperConfig, { loopIntervalMs: 50 });
+
+    await runtime.start();
+    const snapshot = runtime.getSnapshot();
+
+    expect(snapshot.status).toBe("running");
+    expect(snapshot.mode).toBe("paper");
+    expect(snapshot.paperModeActive).toBe(true);
+    expect(snapshot.counters.cycleCount).toBe(1);
+    expect(snapshot.counters.decisionCount).toBe(1);
+    expect(snapshot.counters.executionCount).toBe(1);
+    expect(snapshot.lastState?.executionReport?.paperExecution).toBe(true);
+    expect(snapshot.lastState?.rpcVerification?.verificationMode).toBe("paper-simulated");
 
     await runtime.stop();
   });

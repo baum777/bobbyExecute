@@ -77,6 +77,13 @@ const intent: TradeIntent = {
   executionMode: "live",
 };
 
+const paperIntent: TradeIntent = {
+  ...intent,
+  traceId: "paper-exec-trace",
+  idempotencyKey: "paper-exec-key",
+  executionMode: "paper",
+};
+
 describe("runtime truthfulness closure", () => {
   it("scoring is deterministic for equal input", () => {
     const a = runScoringEngine({ signalPack, traceId: "same", timestamp: now });
@@ -128,6 +135,34 @@ describe("runtime truthfulness closure", () => {
     expect(result.blocked).toBe(true);
     expect(result.report.success).toBe(false);
     expect(result.verification.passed).toBe(false);
+    expect(result.report.executionMode).toBe("live");
+    expect(result.verification.verificationMode).toBe("rpc");
+  });
+
+  it("execution engine marks paper execution and simulated verification", async () => {
+    const result = await runExecution(
+      {
+        executeFn: async () => ({
+          traceId: paperIntent.traceId,
+          timestamp: paperIntent.timestamp,
+          tradeIntentId: paperIntent.idempotencyKey,
+          success: true,
+          dryRun: false,
+        }),
+        verifyFn: async () => ({
+          traceId: paperIntent.traceId,
+          timestamp: paperIntent.timestamp,
+          passed: true,
+          checks: {},
+        }),
+      },
+      paperIntent
+    );
+
+    expect(result.blocked).toBe(false);
+    expect(result.report.executionMode).toBe("paper");
+    expect(result.report.paperExecution).toBe(true);
+    expect(result.verification.verificationMode).toBe("paper-simulated");
   });
 
   it("adapter orchestrator rejects stale snapshots and fails closed when all stale", async () => {

@@ -10,6 +10,7 @@ import type { CircuitBreaker } from "../governance/circuit-breaker.js";
 import type { ActionLogger } from "../observability/action-log.js";
 import type { KpiRouteDeps } from "./routes/kpi.js";
 import type { HealthRouteDeps } from "./routes/health.js";
+import type { RuntimeSnapshot } from "../runtime/dry-run-runtime.js";
 
 export interface ServerConfig {
   port?: number;
@@ -21,6 +22,7 @@ export interface ServerConfig {
   getBotStatus?: () => "running" | "paused" | "stopped";
   chaosPassRate?: number;
   riskScore?: number;
+  getRuntimeSnapshot?: () => RuntimeSnapshot;
 }
 
 const DEFAULT_PORT = 3333;
@@ -41,6 +43,7 @@ export async function createServer(config: ServerConfig = {}) {
     circuitBreaker: config.circuitBreaker,
     startedAt,
     getBotStatus: config.getBotStatus,
+    getRuntimeSnapshot: config.getRuntimeSnapshot,
   }));
 
   const kpiDeps: KpiRouteDeps = {
@@ -51,6 +54,7 @@ export async function createServer(config: ServerConfig = {}) {
     getBotStatus: config.getBotStatus,
     chaosPassRate: config.chaosPassRate,
     riskScore: config.riskScore,
+    getRuntimeSnapshot: config.getRuntimeSnapshot,
   };
   await fastify.register(kpiRoutes(kpiDeps));
   await fastify.register(controlRoutes);

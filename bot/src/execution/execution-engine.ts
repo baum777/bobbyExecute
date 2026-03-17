@@ -36,6 +36,8 @@ export async function runExecution(
         success: false,
         error: "Live execution disabled (LIVE_TRADING not enabled)",
         dryRun: false,
+        executionMode: "live",
+        paperExecution: false,
       },
       verification: {
         traceId: intent.traceId,
@@ -43,6 +45,7 @@ export async function runExecution(
         passed: false,
         checks: {},
         reason: "Live execution disabled",
+        verificationMode: "rpc",
       },
       blocked: true,
       blockedReason: "Live execution disabled",
@@ -50,20 +53,30 @@ export async function runExecution(
   }
 
   const report = await config.executeFn(intent);
-  const verification = await config.verifyFn(intent, report);
+  const normalizedReport = {
+    ...report,
+    executionMode: report.executionMode ?? intent.executionMode,
+    paperExecution: report.paperExecution ?? intent.executionMode === "paper",
+  };
+  const verification = await config.verifyFn(intent, normalizedReport);
+  const normalizedVerification = {
+    ...verification,
+    verificationMode:
+      verification.verificationMode ?? (intent.executionMode === "paper" ? "paper-simulated" : "rpc"),
+  };
 
-  if (!verification.passed) {
+  if (!normalizedVerification.passed) {
     return {
-      report,
-      verification,
+      report: normalizedReport,
+      verification: normalizedVerification,
       blocked: true,
-      blockedReason: verification.reason ?? "RPC verification failed",
+      blockedReason: normalizedVerification.reason ?? "RPC verification failed",
     };
   }
 
   return {
-    report,
-    verification,
+    report: normalizedReport,
+    verification: normalizedVerification,
     blocked: false,
   };
 }

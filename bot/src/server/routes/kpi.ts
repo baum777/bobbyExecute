@@ -14,6 +14,7 @@ import type { CircuitBreaker, AdapterHealth } from "../../governance/circuit-bre
 import type { ActionLogger, ActionLogEntry } from "../../observability/action-log.js";
 import { getP95 } from "../../observability/metrics.js";
 import { ADAPTER_IDS } from "../../adapters/adapters-with-cb.js";
+import type { RuntimeSnapshot } from "../../runtime/dry-run-runtime.js";
 
 export interface KpiRouteDeps {
   circuitBreaker?: CircuitBreaker;
@@ -23,6 +24,7 @@ export interface KpiRouteDeps {
   getBotStatus?: () => "running" | "paused" | "stopped";
   chaosPassRate?: number;
   riskScore?: number;
+  getRuntimeSnapshot?: () => RuntimeSnapshot;
 }
 
 function mapHealthToStatus(h: AdapterHealth): KpiAdapter["status"] {
@@ -62,6 +64,7 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
     getBotStatus,
     chaosPassRate = 1,
     riskScore = 0,
+    getRuntimeSnapshot,
   } = deps;
 
   return async (fastify) => {
@@ -85,6 +88,7 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
           })()
         : 1;
 
+    const runtime = getRuntimeSnapshot?.();
     const body: KpiSummaryResponse = {
       botStatus: getBotStatus?.() ?? botStatus,
       riskScore,
@@ -92,6 +96,19 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
       dataQuality,
       lastDecisionAt,
       tradesToday,
+      runtime: runtime
+        ? {
+            mode: runtime.mode,
+            paperModeActive: runtime.paperModeActive,
+            status: runtime.status,
+            cycleCount: runtime.counters.cycleCount,
+            decisionCount: runtime.counters.decisionCount,
+            executionCount: runtime.counters.executionCount,
+            blockedCount: runtime.counters.blockedCount,
+            errorCount: runtime.counters.errorCount,
+            lastDecisionAt: runtime.lastDecisionAt,
+          }
+        : undefined,
     };
     return reply.status(200).send(body);
   });
