@@ -63,6 +63,8 @@ export const ExecutionReportSchema = z.object({
   actualAmountOut: z.string().optional(),
   error: z.string().optional(),
   dryRun: z.boolean().optional(),
+  executionMode: z.enum(["dry", "paper", "live"]).optional(),
+  paperExecution: z.boolean().optional(),
 });
 
 export const RpcVerificationReportSchema = z.object({
@@ -76,6 +78,7 @@ export const RpcVerificationReportSchema = z.object({
     quoteInputs: z.boolean().optional(),
   }),
   reason: z.string().optional(),
+  verificationMode: z.enum(["rpc", "paper-simulated"]).optional(),
 });
 
 export type TradeIntent = z.infer<typeof TradeIntentSchema>;

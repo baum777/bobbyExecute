@@ -1,7 +1,7 @@
 /**
  * Wave 7: E2E fail-closed - all abort conditions block trading.
  */
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 import { Orchestrator } from "../../src/core/orchestrator.js";
 import { triggerKillSwitch, resetKillSwitch } from "../../src/governance/kill-switch.js";
 import type { IntentSpec } from "../../src/core/contracts/intent.js";
@@ -21,6 +21,38 @@ const researchOk = async (): Promise<SignalPack> => ({
     liquidity: 100000,
   }],
   dataQuality: { completeness: 0.95, freshness: 0.9, sourceReliability: 0.95 },
+});
+
+const researchAllow = async (): Promise<SignalPack> => ({
+  traceId: "fc-trace-allow",
+  timestamp: new Date().toISOString(),
+  sources: ["moralis", "dexscreener"],
+  signals: [
+    {
+      source: "moralis",
+      timestamp: new Date().toISOString(),
+      baseToken: "SOL",
+      quoteToken: "USDC",
+      priceUsd: 100,
+      volume24h: 250000,
+      liquidity: 1500000,
+    },
+    {
+      source: "dexscreener",
+      timestamp: new Date().toISOString(),
+      baseToken: "SOL",
+      quoteToken: "USDC",
+      priceUsd: 300,
+      volume24h: 250000,
+      liquidity: 1500000,
+    },
+  ],
+  dataQuality: {
+    completeness: 0.99,
+    freshness: 0.99,
+    sourceReliability: 0.99,
+    crossSourceConfidence: 0.95,
+  },
 });
 
 const intentSpec: IntentSpec = {
@@ -50,6 +82,38 @@ describe("E2E fail-closed (Wave 7)", () => {
     const state = await orchestrator.run(intentSpec, researchOk, undefined, undefined, reviewGateDeny);
     expect(state.reviewGateApproved).toBe(false);
     expect(state.focusedTxExecuted).toBe(false);
+  });
+
+  it("phase 7 fail-closed: live allow requires review gate approval", async () => {
+    const orchestrator = new Orchestrator({ dryRun: false });
+
+    await expect(
+      orchestrator.run(intentSpec, researchAllow, async () => ({ ttlSeconds: 120 }), async () => undefined, async () => false)
+    ).rejects.toThrow("Fail-closed: review gate rejected allow-decision execution");
+  });
+
+  it("phase 7 fail-closed: live allow requires focusedTx + vault handlers", async () => {
+    const noFocusedTx = new Orchestrator({ dryRun: false });
+    await expect(
+      noFocusedTx.run(intentSpec, researchAllow, async () => ({ ttlSeconds: 120 }), undefined, async () => true)
+    ).rejects.toThrow("Fail-closed: focusedTx handler required for allow-decision execution");
+
+    const noVault = new Orchestrator({ dryRun: false });
+    await expect(
+      noVault.run(intentSpec, researchAllow, undefined, async () => undefined, async () => true)
+    ).rejects.toThrow("Fail-closed: secretsVault handler required for allow-decision execution");
+  });
+
+  it("phase 6 memory log remains append-only before phase 7 fail-closed abort", async () => {
+    const orchestrator = new Orchestrator({ dryRun: false });
+
+    await expect(
+      orchestrator.run(intentSpec, researchAllow, async () => ({ ttlSeconds: 120 }), async () => undefined, async () => false)
+    ).rejects.toThrow();
+
+    const entries = orchestrator.getMemoryLog().getEntries();
+    expect(entries.length).toBe(1);
+    expect(entries[0].stage).toBe("orchestrator_complete");
   });
 
   it("chaos gate failure aborts (when MEV detected)", async () => {

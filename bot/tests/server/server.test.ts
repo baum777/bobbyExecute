@@ -40,6 +40,97 @@ describe("Server (Wave 3)", () => {
     expect(body.uptimeMs).toBeGreaterThanOrEqual(0);
   });
 
+  it("GET /health uses dynamic bot status resolver when provided", async () => {
+    let status: "running" | "paused" | "stopped" = "running";
+    const srv = await createServer({
+      port: PORT + 3,
+      host: "127.0.0.1",
+      getBotStatus: () => status,
+    });
+
+    try {
+      const runningRes = await fetch(`http://127.0.0.1:${PORT + 3}/health`);
+      expect(runningRes.status).toBe(200);
+      expect((await runningRes.json()).botStatus).toBe("running");
+
+      status = "paused";
+      const pausedRes = await fetch(`http://127.0.0.1:${PORT + 3}/health`);
+      expect(pausedRes.status).toBe(200);
+      expect((await pausedRes.json()).botStatus).toBe("paused");
+    } finally {
+      await srv.close();
+    }
+  });
+
+  it("GET /kpi/summary uses dynamic bot status resolver", async () => {
+    let status: "running" | "paused" | "stopped" = "running";
+    const srv = await createServer({
+      port: PORT + 2,
+      host: "127.0.0.1",
+      getBotStatus: () => status,
+    });
+
+    try {
+      const runningRes = await fetch(`http://127.0.0.1:${PORT + 2}/kpi/summary`);
+      expect(runningRes.status).toBe(200);
+      expect((await runningRes.json()).botStatus).toBe("running");
+
+      status = "paused";
+      const pausedRes = await fetch(`http://127.0.0.1:${PORT + 2}/kpi/summary`);
+      expect(pausedRes.status).toBe(200);
+      expect((await pausedRes.json()).botStatus).toBe("paused");
+    } finally {
+      await srv.close();
+    }
+  });
+
+
+  it("GET /health and /kpi/summary expose grounded runtime snapshot when provided", async () => {
+    const srv = await createServer({
+      port: PORT + 4,
+      host: "127.0.0.1",
+      getBotStatus: () => "running",
+      getRuntimeSnapshot: () => ({
+        status: "running",
+        mode: "paper",
+        paperModeActive: true,
+        cycleInFlight: false,
+        counters: {
+          cycleCount: 3,
+          decisionCount: 3,
+          executionCount: 2,
+          blockedCount: 1,
+          errorCount: 0,
+        },
+        lastCycleAt: "2026-03-17T12:00:00.000Z",
+        lastDecisionAt: "2026-03-17T12:00:00.000Z",
+        lastState: {
+          stage: "monitor",
+          traceId: "trace-paper",
+          timestamp: "2026-03-17T12:00:00.000Z",
+          blocked: false,
+        },
+      }),
+    });
+
+    try {
+      const healthRes = await fetch(`http://127.0.0.1:${PORT + 4}/health`);
+      expect(healthRes.status).toBe(200);
+      const health = await healthRes.json();
+      expect(health.runtime.mode).toBe("paper");
+      expect(health.runtime.paperModeActive).toBe(true);
+      expect(health.runtime.lastEngineStage).toBe("monitor");
+
+      const summaryRes = await fetch(`http://127.0.0.1:${PORT + 4}/kpi/summary`);
+      expect(summaryRes.status).toBe(200);
+      const summary = await summaryRes.json();
+      expect(summary.runtime.mode).toBe("paper");
+      expect(summary.runtime.executionCount).toBe(2);
+    } finally {
+      await srv.close();
+    }
+  });
+
   it("GET /kpi/summary returns bot status and metrics", async () => {
     const res = await fetch(`${baseUrl}/kpi/summary`);
     expect(res.status).toBe(200);

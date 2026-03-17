@@ -40,6 +40,20 @@ Trigger emergency stop when any of the following occurs:
 - kill-switch blocks new execution immediately
 - activation is journaled and logged
 
+
+## Runtime control + read surfaces (paper runtime)
+
+Current operator surfaces in `bot/`:
+
+- `POST /emergency-stop` → activates kill-switch and pauses runtime
+- `POST /control/reset` → clears kill-switch only (does not auto-resume)
+- `POST /control/pause` / `POST /control/resume` / `POST /control/halt` → explicit runtime controls
+- `GET /health`, `GET /kpi/summary`, `GET /runtime/status` → grounded runtime control-state visibility
+- `GET /runtime/cycles` → recent persisted cycle summaries
+- `GET /incidents` → recent persisted incidents
+
+These surfaces are for dry/paper operational control and review; they are not a live-trading authorization surface.
+
 ## Post-incident review
 
 After any incident record:
