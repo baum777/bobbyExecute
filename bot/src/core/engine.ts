@@ -8,12 +8,14 @@
 import type { Clock } from "./clock.js";
 import { triggerKillSwitch } from "../governance/kill-switch.js";
 import { ChaosGateError } from "../chaos/chaos-suite.js";
+import { runChaosGate } from "../governance/chaos-gate.js";
 import type { ActionLogger } from "../observability/action-log.js";
 import type { MarketSnapshot } from "./contracts/market.js";
 import type { WalletSnapshot } from "./contracts/wallet.js";
 import type { TradeIntent, ExecutionReport, RpcVerificationReport } from "./contracts/trade.js";
 import type { JournalEntry } from "./contracts/journal.js";
 import type { JournalWriter } from "../journal-writer/writer.js";
+import { appendJournal } from "../persistence/journal-repository.js";
 import { SystemClock } from "./clock.js";
 import { hashDecision, hashResult } from "./determinism/hash.js";
 import { createTraceId } from "../observability/trace-id.js";
@@ -22,10 +24,17 @@ export type EngineStage =
   | "ingest"
   | "signal"
   | "risk"
+  | "chaos"
   | "execute"
   | "verify"
   | "journal"
   | "monitor";
+
+export type ChaosDecision = {
+  allowed: boolean;
+  reason?: string;
+  reportHash?: string;
+};
 
 export type EngineState = {
   stage: EngineStage;
@@ -36,6 +45,8 @@ export type EngineState = {
   signal?: { direction: string; confidence: number; cqd?: import("./contracts/cqd.js").CQDSnapshotV1 };
   tradeIntent?: TradeIntent;
   riskAllowed?: boolean;
+  chaosAllowed?: boolean;
+  chaosReportHash?: string;
   executionPlan?: unknown;
   executionReport?: ExecutionReport;
   rpcVerification?: RpcVerificationReport;
@@ -71,6 +82,13 @@ export type VerifyHandler = (
   report: ExecutionReport
 ) => Promise<RpcVerificationReport>;
 
+export type ChaosHandler = (
+  intent: TradeIntent,
+  market: MarketSnapshot,
+  wallet: WalletSnapshot,
+  signal: { direction: string; confidence: number; cqd?: import("./contracts/cqd.js").CQDSnapshotV1 }
+) => Promise<ChaosDecision>;
+
 import type { EventBus } from "../eventbus/index.js";
 
 export interface EngineConfig {
@@ -81,6 +99,10 @@ export interface EngineConfig {
   traceIdSeed?: string;
   /** Optional JournalWriter - when provided, journal entries are persisted */
   journalWriter?: JournalWriter;
+  /** Critical journaling policy for runtime authority artifacts */
+  journalPolicy?: "optional" | "mandatory";
+  /** Chaos authority decision before execute */
+  chaosFn?: ChaosHandler;
   /** Optional EventBus for stage transitions */
   eventBus?: EventBus;
   /** Wave 8: Daily loss tracker - block execute when limit reached */
@@ -93,6 +115,8 @@ export class Engine {
   private readonly dryRun: boolean;
   private readonly traceIdSeed?: string;
   private readonly journalWriter?: JournalWriter;
+  private readonly journalPolicy: "optional" | "mandatory";
+  private readonly chaosFn: ChaosHandler;
   private readonly eventBus?: EventBus;
   private readonly dailyLossTracker?: { isLimitReached(): boolean; recordTrade(lossUsd: number): void };
 
@@ -102,6 +126,8 @@ export class Engine {
     this.dryRun = config.dryRun ?? true;
     this.traceIdSeed = config.traceIdSeed;
     this.journalWriter = config.journalWriter;
+    this.journalPolicy = config.journalPolicy ?? "optional";
+    this.chaosFn = config.chaosFn ?? defaultChaosHandler;
     this.eventBus = config.eventBus;
     this.dailyLossTracker = config.dailyLossTracker;
   }
@@ -150,9 +176,18 @@ export class Engine {
         executionMode: this.dryRun ? "dry" : "paper",
       };
       state.tradeIntent = intent;
+      await this.appendCriticalJournal(state, "decision_outcome", { market, wallet, signal }, { intent });
 
       const risk = await riskFn(intent, market, wallet);
       state.riskAllowed = risk.allowed;
+      await this.appendCriticalJournal(
+        state,
+        "risk_decision",
+        { intent, market, wallet },
+        { allowed: risk.allowed, reason: risk.reason },
+        !risk.allowed,
+        risk.reason
+      );
       if (!risk.allowed) {
         state.blocked = true;
         state.blockedReason = risk.reason;
@@ -168,15 +203,45 @@ export class Engine {
       }
 
       state.blocked = false;
+      state.stage = "chaos";
+      await this.emitStageTransition(state, "risk", "chaos");
+
+      const chaos = await this.chaosFn(intent, market, wallet, signal);
+      state.chaosAllowed = chaos.allowed;
+      state.chaosReportHash = chaos.reportHash;
+      await this.appendCriticalJournal(
+        state,
+        "chaos_decision",
+        { intent, market, wallet, signal },
+        { allowed: chaos.allowed, reason: chaos.reason, reportHash: chaos.reportHash },
+        !chaos.allowed,
+        chaos.reason
+      );
+      if (!chaos.allowed) {
+        state.blocked = true;
+        state.blockedReason = chaos.reason ?? "Chaos gate denied execution";
+        await this.log(state, "chaos_blocked");
+        return state;
+      }
+
       state.stage = "execute";
-      await this.emitStageTransition(state, "risk", "execute");
+      await this.emitStageTransition(state, "chaos", "execute");
       const execReport = await executeFn(intent);
       state.executionReport = execReport;
+      await this.appendCriticalJournal(state, "execution_result", { intent }, { execReport });
       state.stage = "verify";
       await this.emitStageTransition(state, "execute", "verify");
 
       const rpcVerify = await verifyFn(intent, execReport);
       state.rpcVerification = rpcVerify;
+      await this.appendCriticalJournal(
+        state,
+        "verification_result",
+        { intent, execReport },
+        { rpcVerify },
+        !rpcVerify.passed,
+        rpcVerify.reason
+      );
       if (!rpcVerify.passed) {
         state.blocked = true;
         state.blockedReason = rpcVerify.reason ?? "RPC verification failed";
@@ -204,7 +269,7 @@ export class Engine {
         blocked: false,
       };
       if (this.journalWriter) {
-        await this.journalWriter.append(state.journalEntry);
+        await appendJournal(this.journalWriter, state.journalEntry);
       }
       await this.log(state, "complete");
       await this.emitStageTransition(state, "journal", "monitor");
@@ -220,6 +285,34 @@ export class Engine {
       await this.log(state, "error");
       throw err;
     }
+  }
+
+  private async appendCriticalJournal(
+    state: EngineState,
+    stage: string,
+    input: unknown,
+    output: unknown,
+    blocked = false,
+    reason?: string
+  ): Promise<void> {
+    if (!this.journalWriter) {
+      if (this.journalPolicy === "mandatory") {
+        throw new Error(`MANDATORY_JOURNAL_WRITER_MISSING:${stage}`);
+      }
+      return;
+    }
+
+    const entry: JournalEntry = {
+      traceId: state.traceId,
+      timestamp: this.clock.now().toISOString(),
+      stage,
+      input,
+      output,
+      blocked,
+      reason,
+    };
+    await appendJournal(this.journalWriter, entry);
+    state.journalEntry = entry;
   }
 
   private async emitStageTransition(
@@ -276,6 +369,33 @@ export class Engine {
       reason: state.blockedReason ?? state.error,
       traceId: state.traceId,
     });
+  }
+}
+
+async function defaultChaosHandler(
+  intent: TradeIntent,
+  market: MarketSnapshot,
+  _wallet: WalletSnapshot,
+  _signal: { direction: string; confidence: number; cqd?: import("./contracts/cqd.js").CQDSnapshotV1 }
+): Promise<ChaosDecision> {
+  try {
+    const { report } = await runChaosGate(intent.traceId, {
+      liquidity: market.liquidity ?? 100_000,
+      prevLiquidity: market.liquidity ?? 100_000,
+      freshnessMs: market.freshnessMs ?? 0,
+      prices: [market.priceUsd ?? 100, market.priceUsd ?? 100],
+      sourceManipulationPrices: [market.priceUsd ?? 100, market.priceUsd ?? 100],
+    });
+    return {
+      allowed: true,
+      reportHash: report.auditHashChain,
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return {
+      allowed: false,
+      reason,
+    };
   }
 }
 

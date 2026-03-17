@@ -2,6 +2,7 @@ import { Engine, type EngineState } from "../core/engine.js";
 import type { Config } from "../config/config-schema.js";
 import type { ExecutionReport, RpcVerificationReport, TradeIntent } from "../core/contracts/trade.js";
 import { isKillSwitchHalted } from "../governance/kill-switch.js";
+import { FileSystemJournalWriter } from "../journal-writer/writer.js";
 
 export type RuntimeStatus = "idle" | "running" | "stopped" | "error";
 
@@ -28,7 +29,13 @@ export class DryRunRuntime {
     private readonly config: Config,
     deps: DryRunRuntimeDeps = {}
   ) {
-    this.engine = deps.engine ?? new Engine({ dryRun: config.executionMode !== "live" });
+    this.engine =
+      deps.engine ??
+      new Engine({
+        dryRun: config.executionMode !== "live",
+        journalWriter: new FileSystemJournalWriter(config.journalPath),
+        journalPolicy: "mandatory",
+      });
     this.loopIntervalMs = deps.loopIntervalMs ?? 15_000;
     this.logger = deps.logger ?? console;
   }
