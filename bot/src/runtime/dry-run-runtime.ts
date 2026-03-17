@@ -36,7 +36,7 @@ export class DryRunRuntime {
   async start(): Promise<void> {
     if (this.status === "running") return;
     this.status = "running";
-    await this.runCycle();
+    await this.runCycle({ propagateError: true });
     this.intervalRef = setInterval(() => {
       void this.runCycle();
     }, this.loopIntervalMs);
@@ -58,7 +58,7 @@ export class DryRunRuntime {
     return this.lastState;
   }
 
-  private async runCycle(): Promise<void> {
+  private async runCycle(options: { propagateError?: boolean } = {}): Promise<void> {
     if (this.cycleInFlight || this.status !== "running") {
       return;
     }
@@ -127,6 +127,13 @@ export class DryRunRuntime {
     } catch (error) {
       this.status = "error";
       this.logger.error("Dry-run runtime cycle failed", error);
+      if (this.intervalRef) {
+        clearInterval(this.intervalRef);
+        this.intervalRef = null;
+      }
+      if (options.propagateError) {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
     } finally {
       this.cycleInFlight = false;
     }

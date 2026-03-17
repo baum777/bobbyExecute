@@ -76,4 +76,50 @@ describe("DryRunRuntime (phase-2)", () => {
 
     await runtime.stop();
   });
+
+  it("fails closed and throws when initial cycle errors", async () => {
+    const logger = {
+      info: vi.fn(),
+      error: vi.fn(),
+    };
+    const runtime = new DryRunRuntime(TEST_CONFIG, {
+      engine: { run: vi.fn().mockRejectedValue(new Error("runtime-ingest-failed")) } as never,
+      loopIntervalMs: 10,
+      logger,
+    });
+
+    await expect(runtime.start()).rejects.toThrow("runtime-ingest-failed");
+    expect(runtime.getStatus()).toBe("error");
+    expect(logger.error).toHaveBeenCalled();
+
+    await runtime.stop();
+  });
+
+  it("transitions to error if a scheduled cycle fails", async () => {
+    let calls = 0;
+    const logger = {
+      info: vi.fn(),
+      error: vi.fn(),
+    };
+    const runtime = new DryRunRuntime(TEST_CONFIG, {
+      engine: {
+        run: vi.fn().mockImplementation(async () => {
+          calls += 1;
+          if (calls > 1) throw new Error("scheduled-cycle-failed");
+          return { stage: "monitor", traceId: "ok", timestamp: new Date().toISOString() };
+        }),
+      } as never,
+      loopIntervalMs: 5,
+      logger,
+    });
+
+    await runtime.start();
+    await new Promise((resolve) => setTimeout(resolve, 25));
+
+    expect(runtime.getStatus()).toBe("error");
+    expect(logger.error).toHaveBeenCalled();
+
+    await runtime.stop();
+  });
+
 });
