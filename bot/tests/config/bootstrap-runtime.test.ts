@@ -34,6 +34,7 @@ describe("bootstrap runtime closure (phase-1)", () => {
 
       const res = await fetch("http://127.0.0.1:3351/health");
       expect(res.status).toBe(200);
+      expect((await res.json()).botStatus).toBe("running");
 
       const summaryBefore = await fetch("http://127.0.0.1:3351/kpi/summary");
       expect(summaryBefore.status).toBe(200);
@@ -41,6 +42,15 @@ describe("bootstrap runtime closure (phase-1)", () => {
 
       const stopRes = await fetch("http://127.0.0.1:3351/emergency-stop", { method: "POST" });
       expect(stopRes.status).toBe(200);
+      const stopBody = await stopRes.json();
+      expect(stopBody.success).toBe(true);
+      expect(stopBody.state?.halted).toBe(true);
+
+      const healthAfterStop = await fetch("http://127.0.0.1:3351/health");
+      expect(healthAfterStop.status).toBe(200);
+      const healthPayload = await healthAfterStop.json();
+      expect(healthPayload.botStatus).toBe("paused");
+      expect(healthPayload.killSwitch?.halted).toBe(true);
 
       const summaryAfter = await fetch("http://127.0.0.1:3351/kpi/summary");
       expect(summaryAfter.status).toBe(200);

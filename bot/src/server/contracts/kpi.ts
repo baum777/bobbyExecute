@@ -6,6 +6,8 @@ export interface HealthResponse {
   status: "OK" | "DEGRADED" | "FAIL";
   uptimeMs: number;
   version: string;
+  /** Runtime-reported bot state when available from bootstrap wiring. */
+  botStatus?: "running" | "paused" | "stopped";
   killSwitch?: { halted: boolean; reason?: string; triggeredAt?: string };
 }
 

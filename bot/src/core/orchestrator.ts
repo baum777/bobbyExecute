@@ -184,10 +184,20 @@ export class Orchestrator {
       const reviewGateApproved = reviewGate ? await reviewGate(decisionResult) : true;
       state.reviewGateApproved = reviewGateApproved;
 
+      const liveAllowDecision = !this.dryRun && decisionResult.decision === "allow";
+      if (liveAllowDecision && !reviewGateApproved) {
+        throw new Error("Fail-closed: review gate rejected allow-decision execution");
+      }
+      if (liveAllowDecision && !focusedTx) {
+        throw new Error("Fail-closed: focusedTx handler required for allow-decision execution");
+      }
+      if (liveAllowDecision && !secretsVault) {
+        throw new Error("Fail-closed: secretsVault handler required for allow-decision execution");
+      }
+
       const shouldExecuteTx =
         !isKillSwitchHalted() &&
-        !this.dryRun &&
-        decisionResult.decision === "allow" &&
+        liveAllowDecision &&
         reviewGateApproved &&
         focusedTx &&
         secretsVault;

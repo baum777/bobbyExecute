@@ -40,6 +40,7 @@ export async function createServer(config: ServerConfig = {}) {
   await fastify.register(healthRoutes({
     circuitBreaker: config.circuitBreaker,
     startedAt,
+    getBotStatus: config.getBotStatus,
   }));
 
   const kpiDeps: KpiRouteDeps = {
