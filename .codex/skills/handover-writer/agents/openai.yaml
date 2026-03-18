@@ -1,0 +1,4 @@
+interface:
+  display_name: "Handover Writer"
+  short_description: "Prepare a precise continuation handoff"
+  default_prompt: "Use $handover-writer to summarize current state and prepare the next-agent prompt."

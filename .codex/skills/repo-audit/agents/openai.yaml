@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repo Audit"
+  short_description: "Audit a codebase for readiness and risk"
+  default_prompt: "Use $repo-audit to assess this repository for architecture, readiness, and operational risk."

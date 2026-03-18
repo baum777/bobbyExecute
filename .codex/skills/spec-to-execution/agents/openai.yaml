@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spec to Execution"
+  short_description: "Turn a spec into concrete execution slices"
+  default_prompt: "Use $spec-to-execution to turn this plan into the next concrete implementation slice."

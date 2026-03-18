@@ -1,0 +1,4 @@
+interface:
+  display_name: "Swarm Task Pack"
+  short_description: "Split work into clean multi-agent task packs"
+  default_prompt: "Use $swarm-task-pack to split this goal into clear agent roles, handoffs, and acceptance checks."

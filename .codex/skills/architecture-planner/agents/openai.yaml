@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Planner"
+  short_description: "Plan target architecture and execution waves"
+  default_prompt: "Use $architecture-planner to analyze this repository and produce a phased target-state plan."

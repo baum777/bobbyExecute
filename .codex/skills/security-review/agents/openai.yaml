@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security Review"
+  short_description: "Review code for exploitable security risk"
+  default_prompt: "Use $security-review to assess this code for concrete security risks and missing safeguards."
