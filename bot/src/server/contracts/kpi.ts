@@ -26,6 +26,19 @@ export interface HealthResponse {
     lastBlockedReason?: string;
     lastEngineStage?: string;
     lastIntakeOutcome?: "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
+    degraded?: {
+      active: boolean;
+      consecutiveCycles: number;
+      lastDegradedAt?: string;
+      lastReason?: string;
+    };
+    adapterHealth?: {
+      total: number;
+      healthy: number;
+      unhealthy: number;
+      degraded: boolean;
+      unhealthyAdapterIds: string[];
+    };
   };
 }
 
@@ -47,6 +60,19 @@ export interface KpiSummaryResponse {
     errorCount: number;
     lastDecisionAt?: string;
     lastIntakeOutcome?: "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
+    degraded?: {
+      active: boolean;
+      consecutiveCycles: number;
+      lastDegradedAt?: string;
+      lastReason?: string;
+    };
+    adapterHealth?: {
+      total: number;
+      healthy: number;
+      unhealthy: number;
+      degraded: boolean;
+      unhealthyAdapterIds: string[];
+    };
   };
 }
 
