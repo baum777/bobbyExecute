@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { DryRunRuntime } from "../../runtime/dry-run-runtime.js";
 import type { IncidentRecord } from "../../persistence/incident-repository.js";
 import type { RuntimeCycleSummary } from "../../persistence/runtime-cycle-summary-repository.js";
+import type { JournalEntry } from "../../core/contracts/journal.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
@@ -13,7 +14,7 @@ export interface OperatorRouteDeps {
 
 export interface OperatorReadErrorResponse {
   success: false;
-  code: "runtime_unavailable" | "invalid_limit";
+  code: "runtime_unavailable" | "invalid_limit" | "cycle_not_found";
   message: string;
 }
 
@@ -30,6 +31,16 @@ export interface IncidentsResponse {
 export interface RuntimeStatusResponse {
   success: true;
   runtime: import("../../runtime/dry-run-runtime.js").RuntimeSnapshot;
+}
+
+export interface RuntimeCycleReplayResponse {
+  success: true;
+  replay: {
+    traceId: string;
+    summary: RuntimeCycleSummary;
+    incidents: IncidentRecord[];
+    journal: JournalEntry[];
+  };
 }
 
 function parseLimit(rawLimit?: string): { ok: true; limit: number } | { ok: false; error: OperatorReadErrorResponse } {
@@ -82,6 +93,30 @@ export function operatorRoutes(deps: OperatorRouteDeps): FastifyPluginAsync {
         }
         const cycles = await runtime.listRecentCycleSummaries(parsedLimit.limit);
         return reply.status(200).send({ success: true, cycles });
+      }
+    );
+
+    fastify.get<{ Params: { traceId: string }; Reply: RuntimeCycleReplayResponse | OperatorReadErrorResponse }>(
+      "/runtime/cycles/:traceId/replay",
+      async (request, reply) => {
+        if (!runtime) {
+          return reply.status(501).send({
+            success: false,
+            code: "runtime_unavailable",
+            message: "Runtime replay unavailable: runtime is not wired.",
+          });
+        }
+
+        const replay = await runtime.getCycleReplay(request.params.traceId);
+        if (!replay) {
+          return reply.status(404).send({
+            success: false,
+            code: "cycle_not_found",
+            message: `No persisted cycle evidence found for traceId '${request.params.traceId}'.`,
+          });
+        }
+
+        return reply.status(200).send({ success: true, replay });
       }
     );
 

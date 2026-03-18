@@ -142,7 +142,9 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(snapshot.mode).toBe("paper");
     expect(snapshot.paperModeActive).toBe(true);
     expect(snapshot.counters.blockedCount).toBeGreaterThanOrEqual(1);
+    expect(snapshot.lastCycleSummary?.outcome).toBe("blocked");
     expect(snapshot.lastCycleSummary?.intakeOutcome).toBe("kill_switch_halted");
+    expect(snapshot.lastCycleSummary?.incidentIds).toHaveLength(1);
     expect(snapshot.degradedState?.active).toBe(false);
     expect(run).not.toHaveBeenCalled();
 
@@ -199,8 +201,21 @@ describe("DryRunRuntime (phase-2)", () => {
 
     const summaries = await cycleSummaryWriter.list();
     expect(summaries.length).toBe(1);
+    expect(summaries[0].outcome).toBe("success");
     expect(summaries[0].intakeOutcome).toBe("ok");
     expect(summaries[0].paperExecutionProduced).toBe(true);
+    expect(summaries[0].tradeIntentId).toBeDefined();
+    expect(summaries[0].execution).toMatchObject({
+      success: true,
+      mode: "paper",
+      paperExecution: true,
+      actualAmountOut: "0.95",
+    });
+    expect(summaries[0].verification).toMatchObject({
+      passed: true,
+      mode: "paper-simulated",
+      reason: "PAPER_MODE_SIMULATED_VERIFICATION",
+    });
 
     await runtime.stop();
   });
@@ -230,9 +245,11 @@ describe("DryRunRuntime (phase-2)", () => {
 
     const summaries = await cycleSummaryWriter.list();
     expect(summaries.length).toBe(1);
+    expect(summaries[0].outcome).toBe("blocked");
     expect(summaries[0].intakeOutcome).toBe("stale");
     expect(summaries[0].advanced).toBe(false);
     expect(summaries[0].executionOccurred).toBe(false);
+    expect(summaries[0].incidentIds).toHaveLength(1);
 
     await runtime.stop();
   });
@@ -327,15 +344,19 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(snapshot.lastState?.blocked).toBe(true);
     expect(snapshot.lastState?.blockedReason).toBe("RUNTIME_CYCLE_ERROR");
     expect(snapshot.lastCycleSummary?.intakeOutcome).toBe("ok");
+    expect(snapshot.lastCycleSummary?.outcome).toBe("error");
     expect(snapshot.lastCycleSummary?.errorOccurred).toBe(true);
     expect(snapshot.lastCycleSummary?.error).toBe("paper-execute-failed");
     expect(snapshot.lastCycleSummary?.traceId).toBe(snapshot.lastState?.traceId);
+    expect(snapshot.lastCycleSummary?.incidentIds).toHaveLength(1);
 
     const summaries = await cycleSummaryWriter.list();
     expect(summaries).toHaveLength(1);
+    expect(summaries[0].outcome).toBe("error");
     expect(summaries[0].intakeOutcome).toBe("ok");
     expect(summaries[0].blockedReason).toBe("RUNTIME_CYCLE_ERROR");
     expect(summaries[0].errorOccurred).toBe(true);
+    expect(summaries[0].incidentIds).toHaveLength(1);
 
     const incidents = await runtime.listRecentIncidents(10);
     expect(incidents).toHaveLength(1);
@@ -408,6 +429,34 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(journalFailure?.details?.intakeOutcome).toBe("ok");
     expect(journalFailure?.details?.traceId).toBe(runtime.getSnapshot().lastState?.traceId);
     expect(incidents.some((incident) => incident.type === "runtime_cycle_error")).toBe(true);
+    expect(runtime.getSnapshot().lastCycleSummary?.incidentIds).toHaveLength(2);
+
+    await runtime.stop();
+  });
+
+  it("replays persisted blocked cycle evidence by traceId without relying on runtime memory alone", async () => {
+    const paperConfig: Config = { ...TEST_CONFIG, executionMode: "paper", dryRun: false };
+    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
+    const incidentRepo = new InMemoryIncidentRepository();
+    const runtime = new DryRunRuntime(paperConfig, {
+      fetchMarketDataFn: vi.fn().mockResolvedValue({ error: "All adapters failed: data stale" }),
+      paperMarketAdapters: [{ id: "primary", fetch: vi.fn() }],
+      fetchPaperWalletSnapshot: vi.fn(),
+      cycleSummaryWriter,
+      incidentRecorder: new RepositoryIncidentRecorder(incidentRepo),
+    });
+
+    await runtime.start();
+
+    const summary = (await cycleSummaryWriter.list())[0];
+    const replay = await runtime.getCycleReplay(summary.traceId);
+
+    expect(replay).not.toBeNull();
+    expect(replay?.summary).toEqual(summary);
+    expect(replay?.summary.outcome).toBe("blocked");
+    expect(replay?.incidents).toHaveLength(1);
+    expect(replay?.incidents[0].details?.traceId).toBe(summary.traceId);
+    expect(replay?.journal).toEqual([]);
 
     await runtime.stop();
   });

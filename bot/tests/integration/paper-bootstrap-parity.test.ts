@@ -142,7 +142,9 @@ describe("paper bootstrap integration parity (phase-6)", () => {
       reason: "PAPER_MODE_SIMULATED_VERIFICATION",
     });
     expect(runtimeSnapshot.lastCycleSummary).toMatchObject({
+      traceId: runtimeSnapshot.lastState?.traceId,
       mode: "paper",
+      outcome: "success",
       intakeOutcome: "ok",
       advanced: true,
       stage: "monitor",
@@ -152,13 +154,27 @@ describe("paper bootstrap integration parity (phase-6)", () => {
       paperExecutionProduced: true,
       verificationMode: "paper-simulated",
       errorOccurred: false,
+      tradeIntentId: runtimeSnapshot.lastState?.tradeIntent?.idempotencyKey,
+      execution: {
+        success: true,
+        mode: "paper",
+        paperExecution: true,
+        actualAmountOut: "0.95",
+      },
+      verification: {
+        passed: true,
+        mode: "paper-simulated",
+        reason: "PAPER_MODE_SIMULATED_VERIFICATION",
+      },
+      incidentIds: [],
     });
 
-    const [healthRes, kpiRes, statusRes, cyclesRes, incidentsRes] = await Promise.all([
+    const [healthRes, kpiRes, statusRes, cyclesRes, replayRes, incidentsRes] = await Promise.all([
       fetch(`http://127.0.0.1:${PORT}/health`),
       fetch(`http://127.0.0.1:${PORT}/kpi/summary`),
       fetch(`http://127.0.0.1:${PORT}/runtime/status`),
       fetch(`http://127.0.0.1:${PORT}/runtime/cycles?limit=5`),
+      fetch(`http://127.0.0.1:${PORT}/runtime/cycles/${runtimeSnapshot.lastState!.traceId}/replay`),
       fetch(`http://127.0.0.1:${PORT}/incidents?limit=5`),
     ]);
 
@@ -166,12 +182,14 @@ describe("paper bootstrap integration parity (phase-6)", () => {
     expect(kpiRes.status).toBe(200);
     expect(statusRes.status).toBe(200);
     expect(cyclesRes.status).toBe(200);
+    expect(replayRes.status).toBe(200);
     expect(incidentsRes.status).toBe(200);
 
     const healthBody = await healthRes.json();
     const kpiBody = await kpiRes.json();
     const statusBody = await statusRes.json();
     const cyclesBody = await cyclesRes.json();
+    const replayBody = await replayRes.json();
     const incidentsBody = await incidentsRes.json();
 
     expect(healthBody.botStatus).toBe("running");
@@ -210,6 +228,11 @@ describe("paper bootstrap integration parity (phase-6)", () => {
     expect(cyclesBody.cycles).toEqual(persistedCycles);
     expect(cyclesBody.cycles).toHaveLength(1);
     expect(cyclesBody.cycles[0]).toEqual(runtimeSnapshot.lastCycleSummary);
+    expect(replayBody.success).toBe(true);
+    expect(replayBody.replay.summary).toEqual(runtimeSnapshot.lastCycleSummary);
+    expect(replayBody.replay.journal.some((entry: { stage: string }) => entry.stage === "execution_result")).toBe(true);
+    expect(replayBody.replay.journal.some((entry: { stage: string }) => entry.stage === "verification_result")).toBe(true);
+    expect(replayBody.replay.incidents).toEqual([]);
 
     const persistedIncidents = await incidentRepository.list(5);
     expect(incidentsBody.success).toBe(true);
@@ -261,5 +284,5 @@ describe("paper bootstrap integration parity (phase-6)", () => {
         verificationMode: "paper-simulated",
       },
     });
-  });
+  }, 15_000);
 });

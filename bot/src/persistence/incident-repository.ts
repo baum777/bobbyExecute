@@ -23,6 +23,7 @@ export interface IncidentRecord {
 export interface IncidentRepository {
   append(record: IncidentRecord): Promise<void>;
   list(limit?: number): Promise<IncidentRecord[]>;
+  listByTraceId(traceId: string): Promise<IncidentRecord[]>;
 }
 
 export class InMemoryIncidentRepository implements IncidentRepository {
@@ -34,6 +35,10 @@ export class InMemoryIncidentRepository implements IncidentRepository {
 
   async list(limit = 100): Promise<IncidentRecord[]> {
     return this.records.slice(-limit);
+  }
+
+  async listByTraceId(traceId: string): Promise<IncidentRecord[]> {
+    return this.records.filter((record) => record.details?.traceId === traceId);
   }
 }
 
@@ -57,5 +62,16 @@ export class FileSystemIncidentRepository implements IncidentRepository {
       .filter(Boolean)
       .map((line) => JSON.parse(line) as IncidentRecord);
     return records.slice(-limit);
+  }
+
+  async listByTraceId(traceId: string): Promise<IncidentRecord[]> {
+    if (!existsSync(this.filePath)) return [];
+    const content = await readFile(this.filePath, "utf8");
+    const records = content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as IncidentRecord);
+    return records.filter((record) => record.details?.traceId === traceId);
   }
 }

@@ -31,6 +31,7 @@ export interface IncidentRecorder {
     id?: string;
   }): Promise<IncidentRecord>;
   list(limit?: number): Promise<IncidentRecord[]>;
+  listByTraceId(traceId: string): Promise<IncidentRecord[]>;
 }
 
 export class RepositoryIncidentRecorder implements IncidentRecorder {
@@ -63,5 +64,9 @@ export class RepositoryIncidentRecorder implements IncidentRecorder {
 
   async list(limit = 100): Promise<IncidentRecord[]> {
     return this.repository.list(limit);
+  }
+
+  async listByTraceId(traceId: string): Promise<IncidentRecord[]> {
+    return this.repository.listByTraceId(traceId);
   }
 }

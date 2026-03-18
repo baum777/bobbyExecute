@@ -20,7 +20,9 @@ describe("Runtime cycle summary persistence", () => {
 
     await writer.append({
       cycleTimestamp: "2026-03-17T00:00:00.000Z",
+      traceId: "trace-blocked",
       mode: "paper",
+      outcome: "blocked",
       intakeOutcome: "stale",
       advanced: false,
       stage: "ingest",
@@ -34,11 +36,14 @@ describe("Runtime cycle summary persistence", () => {
       verificationOccurred: false,
       paperExecutionProduced: false,
       errorOccurred: false,
+      incidentIds: ["incident-blocked"],
     });
 
     await writer.append({
       cycleTimestamp: "2026-03-17T00:01:00.000Z",
+      traceId: "trace-1",
       mode: "paper",
+      outcome: "success",
       intakeOutcome: "ok",
       advanced: true,
       stage: "monitor",
@@ -52,13 +57,28 @@ describe("Runtime cycle summary persistence", () => {
       paperExecutionProduced: true,
       verificationMode: "paper-simulated",
       errorOccurred: false,
-      traceId: "trace-1",
+      tradeIntentId: "trace-1-intent",
+      execution: {
+        success: true,
+        mode: "paper",
+        paperExecution: true,
+        actualAmountOut: "0.95",
+      },
+      verification: {
+        passed: true,
+        mode: "paper-simulated",
+        reason: "PAPER_MODE_SIMULATED_VERIFICATION",
+      },
+      incidentIds: [],
     });
 
     const summaries = await writer.list();
     expect(summaries).toHaveLength(2);
     expect(summaries[0].blocked).toBe(true);
+    expect(summaries[0].incidentIds).toEqual(["incident-blocked"]);
     expect(summaries[1].paperExecutionProduced).toBe(true);
     expect(summaries[1].verificationMode).toBe("paper-simulated");
+    expect(summaries[1].execution?.mode).toBe("paper");
+    await expect(writer.getByTraceId("trace-1")).resolves.toEqual(summaries[1]);
   });
 });

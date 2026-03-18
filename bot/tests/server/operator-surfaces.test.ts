@@ -72,7 +72,9 @@ describe("Operator read-only surfaces", () => {
     const seededCycles: RuntimeCycleSummary[] = [
       {
         cycleTimestamp: "2026-03-18T00:00:00.000Z",
+        traceId: "cycle-1",
         mode: "dry",
+        outcome: "blocked",
         intakeOutcome: "invalid",
         advanced: false,
         stage: "risk",
@@ -86,11 +88,13 @@ describe("Operator read-only surfaces", () => {
         verificationOccurred: false,
         paperExecutionProduced: false,
         errorOccurred: false,
-        traceId: "cycle-1",
+        incidentIds: ["incident-1"],
       },
       {
         cycleTimestamp: "2026-03-18T00:01:00.000Z",
+        traceId: "cycle-2",
         mode: "dry",
+        outcome: "blocked",
         intakeOutcome: "invalid",
         advanced: false,
         stage: "risk",
@@ -104,11 +108,13 @@ describe("Operator read-only surfaces", () => {
         verificationOccurred: false,
         paperExecutionProduced: false,
         errorOccurred: false,
-        traceId: "cycle-2",
+        incidentIds: ["incident-2"],
       },
       {
         cycleTimestamp: "2026-03-18T00:02:00.000Z",
+        traceId: "cycle-3",
         mode: "dry",
+        outcome: "blocked",
         intakeOutcome: "invalid",
         advanced: false,
         stage: "risk",
@@ -122,7 +128,7 @@ describe("Operator read-only surfaces", () => {
         verificationOccurred: false,
         paperExecutionProduced: false,
         errorOccurred: false,
-        traceId: "cycle-3",
+        incidentIds: ["incident-3"],
       },
     ];
     for (const cycle of seededCycles) {
@@ -188,6 +194,69 @@ describe("Operator read-only surfaces", () => {
     expect(body.success).toBe(true);
     expect(body.incidents).toEqual(persistedIncidents);
     expect(body.incidents.some((incident: IncidentRecord) => incident.type === "journal_failure")).toBe(true);
+  });
+
+  it("GET /runtime/cycles/:traceId/replay returns persisted summary, linked incidents, and journal evidence", async () => {
+    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
+    const incidentRepository = new InMemoryIncidentRepository();
+    const incidentRecorder = new RepositoryIncidentRecorder(incidentRepository);
+    const runtime = createDryRunRuntime(
+      { ...config, executionMode: "paper", dryRun: false },
+      {
+        loopIntervalMs: 60_000,
+        paperMarketAdapters: [{ id: "primary", fetch: async () => ({
+          schema_version: "market.v1",
+          traceId: "market-trace",
+          timestamp: "2026-03-18T00:00:00.000Z",
+          source: "dexpaprika",
+          poolId: "paper-pool",
+          baseToken: "SOL",
+          quoteToken: "USD",
+          priceUsd: 100,
+          volume24h: 1000,
+          liquidity: 10000,
+          freshnessMs: 0,
+          status: "ok",
+        }) }],
+        fetchPaperWalletSnapshot: async () => ({
+          traceId: "wallet-trace",
+          timestamp: "2026-03-18T00:00:00.000Z",
+          source: "moralis",
+          walletAddress: config.walletAddress,
+          balances: [],
+          totalUsd: 0,
+        }),
+        cycleSummaryWriter,
+        incidentRecorder,
+      }
+    );
+    runtimes.push(runtime);
+    await runtime.start();
+
+    const summary = (await cycleSummaryWriter.list(5))[0];
+    const server = await createServer({
+      port: 3352,
+      host: "127.0.0.1",
+      runtime,
+      getRuntimeSnapshot: () => runtime.getSnapshot(),
+    });
+    servers.push(server);
+
+    const res = await fetch(`http://127.0.0.1:3352/runtime/cycles/${summary.traceId}/replay`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.success).toBe(true);
+    expect(body.replay.summary).toEqual(summary);
+    expect(body.replay.summary.outcome).toBe("success");
+    expect(body.replay.summary.execution).toMatchObject({
+      success: true,
+      mode: "paper",
+      paperExecution: true,
+    });
+    expect(body.replay.journal.some((entry: { stage: string }) => entry.stage === "execution_result")).toBe(true);
+    expect(body.replay.journal.some((entry: { stage: string }) => entry.stage === "verification_result")).toBe(true);
+    expect(body.replay.incidents).toEqual([]);
   });
 
   it("GET /incidents respects bounded limits", async () => {
@@ -288,8 +357,9 @@ describe("Operator read-only surfaces", () => {
     });
     servers.push(server);
 
-    const [cyclesRes, incidentsRes, statusRes] = await Promise.all([
+    const [cyclesRes, replayRes, incidentsRes, statusRes] = await Promise.all([
       fetch("http://127.0.0.1:3350/runtime/cycles"),
+      fetch("http://127.0.0.1:3350/runtime/cycles/missing/replay"),
       fetch("http://127.0.0.1:3350/incidents"),
       fetch("http://127.0.0.1:3350/runtime/status"),
     ]);
@@ -302,6 +372,12 @@ describe("Operator read-only surfaces", () => {
 
     expect(incidentsRes.status).toBe(501);
     await expect(incidentsRes.json()).resolves.toMatchObject({
+      success: false,
+      code: "runtime_unavailable",
+    });
+
+    expect(replayRes.status).toBe(501);
+    await expect(replayRes.json()).resolves.toMatchObject({
       success: false,
       code: "runtime_unavailable",
     });
@@ -343,6 +419,29 @@ describe("Operator read-only surfaces", () => {
     await expect(oversizedIncidents.json()).resolves.toMatchObject({
       success: false,
       code: "invalid_limit",
+    });
+  });
+
+  it("GET /runtime/cycles/:traceId/replay returns explicit 404 for missing persisted cycle evidence", async () => {
+    const runtime = createDryRunRuntime(config, {
+      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
+      incidentRecorder: new RepositoryIncidentRecorder(new InMemoryIncidentRepository()),
+    });
+    runtimes.push(runtime);
+
+    const server = await createServer({
+      port: 3353,
+      host: "127.0.0.1",
+      runtime,
+      getRuntimeSnapshot: () => runtime.getSnapshot(),
+    });
+    servers.push(server);
+
+    const res = await fetch("http://127.0.0.1:3353/runtime/cycles/missing-trace/replay");
+    expect(res.status).toBe(404);
+    await expect(res.json()).resolves.toMatchObject({
+      success: false,
+      code: "cycle_not_found",
     });
   });
 });

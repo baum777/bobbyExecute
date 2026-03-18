@@ -5,7 +5,8 @@ import type { MarketSnapshot } from "../core/contracts/market.js";
 import type { WalletSnapshot } from "../core/contracts/wallet.js";
 import { isKillSwitchHalted } from "../governance/kill-switch.js";
 import { CircuitBreaker } from "../governance/circuit-breaker.js";
-import { FileSystemJournalWriter } from "../journal-writer/writer.js";
+import { FileSystemJournalWriter, type JournalWriter } from "../journal-writer/writer.js";
+import type { JournalEntry } from "../core/contracts/journal.js";
 import {
   fetchMarketData,
   type AdapterOrchestratorConfig,
@@ -14,6 +15,7 @@ import {
 import {
   FileSystemRuntimeCycleSummaryWriter,
   type RuntimeCycleIntakeOutcome,
+  type RuntimeCycleOutcome,
   type RuntimeCycleSummary,
   type RuntimeCycleSummaryWriter,
 } from "../persistence/runtime-cycle-summary-repository.js";
@@ -60,6 +62,13 @@ export interface RuntimeSnapshot {
   adapterHealth?: RuntimeAdapterHealthSnapshot;
 }
 
+export interface RuntimeCycleReplay {
+  traceId: string;
+  summary: RuntimeCycleSummary;
+  incidents: IncidentRecord[];
+  journal: JournalEntry[];
+}
+
 export interface DryRunRuntimeDeps {
   engine?: Engine;
   loopIntervalMs?: number;
@@ -71,6 +80,7 @@ export interface DryRunRuntimeDeps {
   fetchPaperWalletSnapshot?: () => Promise<WalletSnapshot>;
   cycleSummaryWriter?: RuntimeCycleSummaryWriter;
   incidentRecorder?: IncidentRecorder;
+  journalWriter?: JournalWriter;
 }
 
 export interface RuntimeControlResult {
@@ -94,6 +104,7 @@ export class DryRunRuntime {
   private readonly fetchPaperWalletSnapshot: () => Promise<WalletSnapshot>;
   private readonly cycleSummaryWriter: RuntimeCycleSummaryWriter;
   private readonly incidentRecorder: IncidentRecorder;
+  private readonly journalWriter: JournalWriter;
   private intervalRef: NodeJS.Timeout | null = null;
   private status: RuntimeStatus = "idle";
   private lastState: EngineState | null = null;
@@ -117,11 +128,12 @@ export class DryRunRuntime {
     private readonly config: Config,
     deps: DryRunRuntimeDeps = {}
   ) {
+    this.journalWriter = deps.journalWriter ?? new FileSystemJournalWriter(config.journalPath);
     this.engine =
       deps.engine ??
       new Engine({
         dryRun: config.executionMode !== "live",
-        journalWriter: new FileSystemJournalWriter(config.journalPath),
+        journalWriter: this.journalWriter,
         journalPolicy: "mandatory",
       });
     this.loopIntervalMs = deps.loopIntervalMs ?? 15_000;
@@ -292,6 +304,25 @@ export class DryRunRuntime {
     return this.incidentRecorder.list(limit);
   }
 
+  async getCycleReplay(traceId: string): Promise<RuntimeCycleReplay | null> {
+    const summary = await this.cycleSummaryWriter.getByTraceId(traceId);
+    if (!summary) {
+      return null;
+    }
+
+    const [incidents, journal] = await Promise.all([
+      this.incidentRecorder.listByTraceId(traceId),
+      this.journalWriter.getByTraceId(traceId),
+    ]);
+
+    return {
+      traceId,
+      summary,
+      incidents,
+      journal,
+    };
+  }
+
 
   private getAdapterHealthSnapshot(): RuntimeAdapterHealthSnapshot | undefined {
     if (this.mode !== "paper" || this.paperMarketAdapters.length === 0) {
@@ -330,28 +361,32 @@ export class DryRunRuntime {
 
     let currentCycleIntakeOutcome: RuntimeCycleIntakeOutcome = "invalid";
     let currentCycleTimestamp = new Date().toISOString();
+    let currentCycleTraceId = `runtime-${currentCycleTimestamp}`;
 
     if (isKillSwitchHalted()) {
       const now = currentCycleTimestamp;
+      const traceId = `runtime-${now}`;
       this.status = "paused";
       this.lastState = {
         stage: "risk",
-        traceId: `runtime-${now}`,
+        traceId,
         timestamp: now,
         blocked: true,
         blockedReason: "RUNTIME_PHASE2_KILL_SWITCH_HALTED",
       };
       this.lastCycleAt = now;
       this.counters.blockedCount += 1;
-      await this.recordIncident({
+      const incident = await this.recordIncident({
         severity: "critical",
         type: "runtime_paused",
         message: "Runtime paused because kill switch is active",
-        details: { reason: "kill_switch_halted" },
+        details: { reason: "kill_switch_halted", intakeOutcome: "kill_switch_halted", traceId },
       });
       await this.persistCycleSummary({
         cycleTimestamp: now,
+        traceId,
         mode: this.mode,
+        outcome: "blocked",
         intakeOutcome: "kill_switch_halted",
         advanced: false,
         stage: "risk",
@@ -365,7 +400,7 @@ export class DryRunRuntime {
         verificationOccurred: false,
         paperExecutionProduced: false,
         errorOccurred: false,
-        traceId: this.lastState.traceId,
+        incidentIds: [incident.id],
       });
       return;
     }
@@ -379,15 +414,20 @@ export class DryRunRuntime {
       const paperIntake = await this.preparePaperIntake(now);
       if (paperIntake?.kind === "blocked") {
         currentCycleIntakeOutcome = paperIntake.summary.intakeOutcome;
-        await this.recordIncident({
+        currentCycleTraceId = paperIntake.summary.traceId;
+        const incident = await this.recordIncident({
           severity: "warning",
           type: "paper_ingest_blocked",
           message: "Paper ingest blocked",
-          details: { blockedReason: paperIntake.summary.blockedReason ?? "unknown" },
+          details: {
+            blockedReason: paperIntake.summary.blockedReason ?? "unknown",
+            intakeOutcome: paperIntake.summary.intakeOutcome,
+            traceId: paperIntake.summary.traceId,
+          },
         });
         this.lastState = {
           stage: "ingest",
-          traceId: `runtime-${now}`,
+          traceId: paperIntake.summary.traceId,
           timestamp: now,
           blocked: true,
           blockedReason: paperIntake.summary.blockedReason,
@@ -395,7 +435,7 @@ export class DryRunRuntime {
         this.counters.blockedCount += 1;
         await this.persistCycleSummary({
           ...paperIntake.summary,
-          traceId: this.lastState.traceId,
+          incidentIds: [incident.id],
         });
         return;
       }
@@ -494,6 +534,7 @@ export class DryRunRuntime {
         }
       );
 
+      currentCycleTraceId = this.lastState.traceId;
       this.lastDecisionAt = now;
       this.counters.decisionCount += 1;
       if (this.lastState.executionReport) this.counters.executionCount += 1;
@@ -504,7 +545,8 @@ export class DryRunRuntime {
       this.counters.errorCount += 1;
       this.logger.error("Dry-run runtime cycle failed", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const traceId = this.lastState?.traceId ?? `runtime-${currentCycleTimestamp}`;
+      const traceId = this.lastState?.traceId ?? currentCycleTraceId;
+      currentCycleTraceId = traceId;
       this.lastState = {
         stage: this.lastState?.stage ?? "ingest",
         traceId,
@@ -512,10 +554,14 @@ export class DryRunRuntime {
         blocked: true,
         blockedReason: "RUNTIME_CYCLE_ERROR",
         error: errorMessage,
+        tradeIntent: this.lastState?.tradeIntent,
+        executionReport: this.lastState?.executionReport,
+        rpcVerification: this.lastState?.rpcVerification,
       };
+      const incidentIds: string[] = [];
       const journalFailure = this.extractJournalFailureDetails(errorMessage, traceId);
       if (journalFailure) {
-        await this.recordIncident({
+        const incident = await this.recordIncident({
           severity: "critical",
           type: "journal_failure",
           message: "Mandatory journal persistence failed",
@@ -526,8 +572,9 @@ export class DryRunRuntime {
             ...(journalFailure.stage ? { stage: journalFailure.stage } : {}),
           },
         });
+        incidentIds.push(incident.id);
       }
-      await this.recordIncident({
+      const runtimeCycleErrorIncident = await this.recordIncident({
         severity: "critical",
         type: "runtime_cycle_error",
         message: "Runtime cycle failed",
@@ -537,9 +584,12 @@ export class DryRunRuntime {
           traceId,
         },
       });
+      incidentIds.push(runtimeCycleErrorIncident.id);
       await this.persistCycleSummary({
         cycleTimestamp: this.lastCycleAt ?? currentCycleTimestamp,
+        traceId,
         mode: this.mode,
+        outcome: "error",
         intakeOutcome: currentCycleIntakeOutcome,
         advanced: false,
         stage: this.lastState.stage,
@@ -554,7 +604,24 @@ export class DryRunRuntime {
         paperExecutionProduced: false,
         errorOccurred: true,
         error: errorMessage,
-        traceId,
+        tradeIntentId: this.lastState.tradeIntent?.idempotencyKey,
+        execution: this.lastState.executionReport
+          ? {
+              success: this.lastState.executionReport.success,
+              mode: this.lastState.executionReport.executionMode,
+              paperExecution: this.lastState.executionReport.paperExecution,
+              actualAmountOut: this.lastState.executionReport.actualAmountOut,
+              error: this.lastState.executionReport.error,
+            }
+          : undefined,
+        verification: this.lastState.rpcVerification
+          ? {
+              passed: this.lastState.rpcVerification.passed,
+              mode: this.lastState.rpcVerification.verificationMode,
+              reason: this.lastState.rpcVerification.reason,
+            }
+          : undefined,
+        incidentIds,
       });
       if (this.intervalRef) {
         clearInterval(this.intervalRef);
@@ -587,6 +654,8 @@ export class DryRunRuntime {
       return null;
     }
 
+    const traceId = `runtime-${now}`;
+
     const marketResult = await this.fetchMarketDataFn({
       adapters: this.paperMarketAdapters,
       circuitBreaker: this.paperAdapterCircuitBreaker,
@@ -602,7 +671,9 @@ export class DryRunRuntime {
         kind: "blocked",
         summary: {
           cycleTimestamp: now,
+          traceId,
           mode: this.mode,
+          outcome: "blocked",
           intakeOutcome,
           advanced: false,
           stage: "ingest",
@@ -616,6 +687,7 @@ export class DryRunRuntime {
           verificationOccurred: false,
           paperExecutionProduced: false,
           errorOccurred: false,
+          incidentIds: [],
         },
       };
     }
@@ -628,7 +700,9 @@ export class DryRunRuntime {
         kind: "blocked",
         summary: {
           cycleTimestamp: now,
+          traceId,
           mode: this.mode,
+          outcome: "blocked",
           intakeOutcome: "invalid",
           advanced: false,
           stage: "ingest",
@@ -642,6 +716,7 @@ export class DryRunRuntime {
           verificationOccurred: false,
           paperExecutionProduced: false,
           errorOccurred: false,
+          incidentIds: [],
         },
       };
     }
@@ -657,7 +732,9 @@ export class DryRunRuntime {
   private toCycleSummary(state: EngineState, intakeOutcome: RuntimeCycleIntakeOutcome): RuntimeCycleSummary {
     return {
       cycleTimestamp: this.lastCycleAt ?? state.timestamp,
+      traceId: state.traceId,
       mode: this.mode,
+      outcome: this.toCycleOutcome(state),
       intakeOutcome,
       advanced: state.stage !== "ingest",
       stage: state.stage,
@@ -673,13 +750,30 @@ export class DryRunRuntime {
       verificationMode: state.rpcVerification?.verificationMode,
       errorOccurred: state.error !== undefined,
       error: state.error,
-      traceId: state.traceId,
+      tradeIntentId: state.tradeIntent?.idempotencyKey,
+      execution: state.executionReport
+        ? {
+            success: state.executionReport.success,
+            mode: state.executionReport.executionMode,
+            paperExecution: state.executionReport.paperExecution,
+            actualAmountOut: state.executionReport.actualAmountOut,
+            error: state.executionReport.error,
+          }
+        : undefined,
+      verification: state.rpcVerification
+        ? {
+            passed: state.rpcVerification.passed,
+            mode: state.rpcVerification.verificationMode,
+            reason: state.rpcVerification.reason,
+          }
+        : undefined,
+      incidentIds: [],
     };
   }
 
   private async persistCycleSummary(summary: RuntimeCycleSummary): Promise<void> {
-    this.lastCycleSummary = summary;
     await this.cycleSummaryWriter.append(summary);
+    this.lastCycleSummary = summary;
   }
 
   private async recordIncident(input: {
@@ -687,8 +781,18 @@ export class DryRunRuntime {
     type: IncidentRecord["type"];
     message: string;
     details?: IncidentRecord["details"];
-  }): Promise<void> {
-    await this.incidentRecorder.record(input);
+  }): Promise<IncidentRecord> {
+    return this.incidentRecorder.record(input);
+  }
+
+  private toCycleOutcome(state: EngineState): RuntimeCycleOutcome {
+    if (state.error !== undefined) {
+      return "error";
+    }
+    if (state.blocked === true) {
+      return "blocked";
+    }
+    return "success";
   }
 
   private extractJournalFailureDetails(
