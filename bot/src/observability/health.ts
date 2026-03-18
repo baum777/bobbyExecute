@@ -14,8 +14,14 @@ export interface HealthReport {
 
 export function checkHealth(circuitBreaker?: CircuitBreaker, runtime?: RuntimeSnapshot): HealthReport {
   const now = new Date().toISOString();
+  const runtimeAdapterDegraded =
+    runtime?.adapterHealth?.degraded === true || (runtime?.adapterHealth?.unhealthy ?? 0) > 0;
   if (!circuitBreaker) {
-    return { status: runtime?.degradedState?.active ? "DEGRADED" : "OK", adapters: [], lastChecked: now };
+    return {
+      status: runtime?.degradedState?.active || runtimeAdapterDegraded ? "DEGRADED" : "OK",
+      adapters: [],
+      lastChecked: now,
+    };
   }
 
   const health = circuitBreaker.getHealth();
@@ -27,7 +33,7 @@ export function checkHealth(circuitBreaker?: CircuitBreaker, runtime?: RuntimeSn
 
   const status: HealthStatus = runtimeFailed || allUnhealthy
     ? "FAIL"
-    : unhealthyCount > 0 || runtimeDegraded
+    : unhealthyCount > 0 || runtimeDegraded || runtimeAdapterDegraded
       ? "DEGRADED"
       : "OK";
 
