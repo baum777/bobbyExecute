@@ -87,3 +87,14 @@
 | **Action** | Snappy + Chaos Pre-Merge/CI-Gate aktiviert |
 
 **Discovery**: Memory-Kompression wurde von gzip auf Snappy (`snappyjs`) umgestellt. Pre-Merge-Gate (`npm run premerge`) und CI-Workflow (`.github/workflows/chaos-premerge-gate.yml`) erzwingen Lint + Golden Tasks + Chaos-Suite (inkl. Kategorie 5/GT-018).
+
+## F-007
+
+| Feld | Wert |
+|------|------|
+| **ISO-UTC** | 2026-03-18T12:25:29Z |
+| **Owner** | Codex |
+| **Impact** | Phase 1 Bootstrap |
+| **Action** | Bootstrap-Paper-Dependencies verdrahtet |
+
+**Discovery**: `bot/src/bootstrap.ts` startete den Paper-Modus bisher ohne verdrahtete Market-Adapter oder Wallet-Snapshot-Provider; dadurch blieb der erste Paper-Cycle auf einem synthetischen `PAPER_INGEST_BLOCKED`-Pfad hängen. Die engste sichere Phase-1-Schließung ist das Bootstrap-Wiring für Paper-Market-Adapter + Wallet-Snapshot mit explizitem Fail-Closed-Startup bei fehlender `WALLET_ADDRESS`.
