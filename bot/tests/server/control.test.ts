@@ -89,4 +89,21 @@ describe("Control routes", () => {
     const pause = await fetch(`${baseUrl}/control/pause`, { method: "POST" });
     expect(pause.status).toBe(409);
   });
+
+  it("POST /emergency-stop fails closed when runtime control is unavailable", async () => {
+    const runtimeLessServer = await createServer({ port: PORT + 1, host: "127.0.0.1" });
+
+    try {
+      const res = await fetch(`http://127.0.0.1:${PORT + 1}/emergency-stop`, { method: "POST" });
+      expect(res.status).toBe(503);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.runtimeStatus).toBeUndefined();
+      expect(body.message).toContain("runtime control is unavailable");
+      expect(body.killSwitch.halted).toBe(true);
+    } finally {
+      await runtimeLessServer.close();
+      resetKillSwitch();
+    }
+  });
 });

@@ -35,16 +35,15 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
   return async (fastify) => {
     fastify.post<{ Reply: ControlResponse }>("/emergency-stop", async (_request, reply) => {
       triggerKillSwitch("API emergency-stop");
-      const runtimeResult = runtime ? await runtime.emergencyStop("kill_switch_emergency_stop") : null;
-      return reply.status(200).send(
-        toReply(
-          runtimeResult ?? {
-            success: true,
-            status: "paused",
-            message: "Emergency stop triggered. All trading halted. Manual reset required.",
-          }
-        )
-      );
+      if (!runtime) {
+        return reply.status(503).send({
+          success: false,
+          message: "Emergency stop triggered kill switch, but runtime control is unavailable so runtime state is unverifiable.",
+          killSwitch: getKillSwitchState(),
+        });
+      }
+      const runtimeResult = await runtime.emergencyStop("kill_switch_emergency_stop");
+      return reply.status(200).send(toReply(runtimeResult));
     });
 
     fastify.post<{ Reply: ControlResponse }>("/control/pause", async (_request, reply) => {

@@ -229,6 +229,64 @@ describe("DryRunRuntime (phase-2)", () => {
     await runtime.stop();
   });
 
+  it("preserves successful paper intake truth when a downstream cycle errors", async () => {
+    const paperConfig: Config = { ...TEST_CONFIG, executionMode: "paper", dryRun: false };
+    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
+    const incidentRepo = new InMemoryIncidentRepository();
+    const runtime = new DryRunRuntime(paperConfig, {
+      engine: { run: vi.fn().mockRejectedValue(new Error("paper-execute-failed")) } as never,
+      fetchMarketDataFn: vi.fn().mockResolvedValue({
+        schema_version: "market.v1",
+        traceId: "m-paper-ok",
+        timestamp: new Date().toISOString(),
+        source: "dexpaprika",
+        poolId: "pool-paper-ok",
+        baseToken: "SOL",
+        quoteToken: "USD",
+        priceUsd: 101,
+        volume24h: 500,
+        liquidity: 5_000,
+        freshnessMs: 0,
+        status: "ok",
+      }),
+      paperMarketAdapters: [{ id: "primary", fetch: vi.fn() }],
+      fetchPaperWalletSnapshot: async () => ({
+        traceId: "w-paper-ok",
+        timestamp: new Date().toISOString(),
+        source: "moralis",
+        walletAddress: TEST_CONFIG.walletAddress,
+        balances: [],
+        totalUsd: 0,
+      }),
+      cycleSummaryWriter,
+      incidentRecorder: new RepositoryIncidentRecorder(incidentRepo),
+    });
+
+    await expect(runtime.start()).rejects.toThrow("paper-execute-failed");
+
+    const snapshot = runtime.getSnapshot();
+    expect(snapshot.status).toBe("error");
+    expect(snapshot.lastState?.blocked).toBe(true);
+    expect(snapshot.lastState?.blockedReason).toBe("RUNTIME_CYCLE_ERROR");
+    expect(snapshot.lastCycleSummary?.intakeOutcome).toBe("ok");
+    expect(snapshot.lastCycleSummary?.errorOccurred).toBe(true);
+    expect(snapshot.lastCycleSummary?.error).toBe("paper-execute-failed");
+    expect(snapshot.lastCycleSummary?.traceId).toBe(snapshot.lastState?.traceId);
+
+    const summaries = await cycleSummaryWriter.list();
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0].intakeOutcome).toBe("ok");
+    expect(summaries[0].blockedReason).toBe("RUNTIME_CYCLE_ERROR");
+    expect(summaries[0].errorOccurred).toBe(true);
+
+    const incidents = await runtime.listRecentIncidents(10);
+    expect(incidents).toHaveLength(1);
+    expect(incidents[0].type).toBe("runtime_cycle_error");
+    expect(incidents[0].details?.intakeOutcome).toBe("ok");
+
+    await runtime.stop();
+  });
+
 
   it("supports explicit pause/resume/halt transitions truthfully", async () => {
     const runtime = new DryRunRuntime(TEST_CONFIG, {

@@ -265,8 +265,11 @@ export class DryRunRuntime {
       return;
     }
 
+    let currentCycleIntakeOutcome: RuntimeCycleIntakeOutcome = "invalid";
+    let currentCycleTimestamp = new Date().toISOString();
+
     if (isKillSwitchHalted()) {
-      const now = new Date().toISOString();
+      const now = currentCycleTimestamp;
       this.status = "paused";
       this.lastState = {
         stage: "risk",
@@ -306,12 +309,13 @@ export class DryRunRuntime {
 
     this.cycleInFlight = true;
     try {
-      const now = new Date().toISOString();
+      const now = currentCycleTimestamp;
       this.counters.cycleCount += 1;
       this.lastCycleAt = now;
 
       const paperIntake = await this.preparePaperIntake(now);
       if (paperIntake?.kind === "blocked") {
+        currentCycleIntakeOutcome = paperIntake.summary.intakeOutcome;
         await this.recordIncident({
           severity: "warning",
           type: "paper_ingest_blocked",
@@ -332,6 +336,8 @@ export class DryRunRuntime {
         });
         return;
       }
+
+      currentCycleIntakeOutcome = paperIntake?.kind === "ready" ? paperIntake.intakeOutcome : "ok";
 
       this.lastState = await this.engine.run(
         async () => {
@@ -429,23 +435,36 @@ export class DryRunRuntime {
       this.counters.decisionCount += 1;
       if (this.lastState.executionReport) this.counters.executionCount += 1;
       if (this.lastState.blocked) this.counters.blockedCount += 1;
-      await this.persistCycleSummary(this.toCycleSummary(this.lastState, paperIntake?.kind === "ready" ? paperIntake.intakeOutcome : "ok"));
+      await this.persistCycleSummary(this.toCycleSummary(this.lastState, currentCycleIntakeOutcome));
     } catch (error) {
       this.status = "error";
       this.counters.errorCount += 1;
       this.logger.error("Dry-run runtime cycle failed", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const traceId = this.lastState?.traceId ?? `runtime-${currentCycleTimestamp}`;
+      this.lastState = {
+        stage: this.lastState?.stage ?? "ingest",
+        traceId,
+        timestamp: this.lastCycleAt ?? currentCycleTimestamp,
+        blocked: true,
+        blockedReason: "RUNTIME_CYCLE_ERROR",
+        error: errorMessage,
+      };
       await this.recordIncident({
         severity: "critical",
         type: "runtime_cycle_error",
         message: "Runtime cycle failed",
-        details: { error: error instanceof Error ? error.message : String(error) },
+        details: {
+          error: errorMessage,
+          intakeOutcome: currentCycleIntakeOutcome,
+        },
       });
       await this.persistCycleSummary({
-        cycleTimestamp: this.lastCycleAt ?? new Date().toISOString(),
+        cycleTimestamp: this.lastCycleAt ?? currentCycleTimestamp,
         mode: this.mode,
-        intakeOutcome: "invalid",
+        intakeOutcome: currentCycleIntakeOutcome,
         advanced: false,
-        stage: "ingest",
+        stage: this.lastState.stage,
         blocked: true,
         blockedReason: "RUNTIME_CYCLE_ERROR",
         decisionOccurred: false,
@@ -456,7 +475,8 @@ export class DryRunRuntime {
         verificationOccurred: false,
         paperExecutionProduced: false,
         errorOccurred: true,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
+        traceId,
       });
       if (this.intervalRef) {
         clearInterval(this.intervalRef);
