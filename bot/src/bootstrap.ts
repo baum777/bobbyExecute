@@ -72,6 +72,7 @@ export async function bootstrap(options?: {
       getRuntimeSnapshot,
       runtime,
       controlAuthToken: config.controlToken,
+      operatorReadAuthToken: config.operatorReadToken,
       actionLogger: runtimeDeps.actionLogger,
     });
   } catch (error) {

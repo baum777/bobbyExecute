@@ -52,6 +52,7 @@ export const ConfigSchema = z
     // Wallet
     walletAddress: z.string().min(32).optional(),
     controlToken: z.string().min(12).optional(),
+    operatorReadToken: z.string().min(12).optional(),
 
     // Journal
     journalPath: z.string().optional().default("data/journal.jsonl"),
@@ -106,6 +107,20 @@ export const ConfigSchema = z
         message: "LIVE_TRADING=true (executionMode=live) requires CONTROL_TOKEN.",
       });
     }
+
+    if (!data.operatorReadToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true (executionMode=live) requires OPERATOR_READ_TOKEN.",
+      });
+    }
+
+    if (data.controlToken && data.operatorReadToken && data.controlToken === data.operatorReadToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true requires CONTROL_TOKEN and OPERATOR_READ_TOKEN to be distinct.",
+      });
+    }
   });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -140,6 +155,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     moralisBaseUrl: env.MORALIS_BASE_URL,
     walletAddress: env.WALLET_ADDRESS,
     controlToken: env.CONTROL_TOKEN,
+    operatorReadToken: env.OPERATOR_READ_TOKEN,
     journalPath: env.JOURNAL_PATH,
     circuitBreakerFailureThreshold: env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
     circuitBreakerRecoveryMs: env.CIRCUIT_BREAKER_RECOVERY_MS,

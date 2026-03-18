@@ -44,6 +44,7 @@ describe("Config validation (P1)", () => {
     process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
     process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
     process.env.CONTROL_TOKEN = "phase10-live-control-token";
+    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
 
     const config = parseConfig(process.env as Record<string, string | undefined>);
     expect(config.executionMode).toBe("live");
@@ -51,6 +52,7 @@ describe("Config validation (P1)", () => {
     expect(config.tradingEnabled).toBe(true);
     expect(config.liveTestMode).toBe(true);
     expect(config.controlToken).toBe("phase10-live-control-token");
+    expect(config.operatorReadToken).toBe("phase10-live-operator-token");
   });
 
   it("live config rejects missing explicit pre-live prerequisites", () => {
@@ -58,7 +60,22 @@ describe("Config validation (P1)", () => {
     process.env.RPC_MODE = "real";
 
     expect(() => parseConfig(process.env as Record<string, string | undefined>)).toThrow(
-      /TRADING_ENABLED=true|LIVE_TEST_MODE=true|WALLET_ADDRESS|CONTROL_TOKEN/
+      /TRADING_ENABLED=true|LIVE_TEST_MODE=true|WALLET_ADDRESS|CONTROL_TOKEN|OPERATOR_READ_TOKEN/
+    );
+  });
+
+  it("live config rejects identical control and operator read tokens", () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+    process.env.TRADING_ENABLED = "true";
+    process.env.LIVE_TEST_MODE = "true";
+    process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
+    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    process.env.CONTROL_TOKEN = "phase10-shared-token";
+    process.env.OPERATOR_READ_TOKEN = "phase10-shared-token";
+
+    expect(() => parseConfig(process.env as Record<string, string | undefined>)).toThrow(
+      /CONTROL_TOKEN and OPERATOR_READ_TOKEN to be distinct/
     );
   });
 

@@ -55,6 +55,14 @@ export function assertLiveTradingPrerequisites(config: Config): void {
   if (!config.controlToken) {
     throw new Error("LIVE_TRADING=true requires CONTROL_TOKEN.");
   }
+
+  if (!config.operatorReadToken) {
+    throw new Error("LIVE_TRADING=true requires OPERATOR_READ_TOKEN.");
+  }
+
+  if (config.operatorReadToken === config.controlToken) {
+    throw new Error("LIVE_TRADING=true requires CONTROL_TOKEN and OPERATOR_READ_TOKEN to be distinct.");
+  }
 }
 
 /**

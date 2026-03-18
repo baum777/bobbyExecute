@@ -18,6 +18,7 @@ type BootstrappedApp = Awaited<ReturnType<typeof bootstrap>>;
 
 const ORIG_ENV = process.env;
 const PORT = 3361;
+const OPERATOR_READ_TOKEN = "phase10-operator-read-parity-token";
 
 async function waitFor<T>(producer: () => Promise<T> | T, predicate: (value: T) => boolean): Promise<T> {
   const deadline = Date.now() + 2_000;
@@ -47,6 +48,7 @@ describe("paper bootstrap integration parity (phase-6)", () => {
       NODE_ENV: "test",
       DRY_RUN: "false",
       WALLET_ADDRESS: "11111111111111111111111111111111",
+      OPERATOR_READ_TOKEN,
       JOURNAL_PATH: join(tempDir, "paper-runtime-journal.jsonl"),
     };
     delete process.env.LIVE_TRADING;
@@ -172,10 +174,10 @@ describe("paper bootstrap integration parity (phase-6)", () => {
     const [healthRes, kpiRes, statusRes, cyclesRes, replayRes, incidentsRes] = await Promise.all([
       fetch(`http://127.0.0.1:${PORT}/health`),
       fetch(`http://127.0.0.1:${PORT}/kpi/summary`),
-      fetch(`http://127.0.0.1:${PORT}/runtime/status`),
-      fetch(`http://127.0.0.1:${PORT}/runtime/cycles?limit=5`),
-      fetch(`http://127.0.0.1:${PORT}/runtime/cycles/${runtimeSnapshot.lastState!.traceId}/replay`),
-      fetch(`http://127.0.0.1:${PORT}/incidents?limit=5`),
+      fetch(`http://127.0.0.1:${PORT}/runtime/status`, { headers: { "x-operator-token": OPERATOR_READ_TOKEN } }),
+      fetch(`http://127.0.0.1:${PORT}/runtime/cycles?limit=5`, { headers: { "x-operator-token": OPERATOR_READ_TOKEN } }),
+      fetch(`http://127.0.0.1:${PORT}/runtime/cycles/${runtimeSnapshot.lastState!.traceId}/replay`, { headers: { "x-operator-token": OPERATOR_READ_TOKEN } }),
+      fetch(`http://127.0.0.1:${PORT}/incidents?limit=5`, { headers: { "x-operator-token": OPERATOR_READ_TOKEN } }),
     ]);
 
     expect(healthRes.status).toBe(200);

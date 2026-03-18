@@ -26,6 +26,11 @@ const config = {
   maxSlippagePercent: 5,
   reviewPolicyMode: "required" as const,
 };
+const OPERATOR_READ_TOKEN = "phase10-operator-read-token";
+
+function authHeaders(token = OPERATOR_READ_TOKEN): HeadersInit {
+  return { "x-operator-token": token };
+}
 
 function createMarketSnapshot(traceId: string, freshnessMs = 0) {
   return {
@@ -83,10 +88,11 @@ describe("Operator read-only surfaces", () => {
       host: "127.0.0.1",
       runtime,
       getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
     });
     servers.push(server);
 
-    const res = await fetch("http://127.0.0.1:3345/runtime/cycles?limit=5");
+    const res = await fetch("http://127.0.0.1:3345/runtime/cycles?limit=5", { headers: authHeaders() });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -175,10 +181,11 @@ describe("Operator read-only surfaces", () => {
       host: "127.0.0.1",
       runtime,
       getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
     });
     servers.push(server);
 
-    const res = await fetch("http://127.0.0.1:3346/runtime/cycles?limit=2");
+    const res = await fetch("http://127.0.0.1:3346/runtime/cycles?limit=2", { headers: authHeaders() });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -214,10 +221,11 @@ describe("Operator read-only surfaces", () => {
       host: "127.0.0.1",
       runtime,
       getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
     });
     servers.push(server);
 
-    const res = await fetch("http://127.0.0.1:3347/incidents?limit=10");
+    const res = await fetch("http://127.0.0.1:3347/incidents?limit=10", { headers: authHeaders() });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -268,10 +276,11 @@ describe("Operator read-only surfaces", () => {
       host: "127.0.0.1",
       runtime,
       getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
     });
     servers.push(server);
 
-    const res = await fetch(`http://127.0.0.1:3352/runtime/cycles/${summary.traceId}/replay`);
+    const res = await fetch(`http://127.0.0.1:3352/runtime/cycles/${summary.traceId}/replay`, { headers: authHeaders() });
     expect(res.status).toBe(200);
     const body = await res.json();
 
@@ -339,6 +348,7 @@ describe("Operator read-only surfaces", () => {
       host: "127.0.0.1",
       runtime,
       getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
       getBotStatus: () => {
         const status = runtime.getStatus();
         return status === "running" ? "running" : status === "paused" ? "paused" : "stopped";
@@ -349,9 +359,9 @@ describe("Operator read-only surfaces", () => {
     const [healthRes, kpiRes, statusRes, cyclesRes, incidentsRes] = await Promise.all([
       fetch("http://127.0.0.1:3354/health"),
       fetch("http://127.0.0.1:3354/kpi/summary"),
-      fetch("http://127.0.0.1:3354/runtime/status"),
-      fetch("http://127.0.0.1:3354/runtime/cycles?limit=10"),
-      fetch("http://127.0.0.1:3354/incidents?limit=10"),
+      fetch("http://127.0.0.1:3354/runtime/status", { headers: authHeaders() }),
+      fetch("http://127.0.0.1:3354/runtime/cycles?limit=10", { headers: authHeaders() }),
+      fetch("http://127.0.0.1:3354/incidents?limit=10", { headers: authHeaders() }),
     ]);
 
     const healthBody = await healthRes.json();
@@ -489,10 +499,11 @@ describe("Operator read-only surfaces", () => {
       host: "127.0.0.1",
       runtime,
       getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
     });
     servers.push(server);
 
-    const res = await fetch("http://127.0.0.1:3348/incidents?limit=2");
+    const res = await fetch("http://127.0.0.1:3348/incidents?limit=2", { headers: authHeaders() });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -513,6 +524,7 @@ describe("Operator read-only surfaces", () => {
       host: "127.0.0.1",
       runtime,
       getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
       getBotStatus: () => {
         const status = runtime.getStatus();
         return status === "running" ? "running" : status === "paused" ? "paused" : "stopped";
@@ -521,7 +533,7 @@ describe("Operator read-only surfaces", () => {
     servers.push(server);
 
     const [statusRes, healthRes, kpiRes] = await Promise.all([
-      fetch("http://127.0.0.1:3349/runtime/status"),
+      fetch("http://127.0.0.1:3349/runtime/status", { headers: authHeaders() }),
       fetch("http://127.0.0.1:3349/health"),
       fetch("http://127.0.0.1:3349/kpi/summary"),
     ]);
@@ -544,14 +556,15 @@ describe("Operator read-only surfaces", () => {
     const server = await createServer({
       port: 3350,
       host: "127.0.0.1",
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
     });
     servers.push(server);
 
     const [cyclesRes, replayRes, incidentsRes, statusRes] = await Promise.all([
-      fetch("http://127.0.0.1:3350/runtime/cycles"),
-      fetch("http://127.0.0.1:3350/runtime/cycles/missing/replay"),
-      fetch("http://127.0.0.1:3350/incidents"),
-      fetch("http://127.0.0.1:3350/runtime/status"),
+      fetch("http://127.0.0.1:3350/runtime/cycles", { headers: authHeaders() }),
+      fetch("http://127.0.0.1:3350/runtime/cycles/missing/replay", { headers: authHeaders() }),
+      fetch("http://127.0.0.1:3350/incidents", { headers: authHeaders() }),
+      fetch("http://127.0.0.1:3350/runtime/status", { headers: authHeaders() }),
     ]);
 
     expect(cyclesRes.status).toBe(501);
@@ -591,12 +604,13 @@ describe("Operator read-only surfaces", () => {
       host: "127.0.0.1",
       runtime,
       getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
     });
     servers.push(server);
 
     const [nonNumericCycles, oversizedIncidents] = await Promise.all([
-      fetch("http://127.0.0.1:3351/runtime/cycles?limit=abc"),
-      fetch("http://127.0.0.1:3351/incidents?limit=201"),
+      fetch("http://127.0.0.1:3351/runtime/cycles?limit=abc", { headers: authHeaders() }),
+      fetch("http://127.0.0.1:3351/incidents?limit=201", { headers: authHeaders() }),
     ]);
 
     expect(nonNumericCycles.status).toBe(400);
@@ -624,14 +638,65 @@ describe("Operator read-only surfaces", () => {
       host: "127.0.0.1",
       runtime,
       getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
     });
     servers.push(server);
 
-    const res = await fetch("http://127.0.0.1:3353/runtime/cycles/missing-trace/replay");
+    const res = await fetch("http://127.0.0.1:3353/runtime/cycles/missing-trace/replay", { headers: authHeaders() });
     expect(res.status).toBe(404);
     await expect(res.json()).resolves.toMatchObject({
       success: false,
       code: "cycle_not_found",
+    });
+  });
+
+  it("operator read routes reject missing/invalid auth and fail closed when token is unconfigured", async () => {
+    const runtime = createDryRunRuntime(config, {
+      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
+      incidentRecorder: new RepositoryIncidentRecorder(new InMemoryIncidentRepository()),
+    });
+    runtimes.push(runtime);
+
+    const securedServer = await createServer({
+      port: 3355,
+      host: "127.0.0.1",
+      runtime,
+      getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
+    });
+    servers.push(securedServer);
+
+    const [missing, invalid] = await Promise.all([
+      fetch("http://127.0.0.1:3355/runtime/status"),
+      fetch("http://127.0.0.1:3355/runtime/status", { headers: authHeaders("wrong-token") }),
+    ]);
+
+    expect(missing.status).toBe(403);
+    await expect(missing.json()).resolves.toMatchObject({
+      success: false,
+      code: "operator_auth_invalid",
+    });
+    expect(invalid.status).toBe(403);
+    await expect(invalid.json()).resolves.toMatchObject({
+      success: false,
+      code: "operator_auth_invalid",
+    });
+
+    const unconfiguredServer = await createServer({
+      port: 3356,
+      host: "127.0.0.1",
+      runtime,
+      getRuntimeSnapshot: () => runtime.getSnapshot(),
+    });
+    servers.push(unconfiguredServer);
+
+    const unconfigured = await fetch("http://127.0.0.1:3356/runtime/status", {
+      headers: authHeaders(),
+    });
+    expect(unconfigured.status).toBe(403);
+    await expect(unconfigured.json()).resolves.toMatchObject({
+      success: false,
+      code: "operator_auth_unconfigured",
     });
   });
 });

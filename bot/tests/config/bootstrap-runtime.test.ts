@@ -256,6 +256,6 @@ describe("bootstrap runtime closure (phase-1)", () => {
         host: "127.0.0.1",
         port: 3355,
       })
-    ).rejects.toThrow(/TRADING_ENABLED=true|LIVE_TEST_MODE=true|WALLET_ADDRESS|CONTROL_TOKEN/);
+    ).rejects.toThrow(/TRADING_ENABLED=true|LIVE_TEST_MODE=true|WALLET_ADDRESS|CONTROL_TOKEN|OPERATOR_READ_TOKEN/);
   });
 });

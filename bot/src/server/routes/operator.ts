@@ -10,11 +10,17 @@ const MAX_LIST_LIMIT = 200;
 export interface OperatorRouteDeps {
   runtime?: DryRunRuntime;
   getRuntimeSnapshot?: () => import("../../runtime/dry-run-runtime.js").RuntimeSnapshot;
+  requiredToken?: string;
 }
 
 export interface OperatorReadErrorResponse {
   success: false;
-  code: "runtime_unavailable" | "invalid_limit" | "cycle_not_found";
+  code:
+    | "runtime_unavailable"
+    | "invalid_limit"
+    | "cycle_not_found"
+    | "operator_auth_unconfigured"
+    | "operator_auth_invalid";
   message: string;
 }
 
@@ -74,9 +80,45 @@ function parseLimit(rawLimit?: string): { ok: true; limit: number } | { ok: fals
   return { ok: true, limit };
 }
 
+function readPresentedToken(headers: Record<string, unknown>): string | undefined {
+  const operatorToken = headers["x-operator-token"];
+  if (typeof operatorToken === "string" && operatorToken.length > 0) {
+    return operatorToken;
+  }
+
+  const authorization = headers.authorization;
+  if (typeof authorization === "string") {
+    const match = authorization.match(/^Bearer\s+(.+)$/i);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return undefined;
+}
+
 export function operatorRoutes(deps: OperatorRouteDeps): FastifyPluginAsync {
-  const { runtime, getRuntimeSnapshot } = deps;
+  const { runtime, getRuntimeSnapshot, requiredToken } = deps;
   return async (fastify) => {
+    fastify.addHook("preHandler", async (request, reply) => {
+      if (!requiredToken) {
+        return reply.status(403).send({
+          success: false,
+          code: "operator_auth_unconfigured",
+          message: "Operator read routes denied: OPERATOR_READ_TOKEN is not configured.",
+        } satisfies OperatorReadErrorResponse);
+      }
+
+      const presentedToken = readPresentedToken(request.headers as Record<string, unknown>);
+      if (presentedToken !== requiredToken) {
+        return reply.status(403).send({
+          success: false,
+          code: "operator_auth_invalid",
+          message: "Operator read routes denied: missing or invalid operator authorization.",
+        } satisfies OperatorReadErrorResponse);
+      }
+    });
+
     fastify.get<{ Querystring: { limit?: string }; Reply: RuntimeCyclesResponse | OperatorReadErrorResponse }>(
       "/runtime/cycles",
       async (request, reply) => {
