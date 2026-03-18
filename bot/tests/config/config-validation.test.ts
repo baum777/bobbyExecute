@@ -39,11 +39,27 @@ describe("Config validation (P1)", () => {
   it("valid combo LIVE_TRADING=true with RPC_MODE=real parses", () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    process.env.TRADING_ENABLED = "true";
+    process.env.LIVE_TEST_MODE = "true";
     process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
+    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    process.env.CONTROL_TOKEN = "phase10-live-control-token";
 
     const config = parseConfig(process.env as Record<string, string | undefined>);
     expect(config.executionMode).toBe("live");
     expect(config.rpcMode).toBe("real");
+    expect(config.tradingEnabled).toBe(true);
+    expect(config.liveTestMode).toBe(true);
+    expect(config.controlToken).toBe("phase10-live-control-token");
+  });
+
+  it("live config rejects missing explicit pre-live prerequisites", () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+
+    expect(() => parseConfig(process.env as Record<string, string | undefined>)).toThrow(
+      /TRADING_ENABLED=true|LIVE_TEST_MODE=true|WALLET_ADDRESS|CONTROL_TOKEN/
+    );
   });
 
   it("default config has executionMode dry and rpcMode stub", () => {

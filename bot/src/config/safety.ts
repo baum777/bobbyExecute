@@ -6,6 +6,7 @@
  * Wave 8: Live-test mode config for Stage 3 limited capital.
  */
 import { assertRealModeForLive } from "../core/config/rpc.js";
+import type { Config } from "./config-schema.js";
 
 const LIVE_TRADING_ENV = "LIVE_TRADING";
 const LIVE_TEST_MODE_ENV = "LIVE_TEST_MODE";
@@ -30,6 +31,30 @@ export function isLiveTradingEnabled(): boolean {
 export function assertLiveTradingRequiresRealRpc(): void {
   if (!isLiveTradingEnabled()) return;
   assertRealModeForLive();
+}
+
+export function assertLiveTradingPrerequisites(config: Config): void {
+  if (config.executionMode !== "live") {
+    return;
+  }
+
+  assertLiveTradingRequiresRealRpc();
+
+  if (!config.tradingEnabled) {
+    throw new Error("LIVE_TRADING=true requires TRADING_ENABLED=true.");
+  }
+
+  if (!config.liveTestMode) {
+    throw new Error("LIVE_TRADING=true requires LIVE_TEST_MODE=true.");
+  }
+
+  if (!config.walletAddress) {
+    throw new Error("LIVE_TRADING=true requires WALLET_ADDRESS.");
+  }
+
+  if (!config.controlToken) {
+    throw new Error("LIVE_TRADING=true requires CONTROL_TOKEN.");
+  }
 }
 
 /**

@@ -23,6 +23,7 @@ export const ConfigSchema = z
     // Feature flags
     dryRun: z.coerce.boolean().default(true),
     tradingEnabled: z.coerce.boolean().default(false),
+    liveTestMode: z.coerce.boolean().default(false),
 
     // Execution mode semantics (from LIVE_TRADING env)
     executionMode: z
@@ -50,6 +51,7 @@ export const ConfigSchema = z
 
     // Wallet
     walletAddress: z.string().min(32).optional(),
+    controlToken: z.string().min(12).optional(),
 
     // Journal
     journalPath: z.string().optional().default("data/journal.jsonl"),
@@ -64,19 +66,47 @@ export const ConfigSchema = z
       .enum(["none", "draft_only", "required"])
       .default("required"),
   })
-  .refine(
-    (data) => {
-      // Invalid combo: LIVE_TRADING (executionMode=live) requires RPC_MODE=real
-      if (data.executionMode === "live" && data.rpcMode !== "real") {
-        return false;
-      }
-      return true;
-    },
-    {
-      message:
-        "LIVE_TRADING=true (executionMode=live) requires RPC_MODE=real. Set RPC_MODE=real and RPC_URL for production.",
+  .superRefine((data, ctx) => {
+    if (data.executionMode !== "live") {
+      return;
     }
-  );
+
+    if (data.rpcMode !== "real") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "LIVE_TRADING=true (executionMode=live) requires RPC_MODE=real. Set RPC_MODE=real and RPC_URL for production.",
+      });
+    }
+
+    if (!data.tradingEnabled) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true (executionMode=live) requires TRADING_ENABLED=true.",
+      });
+    }
+
+    if (!data.liveTestMode) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true (executionMode=live) requires LIVE_TEST_MODE=true.",
+      });
+    }
+
+    if (!data.walletAddress) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true (executionMode=live) requires WALLET_ADDRESS.",
+      });
+    }
+
+    if (!data.controlToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true (executionMode=live) requires CONTROL_TOKEN.",
+      });
+    }
+  });
 
 export type Config = z.infer<typeof ConfigSchema>;
 
@@ -102,12 +132,14 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     nodeEnv: env.NODE_ENV,
     dryRun: env.DRY_RUN,
     tradingEnabled: env.TRADING_ENABLED,
+    liveTestMode: env.LIVE_TEST_MODE,
     executionMode: parseExecutionMode(env),
     rpcMode: parseRpcMode(env),
     rpcUrl: env.RPC_URL ?? "https://api.mainnet-beta.solana.com",
     dexpaprikaBaseUrl: env.DEXPAPRIKA_BASE_URL,
     moralisBaseUrl: env.MORALIS_BASE_URL,
     walletAddress: env.WALLET_ADDRESS,
+    controlToken: env.CONTROL_TOKEN,
     journalPath: env.JOURNAL_PATH,
     circuitBreakerFailureThreshold: env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
     circuitBreakerRecoveryMs: env.CIRCUIT_BREAKER_RECOVERY_MS,

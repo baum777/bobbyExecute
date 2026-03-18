@@ -31,15 +31,44 @@ export async function executeSwap(
 ): Promise<ExecutionReport> {
   const liveAllowed = isLiveTradingEnabled();
 
-  if (!liveAllowed || intent.dryRun) {
+  if (intent.executionMode === "live" && !liveAllowed) {
+    return {
+      traceId: intent.traceId,
+      timestamp: intent.timestamp,
+      tradeIntentId: intent.idempotencyKey,
+      success: false,
+      error: "Live execution disabled (LIVE_TRADING not enabled)",
+      dryRun: false,
+      executionMode: "live",
+      paperExecution: false,
+    };
+  }
+
+  if (intent.executionMode === "live" && intent.dryRun) {
+    return {
+      traceId: intent.traceId,
+      timestamp: intent.timestamp,
+      tradeIntentId: intent.idempotencyKey,
+      success: false,
+      error: "Live execution intent cannot run with dryRun=true.",
+      dryRun: false,
+      executionMode: "live",
+      paperExecution: false,
+    };
+  }
+
+  if (intent.executionMode !== "live" || intent.dryRun) {
     const actualOut = quote ? quote.amountOut : intent.minAmountOut;
+    const executionMode = intent.executionMode ?? (intent.dryRun ? "dry" : "paper");
     return {
       traceId: intent.traceId,
       timestamp: intent.timestamp,
       tradeIntentId: intent.idempotencyKey,
       success: true,
       actualAmountOut: actualOut,
-      dryRun: true,
+      dryRun: executionMode === "dry",
+      executionMode,
+      paperExecution: executionMode === "paper",
     };
   }
 
@@ -94,5 +123,7 @@ export async function executeSwap(
     txSignature: signature,
     actualAmountOut: resolvedQuote.amountOut,
     dryRun: false,
+    executionMode: "live",
+    paperExecution: false,
   };
 }

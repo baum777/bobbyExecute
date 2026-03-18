@@ -13,6 +13,9 @@ describe("bootstrap runtime closure (phase-1)", () => {
     process.env = { ...ORIG_ENV };
     delete process.env.LIVE_TRADING;
     delete process.env.RPC_MODE;
+    delete process.env.CONTROL_TOKEN;
+    delete process.env.LIVE_TEST_MODE;
+    delete process.env.TRADING_ENABLED;
   });
 
   afterEach(() => {
@@ -22,6 +25,7 @@ describe("bootstrap runtime closure (phase-1)", () => {
   });
 
   it("starts server and dry-run runtime together", async () => {
+    process.env.CONTROL_TOKEN = "phase10-bootstrap-control-token";
     const { server, runtime } = await bootstrap({
       host: "127.0.0.1",
       port: 3351,
@@ -47,7 +51,10 @@ describe("bootstrap runtime closure (phase-1)", () => {
       expect(summaryPayload.botStatus).toBe("running");
       expect(summaryPayload.runtime?.mode).toBe("dry");
 
-      const stopRes = await fetch("http://127.0.0.1:3351/emergency-stop", { method: "POST" });
+      const stopRes = await fetch("http://127.0.0.1:3351/emergency-stop", {
+        method: "POST",
+        headers: { "x-control-token": process.env.CONTROL_TOKEN! },
+      });
       expect(stopRes.status).toBe(200);
       const stopBody = await stopRes.json();
       expect(stopBody.success).toBe(true);
@@ -73,6 +80,7 @@ describe("bootstrap runtime closure (phase-1)", () => {
   it("starts in paper mode with runtime truth surfaced in health", async () => {
     process.env.DRY_RUN = "false";
     process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    process.env.CONTROL_TOKEN = "phase10-paper-control-token";
     delete process.env.LIVE_TRADING;
 
     const marketSnapshot: MarketSnapshot = {
@@ -159,5 +167,17 @@ describe("bootstrap runtime closure (phase-1)", () => {
         port: 3352,
       })
     ).rejects.toThrow(/LIVE_TRADING=true.*requires RPC_MODE=real/);
+  });
+
+  it("fails fast when live startup prerequisites are incomplete", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+
+    await expect(
+      bootstrap({
+        host: "127.0.0.1",
+        port: 3355,
+      })
+    ).rejects.toThrow(/TRADING_ENABLED=true|LIVE_TEST_MODE=true|WALLET_ADDRESS|CONTROL_TOKEN/);
   });
 });

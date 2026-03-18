@@ -13,6 +13,7 @@ const config = {
   nodeEnv: "test" as const,
   dryRun: true,
   tradingEnabled: false,
+  liveTestMode: false,
   executionMode: "dry" as const,
   rpcMode: "stub" as const,
   rpcUrl: "https://api.mainnet-beta.solana.com",

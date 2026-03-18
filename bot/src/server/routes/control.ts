@@ -7,11 +7,13 @@ import type { DryRunRuntime, RuntimeControlResult } from "../../runtime/dry-run-
 
 export interface ControlRouteDeps {
   runtime?: DryRunRuntime;
+  requiredToken?: string;
 }
 
 export interface ControlResponse {
   success: boolean;
   message: string;
+  code?: "control_auth_unconfigured" | "control_auth_invalid" | "runtime_control_unavailable";
   runtimeStatus?: string;
   killSwitch: { halted: boolean; reason?: string; triggeredAt?: string };
 }
@@ -29,15 +31,54 @@ function toReply(result: RuntimeControlResult | null, killSwitch = getKillSwitch
   };
 }
 
+function readPresentedToken(headers: Record<string, unknown>): string | undefined {
+  const controlToken = headers["x-control-token"];
+  if (typeof controlToken === "string" && controlToken.length > 0) {
+    return controlToken;
+  }
+
+  const authorization = headers.authorization;
+  if (typeof authorization === "string") {
+    const match = authorization.match(/^Bearer\s+(.+)$/i);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return undefined;
+}
+
 export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
-  const { runtime } = deps;
+  const { runtime, requiredToken } = deps;
 
   return async (fastify) => {
+    fastify.addHook("preHandler", async (request, reply) => {
+      if (!requiredToken) {
+        return reply.status(403).send({
+          success: false,
+          code: "control_auth_unconfigured",
+          message: "Control routes denied: CONTROL_TOKEN is not configured.",
+          killSwitch: getKillSwitchState(),
+        } satisfies ControlResponse);
+      }
+
+      const presentedToken = readPresentedToken(request.headers as Record<string, unknown>);
+      if (presentedToken !== requiredToken) {
+        return reply.status(403).send({
+          success: false,
+          code: "control_auth_invalid",
+          message: "Control routes denied: missing or invalid control authorization.",
+          killSwitch: getKillSwitchState(),
+        } satisfies ControlResponse);
+      }
+    });
+
     fastify.post<{ Reply: ControlResponse }>("/emergency-stop", async (_request, reply) => {
       triggerKillSwitch("API emergency-stop");
       if (!runtime) {
         return reply.status(503).send({
           success: false,
+          code: "runtime_control_unavailable",
           message: "Emergency stop triggered kill switch, but runtime control is unavailable so runtime state is unverifiable.",
           killSwitch: getKillSwitchState(),
         });
@@ -50,6 +91,7 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       if (!runtime) {
         return reply.status(501).send({
           success: false,
+          code: "runtime_control_unavailable",
           message: "Pause unsupported: runtime control unavailable.",
           killSwitch: getKillSwitchState(),
         });
@@ -63,6 +105,7 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       if (!runtime) {
         return reply.status(501).send({
           success: false,
+          code: "runtime_control_unavailable",
           message: "Resume unsupported: runtime control unavailable.",
           killSwitch: getKillSwitchState(),
         });
@@ -76,6 +119,7 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       if (!runtime) {
         return reply.status(501).send({
           success: false,
+          code: "runtime_control_unavailable",
           message: "Halt unsupported: runtime control unavailable.",
           killSwitch: getKillSwitchState(),
         });

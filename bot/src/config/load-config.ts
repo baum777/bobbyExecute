@@ -1,23 +1,23 @@
 /**
  * Config loader - load and validate config on startup.
  * Fail-closed: throws on invalid config.
- * Calls assertLiveTradingRequiresRealRpc after parse (LIVE_TRADING=true requires RPC_MODE=real).
+ * Calls assertLiveTradingPrerequisites after parse.
  */
 import { parseConfig, type Config } from "./config-schema.js";
-import { assertLiveTradingRequiresRealRpc } from "./safety.js";
+import { assertLiveTradingPrerequisites } from "./safety.js";
 
 let cachedConfig: Config | null = null;
 
 /**
  * Load config from env. Validates on startup.
- * Throws on invalid config or invalid combo (LIVE_TRADING + stub RPC).
+ * Throws on invalid config or invalid live prerequisites.
  */
 export function loadConfig(env?: Record<string, string | undefined>): Config {
   if (cachedConfig) return cachedConfig;
 
   const source = (env ?? process.env) as Record<string, string | undefined>;
   cachedConfig = parseConfig(source);
-  assertLiveTradingRequiresRealRpc();
+  assertLiveTradingPrerequisites(cachedConfig);
   return cachedConfig;
 }
 

@@ -563,9 +563,12 @@ export class DryRunRuntime {
             timestamp: intent.timestamp,
             tradeIntentId: intent.idempotencyKey,
             success: false,
-            error: "Execution unreachable in phase-1 fail-closed mode",
-            dryRun: true,
-            executionMode: "dry",
+            error:
+              this.mode === "live"
+                ? "Live execution unreachable in fail-closed pre-live hardening mode"
+                : "Execution unreachable in phase-1 fail-closed mode",
+            dryRun: this.mode === "dry",
+            executionMode: this.mode,
             paperExecution: false,
           };
         },
@@ -585,8 +588,11 @@ export class DryRunRuntime {
             timestamp: intent.timestamp,
             passed: false,
             checks: {},
-            reason: "Verification unreachable in phase-1 fail-closed mode",
-            verificationMode: "paper-simulated",
+            reason:
+              this.mode === "live"
+                ? "Live RPC verification unreachable in fail-closed pre-live hardening mode"
+                : "Verification unreachable in phase-1 fail-closed mode",
+            verificationMode: "rpc",
           };
         }
       );

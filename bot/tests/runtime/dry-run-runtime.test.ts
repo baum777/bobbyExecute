@@ -11,6 +11,7 @@ const TEST_CONFIG: Config = {
   nodeEnv: "test",
   dryRun: true,
   tradingEnabled: false,
+  liveTestMode: false,
   executionMode: "dry",
   rpcMode: "stub",
   rpcUrl: "https://api.mainnet-beta.solana.com",

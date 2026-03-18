@@ -23,7 +23,7 @@ const DEFAULT_PAPER_TOKEN_ID = "So11111111111111111111111111111111111111112";
 
 /**
  * Bootstrap the application: validate config, start server.
- * Call assertLiveTradingRequiresRealRpc via loadConfig before any execution.
+ * Call live prerequisite checks via loadConfig before any execution.
  */
 export async function bootstrap(options?: {
   port?: number;
@@ -68,6 +68,7 @@ export async function bootstrap(options?: {
       getBotStatus,
       getRuntimeSnapshot,
       runtime,
+      controlAuthToken: config.controlToken,
     });
   } catch (error) {
     await runtime.stop();

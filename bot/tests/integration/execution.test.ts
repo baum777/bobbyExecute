@@ -18,6 +18,13 @@ const baseIntent: TradeIntent = {
   dryRun: false,
 };
 
+const liveIntent: TradeIntent = {
+  ...baseIntent,
+  traceId: "exec-live-trace",
+  idempotencyKey: "exec-live-key",
+  executionMode: "live",
+};
+
 describe("Execution integration (Wave 7)", () => {
   it("handler with RPC client runs verify + swap path", async () => {
     const rpcClient = createRpcClient();
@@ -51,5 +58,18 @@ describe("Execution integration (Wave 7)", () => {
     const result = await handler({ ...baseIntent, dryRun: true });
     expect(result.success).toBe(true);
     expect(result.dryRun).toBe(true);
+  });
+
+  it("live intent does not degrade into synthetic dry success when live trading is disabled", async () => {
+    delete process.env.LIVE_TRADING;
+
+    const handler = await createExecutionHandler();
+    const result = await handler(liveIntent);
+
+    expect(result.success).toBe(false);
+    expect(result.executionMode).toBe("live");
+    expect(result.dryRun).toBe(false);
+    expect(result.paperExecution).toBe(false);
+    expect(result.error).toContain("Live execution disabled");
   });
 });

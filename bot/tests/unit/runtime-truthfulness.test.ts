@@ -165,6 +165,75 @@ describe("runtime truthfulness closure", () => {
     expect(result.verification.verificationMode).toBe("paper-simulated");
   });
 
+  it("execution engine rejects live success semantics without live execution evidence", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+
+    const result = await runExecution(
+      {
+        executeFn: async () => ({
+          traceId: intent.traceId,
+          timestamp: intent.timestamp,
+          tradeIntentId: intent.idempotencyKey,
+          success: true,
+          dryRun: true,
+          executionMode: "dry",
+          paperExecution: false,
+        }),
+        verifyFn: async () => ({
+          traceId: intent.traceId,
+          timestamp: intent.timestamp,
+          passed: true,
+          checks: {},
+          verificationMode: "paper-simulated",
+        }),
+      },
+      intent
+    );
+
+    expect(result.blocked).toBe(true);
+    expect(result.report.success).toBe(false);
+    expect(result.report.executionMode).toBe("live");
+    expect(result.report.dryRun).toBe(false);
+    expect(result.verification.passed).toBe(false);
+    expect(result.verification.verificationMode).toBe("rpc");
+    expect(result.blockedReason).toMatch(/non-live mode|paper or dry-run semantics/);
+
+    delete process.env.LIVE_TRADING;
+    delete process.env.RPC_MODE;
+  });
+
+  it("execution engine rejects paper execution that reports rpc verification semantics", async () => {
+    const result = await runExecution(
+      {
+        executeFn: async () => ({
+          traceId: paperIntent.traceId,
+          timestamp: paperIntent.timestamp,
+          tradeIntentId: paperIntent.idempotencyKey,
+          success: true,
+          dryRun: false,
+          executionMode: "paper",
+          paperExecution: true,
+        }),
+        verifyFn: async () => ({
+          traceId: paperIntent.traceId,
+          timestamp: paperIntent.timestamp,
+          passed: true,
+          checks: {},
+          verificationMode: "rpc",
+        }),
+      },
+      paperIntent
+    );
+
+    expect(result.blocked).toBe(true);
+    expect(result.report.success).toBe(false);
+    expect(result.report.executionMode).toBe("paper");
+    expect(result.report.paperExecution).toBe(true);
+    expect(result.verification.verificationMode).toBe("paper-simulated");
+    expect(result.blockedReason).toContain("paper-simulated verification semantics");
+  });
+
   it("adapter orchestrator rejects stale snapshots and fails closed when all stale", async () => {
     const staleAdapter: MarketAdapterFetch = {
       id: "stale-1",

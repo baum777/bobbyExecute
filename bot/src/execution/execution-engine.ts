@@ -19,6 +19,32 @@ export interface ExecutionResult {
   blockedReason?: string;
 }
 
+function blockExecution(
+  intent: TradeIntent,
+  report: ExecutionReport,
+  verification: RpcVerificationReport,
+  reason: string
+): ExecutionResult {
+  return {
+    report: {
+      ...report,
+      success: false,
+      error: reason,
+      executionMode: intent.executionMode,
+      paperExecution: intent.executionMode === "paper",
+      dryRun: intent.executionMode === "dry",
+    },
+    verification: {
+      ...verification,
+      passed: false,
+      reason,
+      verificationMode: intent.executionMode === "paper" ? "paper-simulated" : "rpc",
+    },
+    blocked: true,
+    blockedReason: reason,
+  };
+}
+
 /**
  * Run execution pipeline: execute -> verify.
  * When LIVE_TRADING=false and intent.executionMode=live, blocks (fail-closed).
@@ -64,6 +90,50 @@ export async function runExecution(
     verificationMode:
       verification.verificationMode ?? (intent.executionMode === "paper" ? "paper-simulated" : "rpc"),
   };
+
+  if (intent.executionMode === "paper") {
+    if (normalizedReport.executionMode === "live") {
+      return blockExecution(intent, normalizedReport, normalizedVerification, "Paper execution reported live mode.");
+    }
+    if (normalizedVerification.verificationMode !== "paper-simulated") {
+      return blockExecution(
+        intent,
+        normalizedReport,
+        normalizedVerification,
+        "Paper execution must use paper-simulated verification semantics."
+      );
+    }
+  }
+
+  if (intent.executionMode === "live") {
+    if (normalizedReport.executionMode !== "live") {
+      return blockExecution(intent, normalizedReport, normalizedVerification, "Live execution reported a non-live mode.");
+    }
+    if (normalizedReport.paperExecution === true || normalizedReport.dryRun === true) {
+      return blockExecution(
+        intent,
+        normalizedReport,
+        normalizedVerification,
+        "Live execution cannot report paper or dry-run semantics."
+      );
+    }
+    if (!normalizedReport.txSignature) {
+      return blockExecution(
+        intent,
+        normalizedReport,
+        normalizedVerification,
+        "Live execution requires a transaction signature for audit continuity."
+      );
+    }
+    if (normalizedVerification.verificationMode !== "rpc") {
+      return blockExecution(
+        intent,
+        normalizedReport,
+        normalizedVerification,
+        "Live execution requires RPC verification semantics."
+      );
+    }
+  }
 
   if (!normalizedVerification.passed) {
     return {

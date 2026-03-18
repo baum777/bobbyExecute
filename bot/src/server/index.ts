@@ -25,6 +25,7 @@ export interface ServerConfig {
   riskScore?: number;
   getRuntimeSnapshot?: () => RuntimeSnapshot;
   runtime?: DryRunRuntime;
+  controlAuthToken?: string;
 }
 
 const DEFAULT_PORT = 3333;
@@ -59,7 +60,7 @@ export async function createServer(config: ServerConfig = {}) {
     getRuntimeSnapshot: config.getRuntimeSnapshot,
   };
   await fastify.register(kpiRoutes(kpiDeps));
-  await fastify.register(controlRoutes({ runtime: config.runtime }));
+  await fastify.register(controlRoutes({ runtime: config.runtime, requiredToken: config.controlAuthToken }));
   await fastify.register(operatorRoutes({ runtime: config.runtime, getRuntimeSnapshot: config.getRuntimeSnapshot }));
 
   await fastify.listen({ port, host });
