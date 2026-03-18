@@ -21,10 +21,10 @@ export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
   const { circuitBreaker, startedAt, getBotStatus, getRuntimeSnapshot } = deps;
   return async (fastify) => {
     fastify.get<{ Reply: HealthResponse }>("/health", async (_request, reply) => {
-    const report = checkHealth(circuitBreaker);
+    const runtime = getRuntimeSnapshot?.();
+    const report = checkHealth(circuitBreaker, runtime);
     const uptimeMs = Date.now() - startedAt;
     const killState = getKillSwitchState();
-    const runtime = getRuntimeSnapshot?.();
     const body: HealthResponse = {
       status: report.status,
       uptimeMs,
@@ -43,6 +43,16 @@ export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
             lastBlockedReason: runtime.lastState?.blockedReason,
             lastEngineStage: runtime.lastState?.stage,
             lastIntakeOutcome: runtime.lastCycleSummary?.intakeOutcome,
+            degraded: runtime.degradedState,
+            adapterHealth: runtime.adapterHealth
+              ? {
+                  total: runtime.adapterHealth.total,
+                  healthy: runtime.adapterHealth.healthy,
+                  unhealthy: runtime.adapterHealth.unhealthy,
+                  degraded: runtime.adapterHealth.degraded,
+                  unhealthyAdapterIds: runtime.adapterHealth.unhealthyAdapterIds,
+                }
+              : undefined,
           }
         : undefined,
     };

@@ -30,29 +30,42 @@ export async function fetchMarketData(
   config: AdapterOrchestratorConfig
 ): Promise<MarketSnapshot | { error: string }> {
   const { adapters, circuitBreaker, maxStalenessMs } = config;
-  let lastError: string | undefined;
+  const failures: string[] = [];
+  let skippedUnhealthy = 0;
 
   for (const adapter of adapters) {
-    if (!circuitBreaker.isHealthy(adapter.id)) continue;
+    if (!circuitBreaker.isHealthy(adapter.id)) {
+      skippedUnhealthy += 1;
+      failures.push(`Adapter ${adapter.id}: circuit breaker open`);
+      continue;
+    }
 
+    const startedAt = Date.now();
     try {
       const snapshot = await adapter.fetch();
+      const latencyMs = Math.max(Date.now() - startedAt, 0);
       const freshnessMs = snapshot.freshnessMs ?? 0;
       if (freshnessMs > maxStalenessMs) {
-        lastError = `Adapter ${adapter.id}: data stale (${freshnessMs}ms > ${maxStalenessMs}ms)`;
+        circuitBreaker.reportHealth(adapter.id, false, latencyMs);
+        failures.push(`Adapter ${adapter.id}: data stale (${freshnessMs}ms > ${maxStalenessMs}ms)`);
         continue;
       }
+      circuitBreaker.reportHealth(adapter.id, true, latencyMs);
       return snapshot;
     } catch (err) {
-      lastError = err instanceof Error ? err.message : String(err);
-      circuitBreaker.reportHealth(adapter.id, false, 0);
+      const latencyMs = Math.max(Date.now() - startedAt, 0);
+      circuitBreaker.reportHealth(adapter.id, false, latencyMs);
+      failures.push(
+        `Adapter ${adapter.id}: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
+  const detail = failures.length > 0 ? failures.join("; ") : "No adapters configured";
+  const prefix = skippedUnhealthy > 0 ? `All adapters unavailable (${skippedUnhealthy} open breaker)` : "All adapters failed";
+
   return {
-    error: lastError
-      ? `All adapters failed: ${lastError}`
-      : "All adapters failed or stale",
+    error: `${prefix}: ${detail}`,
   };
 }
 

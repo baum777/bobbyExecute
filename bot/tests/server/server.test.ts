@@ -110,6 +110,20 @@ describe("Server (Wave 3)", () => {
           timestamp: "2026-03-17T12:00:00.000Z",
           blocked: false,
         },
+        degradedState: {
+          active: true,
+          consecutiveCycles: 2,
+          lastDegradedAt: "2026-03-17T12:00:00.000Z",
+          lastReason: "All adapters failed: Adapter primary: circuit breaker open",
+        },
+        adapterHealth: {
+          total: 2,
+          healthy: 1,
+          unhealthy: 1,
+          degraded: true,
+          adapterIds: ["primary", "secondary"],
+          unhealthyAdapterIds: ["primary"],
+        },
       }),
     });
 
@@ -119,13 +133,18 @@ describe("Server (Wave 3)", () => {
       const health = await healthRes.json();
       expect(health.runtime.mode).toBe("paper");
       expect(health.runtime.paperModeActive).toBe(true);
+      expect(health.status).toBe("DEGRADED");
       expect(health.runtime.lastEngineStage).toBe("monitor");
+      expect(health.runtime.degraded).toMatchObject({ active: true, consecutiveCycles: 2 });
+      expect(health.runtime.adapterHealth).toMatchObject({ degraded: true, unhealthyAdapterIds: ["primary"] });
 
       const summaryRes = await fetch(`http://127.0.0.1:${PORT + 4}/kpi/summary`);
       expect(summaryRes.status).toBe(200);
       const summary = await summaryRes.json();
       expect(summary.runtime.mode).toBe("paper");
       expect(summary.runtime.executionCount).toBe(2);
+      expect(summary.runtime.degraded).toMatchObject({ active: true, consecutiveCycles: 2 });
+      expect(summary.runtime.adapterHealth).toMatchObject({ degraded: true, unhealthyAdapterIds: ["primary"] });
     } finally {
       await srv.close();
     }

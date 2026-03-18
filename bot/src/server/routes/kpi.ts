@@ -108,6 +108,16 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
             errorCount: runtime.counters.errorCount,
             lastDecisionAt: runtime.lastDecisionAt,
             lastIntakeOutcome: runtime.lastCycleSummary?.intakeOutcome,
+            degraded: runtime.degradedState,
+            adapterHealth: runtime.adapterHealth
+              ? {
+                  total: runtime.adapterHealth.total,
+                  healthy: runtime.adapterHealth.healthy,
+                  unhealthy: runtime.adapterHealth.unhealthy,
+                  degraded: runtime.adapterHealth.degraded,
+                  unhealthyAdapterIds: runtime.adapterHealth.unhealthyAdapterIds,
+                }
+              : undefined,
           }
         : undefined,
     };
