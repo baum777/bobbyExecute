@@ -30,6 +30,22 @@ export interface RuntimeCounters {
   errorCount: number;
 }
 
+export interface RuntimeAdapterHealthSnapshot {
+  total: number;
+  healthy: number;
+  unhealthy: number;
+  degraded: boolean;
+  adapterIds: string[];
+  unhealthyAdapterIds: string[];
+}
+
+export interface RuntimeDegradedState {
+  active: boolean;
+  consecutiveCycles: number;
+  lastDegradedAt?: string;
+  lastReason?: string;
+}
+
 export interface RuntimeSnapshot {
   status: RuntimeStatus;
   mode: "dry" | "paper" | "live";
@@ -40,6 +56,8 @@ export interface RuntimeSnapshot {
   lastDecisionAt?: string;
   lastState: EngineState | null;
   lastCycleSummary?: RuntimeCycleSummary;
+  degradedState?: RuntimeDegradedState;
+  adapterHealth?: RuntimeAdapterHealthSnapshot;
 }
 
 export interface DryRunRuntimeDeps {
@@ -91,6 +109,9 @@ export class DryRunRuntime {
   private lastCycleAt?: string;
   private lastDecisionAt?: string;
   private lastCycleSummary?: RuntimeCycleSummary;
+  private consecutiveDegradedCycles = 0;
+  private lastDegradedAt?: string;
+  private lastDegradedReason?: string;
 
   constructor(
     private readonly config: Config,
@@ -239,6 +260,7 @@ export class DryRunRuntime {
   }
 
   getSnapshot(): RuntimeSnapshot {
+    const adapterHealth = this.getAdapterHealthSnapshot();
     return {
       status: this.status,
       mode: this.mode,
@@ -249,6 +271,16 @@ export class DryRunRuntime {
       lastDecisionAt: this.lastDecisionAt,
       lastState: this.lastState,
       lastCycleSummary: this.lastCycleSummary,
+      degradedState:
+        this.mode === "paper"
+          ? {
+              active: this.consecutiveDegradedCycles > 0,
+              consecutiveCycles: this.consecutiveDegradedCycles,
+              lastDegradedAt: this.lastDegradedAt,
+              lastReason: this.lastDegradedReason,
+            }
+          : undefined,
+      adapterHealth,
     };
   }
 
@@ -258,6 +290,37 @@ export class DryRunRuntime {
 
   async listRecentIncidents(limit = 50): Promise<IncidentRecord[]> {
     return this.incidentRecorder.list(limit);
+  }
+
+
+  private getAdapterHealthSnapshot(): RuntimeAdapterHealthSnapshot | undefined {
+    if (this.mode !== "paper" || this.paperMarketAdapters.length === 0) {
+      return undefined;
+    }
+
+    const health = this.paperAdapterCircuitBreaker.getHealth();
+    const unhealthyAdapterIds = health.filter((entry) => !entry.healthy).map((entry) => entry.adapterId);
+
+    return {
+      total: health.length,
+      healthy: health.filter((entry) => entry.healthy).length,
+      unhealthy: unhealthyAdapterIds.length,
+      degraded: unhealthyAdapterIds.length > 0,
+      adapterIds: health.map((entry) => entry.adapterId),
+      unhealthyAdapterIds,
+    };
+  }
+
+  private markAdapterDegraded(reason: string, at: string): void {
+    this.consecutiveDegradedCycles += 1;
+    this.lastDegradedAt = at;
+    this.lastDegradedReason = reason;
+  }
+
+  private clearAdapterDegradedState(): void {
+    this.consecutiveDegradedCycles = 0;
+    this.lastDegradedAt = undefined;
+    this.lastDegradedReason = undefined;
   }
 
   private async runCycle(options: { propagateError?: boolean } = {}): Promise<void> {
@@ -534,6 +597,7 @@ export class DryRunRuntime {
       const intakeOutcome: RuntimeCycleIntakeOutcome = marketResult.error.includes("stale")
         ? "stale"
         : "adapter_error";
+      this.markAdapterDegraded(marketResult.error, now);
       return {
         kind: "blocked",
         summary: {
@@ -555,6 +619,8 @@ export class DryRunRuntime {
         },
       };
     }
+
+    this.clearAdapterDegradedState();
 
     const wallet = await this.fetchPaperWalletSnapshot();
     if (!wallet.walletAddress) {

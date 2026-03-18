@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DryRunRuntime } from "../../src/runtime/dry-run-runtime.js";
 import { resetKillSwitch, triggerKillSwitch } from "../../src/governance/kill-switch.js";
+import { CircuitBreaker } from "../../src/governance/circuit-breaker.js";
 import { InMemoryRuntimeCycleSummaryWriter } from "../../src/persistence/runtime-cycle-summary-repository.js";
 import { InMemoryIncidentRepository } from "../../src/persistence/incident-repository.js";
 import { RepositoryIncidentRecorder } from "../../src/observability/incidents.js";
@@ -142,6 +143,7 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(snapshot.paperModeActive).toBe(true);
     expect(snapshot.counters.blockedCount).toBeGreaterThanOrEqual(1);
     expect(snapshot.lastCycleSummary?.intakeOutcome).toBe("kill_switch_halted");
+    expect(snapshot.degradedState?.active).toBe(false);
     expect(run).not.toHaveBeenCalled();
 
     await runtime.stop();
@@ -192,6 +194,8 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(snapshot.counters.executionCount).toBe(1);
     expect(snapshot.lastState?.executionReport?.paperExecution).toBe(true);
     expect(snapshot.lastState?.rpcVerification?.verificationMode).toBe("paper-simulated");
+    expect(snapshot.degradedState?.active).toBe(false);
+    expect(snapshot.adapterHealth?.healthy).toBe(1);
 
     const summaries = await cycleSummaryWriter.list();
     expect(summaries.length).toBe(1);
@@ -219,12 +223,66 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(runtime.getSnapshot().counters.blockedCount).toBe(1);
     expect(runtime.getLastState()?.blocked).toBe(true);
     expect(runtime.getLastState()?.blockedReason).toContain("PAPER_INGEST_BLOCKED");
+    expect(runtime.getSnapshot().degradedState).toMatchObject({
+      active: true,
+      consecutiveCycles: 1,
+    });
 
     const summaries = await cycleSummaryWriter.list();
     expect(summaries.length).toBe(1);
     expect(summaries[0].intakeOutcome).toBe("stale");
     expect(summaries[0].advanced).toBe(false);
     expect(summaries[0].executionOccurred).toBe(false);
+
+    await runtime.stop();
+  });
+
+  it("tracks repeated adapter degradation across cycles without fabricating paper success", async () => {
+    const paperConfig: Config = { ...TEST_CONFIG, executionMode: "paper", dryRun: false };
+    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
+    const incidentRepo = new InMemoryIncidentRepository();
+    const adapterFetch = vi
+      .fn<() => Promise<{ traceId: string; timestamp: string; source: "dexpaprika"; poolId: string; baseToken: string; quoteToken: string; priceUsd: number; volume24h: number; liquidity: number; freshnessMs: number; status: "ok" }>>()
+      .mockResolvedValue({
+        schema_version: "market.v1",
+        traceId: "stale-paper",
+        timestamp: new Date().toISOString(),
+        source: "dexpaprika",
+        poolId: "pool-stale",
+        baseToken: "SOL",
+        quoteToken: "USD",
+        priceUsd: 100,
+        volume24h: 100,
+        liquidity: 1000,
+        freshnessMs: 45_000,
+        status: "ok",
+      } as never);
+    const runtime = new DryRunRuntime(paperConfig, {
+      loopIntervalMs: 5,
+      paperMarketAdapters: [{ id: "primary", fetch: adapterFetch }],
+      paperAdapterCircuitBreaker: new CircuitBreaker(['primary'], { failureThreshold: 1 }),
+      fetchPaperWalletSnapshot: vi.fn(),
+      cycleSummaryWriter,
+      incidentRecorder: new RepositoryIncidentRecorder(incidentRepo),
+    });
+
+    await runtime.start();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const snapshot = runtime.getSnapshot();
+    expect(snapshot.status).toBe("running");
+    expect(snapshot.counters.cycleCount).toBeGreaterThanOrEqual(2);
+    expect(snapshot.counters.blockedCount).toBeGreaterThanOrEqual(2);
+    expect(snapshot.degradedState?.active).toBe(true);
+    expect(snapshot.degradedState?.consecutiveCycles).toBeGreaterThanOrEqual(2);
+    expect(snapshot.degradedState?.lastReason).toContain("circuit breaker open");
+    expect(snapshot.lastCycleSummary?.intakeOutcome).toBe("adapter_error");
+    expect(snapshot.adapterHealth?.degraded).toBe(true);
+    expect(snapshot.adapterHealth?.unhealthyAdapterIds).toEqual(["primary"]);
+
+    const summaries = await cycleSummaryWriter.list();
+    expect(summaries.some((summary) => summary.intakeOutcome === "stale")).toBe(true);
+    expect(summaries.at(-1)?.intakeOutcome).toBe("adapter_error");
 
     await runtime.stop();
   });
