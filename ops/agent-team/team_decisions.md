@@ -74,3 +74,16 @@
 **Entscheidung**: Neuer Pre-Merge-Command `npm run premerge` (lint + golden + chaos), separater Chaos-Test `tests/chaos/chaos-gate.test.ts`, CI-Workflow `.github/workflows/chaos-premerge-gate.yml`.
 
 **Begründung**: Frühe Gate-Durchsetzung vor Merge, reproduzierbarer Qualitätsnachweis.
+
+---
+
+### DR-006: Paper-Bootstrap verdrahtet Runtime-Dependencies vor Runtime-Start
+
+**Datum**: 2026-03-18
+**Status**: Accepted
+
+**Kontext**: Der Paper-Modus lief im Bootstrap bisher ohne echte Paper-Dependencies an und blockierte sofort mit `PAPER_INGEST_BLOCKED`. Phase 1 fordert verdrahtete Adapterliste, Wallet-Snapshot-Injektion und fail-closed Verhalten bei fehlenden Dependencies.
+
+**Entscheidung**: `bootstrap()` erzeugt nun im Paper-Modus verdrahtete Runtime-Dependencies für Markt-Adapter und Wallet-Snapshot-Provider. Wenn Tests eigene `runtimeDeps` injizieren, wird dafür ein passender Circuit Breaker aus den injizierten Adapter-IDs aufgebaut. Fehlt `WALLET_ADDRESS`, schlägt der Paper-Start explizit fehl.
+
+**Begründung**: Schließt die kleinste sichere Phase-1-Lücke ohne Architekturdrift, entfernt den synthetischen Happy/Blocked-Startpfad und hält den Runtime-Start fail-closed.
