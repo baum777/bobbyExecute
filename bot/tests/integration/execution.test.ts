@@ -6,6 +6,12 @@ import { PublicKey, TransactionMessage, VersionedTransaction } from "@solana/web
 import { createExecutionHandler } from "../../src/agents/execution.agent.js";
 import { createRpcClient } from "../../src/adapters/rpc-verify/client.js";
 import type { TradeIntent } from "../../src/core/contracts/trade.js";
+import {
+  armMicroLive,
+  disarmMicroLive,
+  resetMicroLiveControlForTests,
+} from "../../src/runtime/live-control.js";
+import { resetKillSwitch } from "../../src/governance/kill-switch.js";
 
 const baseIntent: TradeIntent = {
   traceId: "exec-int-trace",
@@ -57,6 +63,16 @@ describe("Execution integration (Wave 5 live route)", () => {
     delete process.env.LIVE_VERIFY_TIMEOUT_MS;
     delete process.env.LIVE_VERIFY_RETRY_MS;
     delete process.env.LIVE_QUOTE_MAX_AGE_MS;
+    delete process.env.MICRO_LIVE_REQUIRE_ARM;
+    delete process.env.MICRO_LIVE_MAX_NOTIONAL;
+    delete process.env.MICRO_LIVE_MAX_TRADES_PER_WINDOW;
+    delete process.env.MICRO_LIVE_WINDOW_MS;
+    delete process.env.MICRO_LIVE_COOLDOWN_MS;
+    delete process.env.MICRO_LIVE_MAX_INFLIGHT;
+    delete process.env.MICRO_LIVE_FAILURES_TO_BLOCK;
+    delete process.env.MICRO_LIVE_FAILURE_WINDOW_MS;
+    resetMicroLiveControlForTests();
+    resetKillSwitch();
   });
 
   it("paper mode remains unchanged", async () => {
@@ -71,6 +87,7 @@ describe("Execution integration (Wave 5 live route)", () => {
   it("live fails closed on partial dependency bundle", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: createRpcClient(),
@@ -87,6 +104,7 @@ describe("Execution integration (Wave 5 live route)", () => {
   it("live fails closed when quote fetch fails", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: {
@@ -113,6 +131,7 @@ describe("Execution integration (Wave 5 live route)", () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
     process.env.LIVE_QUOTE_MAX_AGE_MS = "1000";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: {
@@ -138,6 +157,7 @@ describe("Execution integration (Wave 5 live route)", () => {
   it("live fails closed on invalid quote payload", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: {
@@ -160,6 +180,7 @@ describe("Execution integration (Wave 5 live route)", () => {
   it("live fails closed on invalid swap payload", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: {
@@ -183,6 +204,7 @@ describe("Execution integration (Wave 5 live route)", () => {
   it("live fails closed when signing is unavailable at runtime", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: {
@@ -208,6 +230,7 @@ describe("Execution integration (Wave 5 live route)", () => {
   it("live fails closed on ambiguous send result", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: {
@@ -234,6 +257,7 @@ describe("Execution integration (Wave 5 live route)", () => {
     process.env.LIVE_VERIFY_MAX_ATTEMPTS = "1";
     process.env.LIVE_VERIFY_TIMEOUT_MS = "10";
     process.env.LIVE_VERIFY_RETRY_MS = "0";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: {
@@ -257,6 +281,7 @@ describe("Execution integration (Wave 5 live route)", () => {
   it("live succeeds only when quote -> build -> sign/send -> verify all succeed", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: {
@@ -288,6 +313,7 @@ describe("Execution integration (Wave 5 live route)", () => {
   it("live attempts always include mandatory artifacts", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    armMicroLive("test");
 
     const handler = await createExecutionHandler({
       rpcClient: {
@@ -317,5 +343,21 @@ describe("Execution integration (Wave 5 live route)", () => {
         attempted: true,
       },
     });
+  });
+
+  it("live remains fail-closed while disarmed", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+    disarmMicroLive("test");
+
+    const handler = await createExecutionHandler({
+      rpcClient: createRpcClient(),
+      walletAddress: "11111111111111111111111111111111",
+      signTransaction: async (tx) => tx,
+    });
+
+    const result = await handler(liveIntent);
+    expect(result.success).toBe(false);
+    expect(result.failureCode).toBe("micro_live_disarmed");
   });
 });

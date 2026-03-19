@@ -8,6 +8,7 @@ import {
 } from "../../src/persistence/runtime-cycle-summary-repository.js";
 import { InMemoryIncidentRepository, type IncidentRecord } from "../../src/persistence/incident-repository.js";
 import { RepositoryIncidentRecorder } from "../../src/observability/incidents.js";
+import { armMicroLive, killMicroLive, resetMicroLiveControlForTests } from "../../src/runtime/live-control.js";
 
 const config = {
   nodeEnv: "test" as const,
@@ -68,6 +69,9 @@ describe("Operator read-only surfaces", () => {
     for (const runtime of runtimes) await runtime.stop();
     for (const server of servers) await server.close();
     resetKillSwitch();
+    resetMicroLiveControlForTests();
+    delete process.env.LIVE_TRADING;
+    delete process.env.RPC_MODE;
     servers.length = 0;
     runtimes.length = 0;
   });
@@ -623,6 +627,55 @@ describe("Operator read-only surfaces", () => {
     await expect(oversizedIncidents.json()).resolves.toMatchObject({
       success: false,
       code: "invalid_limit",
+    });
+  });
+
+  it("runtime/status surfaces armed, blocked, and killed live-control truth", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+
+    const runtime = createDryRunRuntime(config, {
+      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
+      incidentRecorder: new RepositoryIncidentRecorder(new InMemoryIncidentRepository()),
+    });
+    runtimes.push(runtime);
+
+    armMicroLive("test-operator");
+    killMicroLive("operator-test-kill");
+
+    const server = await createServer({
+      port: 3357,
+      host: "127.0.0.1",
+      runtime,
+      getRuntimeSnapshot: () => runtime.getSnapshot(),
+      operatorReadAuthToken: OPERATOR_READ_TOKEN,
+    });
+    servers.push(server);
+
+    const statusRes = await fetch("http://127.0.0.1:3357/runtime/status", { headers: authHeaders() });
+    expect(statusRes.status).toBe(200);
+    const statusBody = await statusRes.json();
+
+    expect(statusBody.runtime.liveControl).toMatchObject({
+      posture: "live_killed",
+      armed: false,
+      killSwitchActive: true,
+    });
+
+    const healthRes = await fetch("http://127.0.0.1:3357/health");
+    const healthBody = await healthRes.json();
+    expect(healthBody.runtime.liveControl).toMatchObject({
+      posture: "live_killed",
+      armed: false,
+      killSwitchActive: true,
+    });
+
+    const kpiRes = await fetch("http://127.0.0.1:3357/kpi/summary");
+    const kpiBody = await kpiRes.json();
+    expect(kpiBody.runtime.liveControl).toMatchObject({
+      posture: "live_killed",
+      armed: false,
+      killSwitchActive: true,
     });
   });
 

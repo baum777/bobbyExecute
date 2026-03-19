@@ -4,6 +4,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { triggerKillSwitch, resetKillSwitch, getKillSwitchState } from "../../governance/kill-switch.js";
 import type { DryRunRuntime, RuntimeControlResult } from "../../runtime/dry-run-runtime.js";
+import { getMicroLiveControlSnapshot } from "../../runtime/live-control.js";
 
 export interface ControlRouteDeps {
   runtime?: DryRunRuntime;
@@ -16,6 +17,7 @@ export interface ControlResponse {
   code?: "control_auth_unconfigured" | "control_auth_invalid" | "runtime_control_unavailable";
   runtimeStatus?: string;
   killSwitch: { halted: boolean; reason?: string; triggeredAt?: string };
+  liveControl: import("../../runtime/live-control.js").MicroLiveControlSnapshot;
 }
 
 function toReply(result: RuntimeControlResult | null, killSwitch = getKillSwitchState()): ControlResponse {
@@ -28,6 +30,7 @@ function toReply(result: RuntimeControlResult | null, killSwitch = getKillSwitch
       reason: killSwitch.reason,
       triggeredAt: killSwitch.triggeredAt,
     },
+    liveControl: getMicroLiveControlSnapshot(),
   };
 }
 
@@ -59,6 +62,7 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
           code: "control_auth_unconfigured",
           message: "Control routes denied: CONTROL_TOKEN is not configured.",
           killSwitch: getKillSwitchState(),
+          liveControl: getMicroLiveControlSnapshot(),
         } satisfies ControlResponse);
       }
 
@@ -69,6 +73,7 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
           code: "control_auth_invalid",
           message: "Control routes denied: missing or invalid control authorization.",
           killSwitch: getKillSwitchState(),
+          liveControl: getMicroLiveControlSnapshot(),
         } satisfies ControlResponse);
       }
     });
@@ -81,6 +86,7 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
           code: "runtime_control_unavailable",
           message: "Emergency stop triggered kill switch, but runtime control is unavailable so runtime state is unverifiable.",
           killSwitch: getKillSwitchState(),
+          liveControl: getMicroLiveControlSnapshot(),
         });
       }
       const runtimeResult = await runtime.emergencyStop("kill_switch_emergency_stop");
@@ -94,6 +100,7 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
           code: "runtime_control_unavailable",
           message: "Pause unsupported: runtime control unavailable.",
           killSwitch: getKillSwitchState(),
+          liveControl: getMicroLiveControlSnapshot(),
         });
       }
       const result = await runtime.pause("api_pause");
@@ -108,6 +115,7 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
           code: "runtime_control_unavailable",
           message: "Resume unsupported: runtime control unavailable.",
           killSwitch: getKillSwitchState(),
+          liveControl: getMicroLiveControlSnapshot(),
         });
       }
       const result = await runtime.resume("api_resume");
@@ -122,6 +130,7 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
           code: "runtime_control_unavailable",
           message: "Halt unsupported: runtime control unavailable.",
           killSwitch: getKillSwitchState(),
+          liveControl: getMicroLiveControlSnapshot(),
         });
       }
       const result = await runtime.halt("api_halt");
@@ -130,12 +139,45 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
 
     fastify.post<{ Reply: ControlResponse }>("/control/reset", async (_request, reply) => {
       resetKillSwitch();
+      if (runtime) {
+        await runtime.resetLiveKill("api_reset");
+      }
       return reply.status(200).send({
         success: true,
         message: "Kill switch reset. Runtime remains in current control state until explicit resume.",
         runtimeStatus: runtime?.getStatus(),
         killSwitch: getKillSwitchState(),
+        liveControl: getMicroLiveControlSnapshot(),
       });
+    });
+
+    fastify.post<{ Reply: ControlResponse }>("/control/live/arm", async (_request, reply) => {
+      if (!runtime) {
+        return reply.status(501).send({
+          success: false,
+          code: "runtime_control_unavailable",
+          message: "Live arm unsupported: runtime control unavailable.",
+          killSwitch: getKillSwitchState(),
+          liveControl: getMicroLiveControlSnapshot(),
+        });
+      }
+      const result = await runtime.armLive("api_live_arm");
+      const status = result.success ? 200 : 409;
+      return reply.status(status).send(toReply(result));
+    });
+
+    fastify.post<{ Reply: ControlResponse }>("/control/live/disarm", async (_request, reply) => {
+      if (!runtime) {
+        return reply.status(501).send({
+          success: false,
+          code: "runtime_control_unavailable",
+          message: "Live disarm unsupported: runtime control unavailable.",
+          killSwitch: getKillSwitchState(),
+          liveControl: getMicroLiveControlSnapshot(),
+        });
+      }
+      const result = await runtime.disarmLive("api_live_disarm");
+      return reply.status(200).send(toReply(result));
     });
   };
 }

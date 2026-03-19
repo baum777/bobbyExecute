@@ -13,6 +13,11 @@ export interface IncidentRecord {
     | "runtime_paused"
     | "runtime_resumed"
     | "runtime_halted"
+    | "live_control_armed"
+    | "live_control_disarmed"
+    | "live_control_killed"
+    | "live_control_blocked"
+    | "live_guardrail_refused"
     | "paper_ingest_blocked"
     | "runtime_cycle_error"
     | "journal_failure";

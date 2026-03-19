@@ -26,6 +26,23 @@ export interface HealthResponse {
     lastBlockedReason?: string;
     lastEngineStage?: string;
     lastIntakeOutcome?: "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
+    liveControl?: {
+      posture: string;
+      armed: boolean;
+      killSwitchActive: boolean;
+      blocked: boolean;
+      reasonCode?: string;
+      reasonDetail?: string;
+      lastOperatorAction?: "arm" | "disarm" | "kill" | "reset_kill";
+      lastOperatorActionAt?: string;
+      lastGuardrailRefusal?: {
+        code: string;
+        stage: "preflight" | "limits";
+        at: string;
+        detail?: string;
+        operatorActionRequired: boolean;
+      };
+    };
     degraded?: {
       active: boolean;
       consecutiveCycles: number;
@@ -63,6 +80,23 @@ export interface KpiSummaryResponse {
     errorCount: number;
     lastDecisionAt?: string;
     lastIntakeOutcome?: "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
+    liveControl?: {
+      posture: string;
+      armed: boolean;
+      killSwitchActive: boolean;
+      blocked: boolean;
+      reasonCode?: string;
+      reasonDetail?: string;
+      lastOperatorAction?: "arm" | "disarm" | "kill" | "reset_kill";
+      lastOperatorActionAt?: string;
+      lastGuardrailRefusal?: {
+        code: string;
+        stage: "preflight" | "limits";
+        at: string;
+        detail?: string;
+        operatorActionRequired: boolean;
+      };
+    };
     degraded?: {
       active: boolean;
       consecutiveCycles: number;

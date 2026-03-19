@@ -43,6 +43,19 @@ export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
             lastBlockedReason: runtime.lastState?.blockedReason,
             lastEngineStage: runtime.lastState?.stage,
             lastIntakeOutcome: runtime.lastCycleSummary?.intakeOutcome,
+            liveControl: runtime.liveControl
+              ? {
+                  posture: runtime.liveControl.posture,
+                  armed: runtime.liveControl.armed,
+                  killSwitchActive: runtime.liveControl.killSwitchActive,
+                  blocked: runtime.liveControl.blocked,
+                  reasonCode: runtime.liveControl.reasonCode,
+                  reasonDetail: runtime.liveControl.reasonDetail,
+                  lastOperatorAction: runtime.liveControl.lastOperatorAction,
+                  lastOperatorActionAt: runtime.liveControl.lastOperatorActionAt,
+                  lastGuardrailRefusal: runtime.liveControl.lastGuardrailRefusal,
+                }
+              : undefined,
             degraded: runtime.degradedState,
             adapterHealth: runtime.adapterHealth
               ? {

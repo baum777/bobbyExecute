@@ -11,6 +11,11 @@ import type { QuoteResult } from "../adapters/dex-execution/types.js";
 import { executeSwap, type SwapDeps } from "../adapters/dex-execution/swap.js";
 import { verifyBeforeTrade } from "../adapters/rpc-verify/verify.js";
 import { isLiveTradingEnabled } from "../config/safety.js";
+import {
+  evaluateMicroLiveIntent,
+  finalizeMicroLiveIntent,
+  type LiveExecutionAttempt,
+} from "../runtime/live-control.js";
 
 export interface ExecutionHandlerDeps {
   rpcClient?: RpcClient;
@@ -44,9 +49,47 @@ export async function createExecutionHandler(
     const hasVerifyDeps = !!(rpcClient && walletAddress);
     const hasLiveSwapDeps = !!(sendRawTransaction && walletAddress && signTransaction);
     const hasAnyLiveDeps = !!(rpcClient || walletAddress || signTransaction);
+    let microLiveAttempt: LiveExecutionAttempt | undefined;
+
+    const finalize = (report: ExecutionReport): ExecutionReport => {
+      if (liveIntent && microLiveAttempt) {
+        finalizeMicroLiveIntent(microLiveAttempt, {
+          success: report.success,
+          failureCode: report.failureCode,
+        });
+        microLiveAttempt = undefined;
+      }
+      return report;
+    };
+
+    if (liveIntent) {
+      const decision = evaluateMicroLiveIntent(intent);
+      if (!decision.allowed) {
+        return finalize({
+          traceId: intent.traceId,
+          timestamp: intent.timestamp,
+          tradeIntentId: intent.idempotencyKey,
+          success: false,
+          error: decision.refusal?.detail ?? "Live intent rejected by micro-live guardrails.",
+          dryRun: false,
+          executionMode: "live",
+          paperExecution: false,
+          failClosed: true,
+          failureStage: decision.refusal?.stage ?? "preflight",
+          failureCode: decision.refusal?.code ?? "micro_live_blocked",
+          artifacts: {
+            mode: "live",
+            failClosed: true,
+            stage: decision.refusal?.stage ?? "preflight",
+            liveControl: decision.refusal,
+          },
+        });
+      }
+      microLiveAttempt = decision.attempt;
+    }
 
     if (liveIntent && hasAnyLiveDeps && !hasLiveSwapDeps) {
-      return {
+      return finalize({
         traceId: intent.traceId,
         timestamp: intent.timestamp,
         tradeIntentId: intent.idempotencyKey,
@@ -69,7 +112,7 @@ export async function createExecutionHandler(
             hasSignTransaction: !!signTransaction,
           },
         },
-      };
+      });
     }
 
     if (hasVerifyDeps) {
@@ -82,7 +125,7 @@ export async function createExecutionHandler(
       );
       if (!verify.passed) {
         const executionMode = intent.executionMode ?? (intent.dryRun ? "dry" : "paper");
-        return {
+        return finalize({
           traceId: intent.traceId,
           timestamp: intent.timestamp,
           tradeIntentId: intent.idempotencyKey,
@@ -91,12 +134,12 @@ export async function createExecutionHandler(
           dryRun: executionMode === "dry",
           executionMode,
           paperExecution: executionMode === "paper",
-        };
+        });
       }
     }
 
     if (liveIntent && !isLiveTradingEnabled()) {
-      return swapExecutor(intent, undefined, undefined);
+      return finalize(await swapExecutor(intent, undefined, undefined));
     }
 
     const swapRpcClient = rpcClient?.getTransactionReceipt
@@ -123,7 +166,7 @@ export async function createExecutionHandler(
       try {
         quote = await quoteFetcher(intent);
       } catch (error) {
-        return {
+        return finalize({
           traceId: intent.traceId,
           timestamp: intent.timestamp,
           tradeIntentId: intent.idempotencyKey,
@@ -141,7 +184,7 @@ export async function createExecutionHandler(
             stage: "quote",
             quote: { fetched: false },
           },
-        };
+        });
       }
     }
 
@@ -161,7 +204,7 @@ export async function createExecutionHandler(
           (result.artifacts as Record<string, unknown>).verification !== null &&
           (result.artifacts as { verification: { confirmed?: boolean } }).verification.confirmed === true;
         if (!hasTx || !verificationConfirmed) {
-          return {
+          return finalize({
             traceId: intent.traceId,
             timestamp: intent.timestamp,
             tradeIntentId: intent.idempotencyKey,
@@ -179,10 +222,10 @@ export async function createExecutionHandler(
               stage: !hasTx ? "send" : "verification",
               priorResult: result.artifacts ?? {},
             },
-          };
+          });
         }
       } else {
-        return {
+        return finalize({
           ...result,
           executionMode: "live",
           dryRun: false,
@@ -193,12 +236,12 @@ export async function createExecutionHandler(
             failClosed: true,
             stage: result.failureStage ?? "unknown",
           },
-        };
+        });
       }
 
-      return result;
+      return finalize(result);
     } catch (error) {
-      return {
+      return finalize({
         traceId: intent.traceId,
         timestamp: intent.timestamp,
         tradeIntentId: intent.idempotencyKey,
@@ -219,7 +262,7 @@ export async function createExecutionHandler(
             fetchedAt: quote?.fetchedAt,
           },
         },
-      };
+      });
     }
   };
 }

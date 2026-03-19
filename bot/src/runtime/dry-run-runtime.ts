@@ -28,6 +28,13 @@ import {
   getPaperWalletProviderViolation,
 } from "../adapters/provider-roles.js";
 import type { ActionLogger } from "../observability/action-log.js";
+import {
+  armMicroLive,
+  disarmMicroLive,
+  getMicroLiveControlSnapshot,
+  killMicroLive,
+  resetKilledMicroLive,
+} from "./live-control.js";
 
 export type RuntimeStatus = "idle" | "running" | "paused" | "stopped" | "error";
 
@@ -63,6 +70,7 @@ export interface RuntimeSnapshot {
   mode: "dry" | "paper" | "live";
   paperModeActive: boolean;
   cycleInFlight: boolean;
+  liveControl?: import("./live-control.js").MicroLiveControlSnapshot;
   counters: RuntimeCounters;
   lastCycleAt?: string;
   lastDecisionAt?: string;
@@ -201,11 +209,22 @@ export class DryRunRuntime {
 
   async emergencyStop(reason = "operator_emergency_stop"): Promise<RuntimeControlResult> {
     this.status = "paused";
+    const control = killMicroLive(reason);
     await this.recordIncident({
       severity: "critical",
       type: "emergency_stop",
       message: "Emergency stop activated",
-      details: { reason },
+      details: { reason, liveControlPosture: control.snapshot.posture, liveControlReason: control.snapshot.reasonCode },
+    });
+    await this.recordIncident({
+      severity: "critical",
+      type: "live_control_killed",
+      message: control.message,
+      details: {
+        reason,
+        liveControlPosture: control.snapshot.posture,
+        liveControlReason: control.snapshot.reasonCode,
+      },
     });
     return {
       success: true,
@@ -296,6 +315,7 @@ export class DryRunRuntime {
       mode: this.mode,
       paperModeActive: this.mode === "paper",
       cycleInFlight: this.cycleInFlight,
+      liveControl: getMicroLiveControlSnapshot(),
       counters: { ...this.counters },
       lastCycleAt: this.lastCycleAt,
       lastDecisionAt: this.lastDecisionAt,
@@ -308,6 +328,64 @@ export class DryRunRuntime {
 
   async listRecentCycleSummaries(limit = 50): Promise<RuntimeCycleSummary[]> {
     return this.cycleSummaryWriter.list(limit);
+  }
+
+  async armLive(reason = "operator_arm"): Promise<RuntimeControlResult> {
+    const control = armMicroLive(reason);
+    await this.recordIncident({
+      severity: control.success ? "info" : "warning",
+      type: "live_control_armed",
+      message: control.message,
+      details: {
+        reason,
+        success: control.success,
+        liveControlPosture: control.snapshot.posture,
+        liveControlReason: control.snapshot.reasonCode,
+      },
+    });
+    return {
+      success: control.success,
+      status: this.status,
+      message: control.message,
+    };
+  }
+
+  async disarmLive(reason = "operator_disarm"): Promise<RuntimeControlResult> {
+    const control = disarmMicroLive(reason);
+    await this.recordIncident({
+      severity: "warning",
+      type: "live_control_disarmed",
+      message: control.message,
+      details: {
+        reason,
+        liveControlPosture: control.snapshot.posture,
+        liveControlReason: control.snapshot.reasonCode,
+      },
+    });
+    return {
+      success: true,
+      status: this.status,
+      message: control.message,
+    };
+  }
+
+  async resetLiveKill(reason = "operator_reset_kill"): Promise<RuntimeControlResult> {
+    const control = resetKilledMicroLive(reason);
+    await this.recordIncident({
+      severity: "info",
+      type: "live_control_disarmed",
+      message: control.message,
+      details: {
+        reason,
+        liveControlPosture: control.snapshot.posture,
+        liveControlReason: control.snapshot.reasonCode,
+      },
+    });
+    return {
+      success: true,
+      status: this.status,
+      message: control.message,
+    };
   }
 
   async listRecentIncidents(limit = 50): Promise<IncidentRecord[]> {

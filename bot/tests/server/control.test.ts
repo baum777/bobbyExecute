@@ -5,6 +5,7 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { createServer } from "../../src/server/index.js";
 import { resetKillSwitch } from "../../src/governance/kill-switch.js";
 import type { DryRunRuntime } from "../../src/runtime/dry-run-runtime.js";
+import { resetMicroLiveControlForTests } from "../../src/runtime/live-control.js";
 
 const PORT = 3336;
 const CONTROL_TOKEN = "phase10-control-token";
@@ -20,6 +21,9 @@ describe("Control routes", () => {
 
   beforeEach(async () => {
     resetKillSwitch();
+    resetMicroLiveControlForTests();
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
     const { createDryRunRuntime } = await import("../../src/runtime/dry-run-runtime.js");
     runtime = createDryRunRuntime({
       nodeEnv: "test",
@@ -50,6 +54,9 @@ describe("Control routes", () => {
     await runtime.stop();
     await server.close();
     resetKillSwitch();
+    resetMicroLiveControlForTests();
+    delete process.env.LIVE_TRADING;
+    delete process.env.RPC_MODE;
   });
 
   it("rejects control routes when authorization is missing or invalid", async () => {
@@ -78,6 +85,7 @@ describe("Control routes", () => {
     expect(body.success).toBe(true);
     expect(body.runtimeStatus).toBe("paused");
     expect(body.killSwitch.halted).toBe(true);
+    expect(body.liveControl.posture).toBe("live_killed");
 
     const health = await fetch(`${baseUrl}/health`);
     expect((await health.json()).botStatus).toBe("paused");
@@ -99,6 +107,7 @@ describe("Control routes", () => {
     const body = await reset.json();
     expect(body.killSwitch.halted).toBe(false);
     expect(body.runtimeStatus).toBe("paused");
+    expect(body.liveControl.posture).toBe("live_disarmed");
 
     const resume = await fetch(`${baseUrl}/control/resume`, { method: "POST", headers: authHeaders() });
     expect(resume.status).toBe(200);
@@ -113,6 +122,41 @@ describe("Control routes", () => {
 
     const pause = await fetch(`${baseUrl}/control/pause`, { method: "POST", headers: authHeaders() });
     expect(pause.status).toBe(409);
+  });
+
+  it("POST /control/live/arm and /control/live/disarm manage explicit micro-live posture", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+
+    const arm = await fetch(`${baseUrl}/control/live/arm`, { method: "POST", headers: authHeaders() });
+    expect(arm.status).toBe(200);
+    const armBody = await arm.json();
+    expect(armBody.success).toBe(true);
+    expect(armBody.liveControl.posture).toBe("live_armed");
+    expect(armBody.liveControl.armed).toBe(true);
+
+    const disarm = await fetch(`${baseUrl}/control/live/disarm`, { method: "POST", headers: authHeaders() });
+    expect(disarm.status).toBe(200);
+    const disarmBody = await disarm.json();
+    expect(disarmBody.success).toBe(true);
+    expect(disarmBody.liveControl.posture).toBe("live_disarmed");
+    expect(disarmBody.liveControl.armed).toBe(false);
+  });
+
+  it("control actions persist canonical incident evidence", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+
+    await fetch(`${baseUrl}/control/live/arm`, { method: "POST", headers: authHeaders() });
+    await fetch(`${baseUrl}/control/live/disarm`, { method: "POST", headers: authHeaders() });
+    await fetch(`${baseUrl}/emergency-stop`, { method: "POST", headers: authHeaders() });
+
+    const incidents = await runtime.listRecentIncidents(20);
+    const incidentTypes = incidents.map((incident) => incident.type);
+    expect(incidentTypes).toContain("live_control_armed");
+    expect(incidentTypes).toContain("live_control_disarmed");
+    expect(incidentTypes).toContain("live_control_killed");
+    expect(incidentTypes).toContain("emergency_stop");
   });
 
   it("control routes fail closed when no control token is configured", async () => {
