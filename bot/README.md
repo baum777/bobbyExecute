@@ -60,5 +60,6 @@ npm run premerge
 
 ## Operations
 
-- [`docs/ops/production-readiness.md`](docs/ops/production-readiness.md) – operator runbook, readiness semantics, and deployment checklist
-- [`docs/ops/staging-rehearsal-template.md`](docs/ops/staging-rehearsal-template.md) – reusable staging rehearsal report and go/no-go template
+- [`docs/bobbyexecution/production_readiness_checklist.md`](docs/bobbyexecution/production_readiness_checklist.md) – operator readiness checklist before any live test
+- [`docs/bobbyexecution/live_test_runbook.md`](docs/bobbyexecution/live_test_runbook.md) – limited-capital live test procedure
+- [`docs/operations/action-handbook.md`](docs/operations/action-handbook.md) – reusable operator action flow
