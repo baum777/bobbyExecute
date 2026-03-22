@@ -165,9 +165,9 @@ The config loader derives runtime behavior from environment variables.
 |---|---|---|
 | Dry | `LIVE_TRADING=false`, `DRY_RUN=true`, `RPC_MODE=stub` | Simulated result, no real swap |
 | Paper | `LIVE_TRADING=false`, `DRY_RUN=false`, `RPC_MODE=stub` | Simulated execution with runtime visibility |
-| Live | `LIVE_TRADING=true`, `RPC_MODE=real` | Real swap path, only when all live prerequisites pass |
+| Live-test | `LIVE_TRADING=true`, `RPC_MODE=real` | Guarded live-test session, only when all live prerequisites pass |
 
-Live mode also requires:
+Live-test also requires:
 
 - `TRADING_ENABLED=true`
 - `LIVE_TEST_MODE=true`
@@ -176,6 +176,8 @@ Live mode also requires:
 - `OPERATOR_READ_TOKEN`
 
 The config validation is fail-closed. Invalid combinations reject startup.
+
+Live-test operators should watch `GET /health`, `GET /kpi/summary`, and `GET /runtime/status`, and use `POST /emergency-stop` or `POST /control/reset` for bounded round control. The runbook is [`docs/bobbyexecution/live_test_runbook.md`](docs/bobbyexecution/live_test_runbook.md).
 
 ---
 

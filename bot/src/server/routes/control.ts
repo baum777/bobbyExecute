@@ -100,7 +100,8 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
         });
       }
       const runtimeResult = await runtime.emergencyStop("kill_switch_emergency_stop");
-      return reply.status(200).send(toReply(runtimeResult, getKillSwitchState(), readiness));
+      const status = runtimeResult.success ? 200 : 409;
+      return reply.status(status).send(toReply(runtimeResult, getKillSwitchState(), readiness));
     });
 
     fastify.post<{ Reply: ControlResponse }>("/control/pause", async (_request, reply) => {
@@ -154,13 +155,24 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
     });
 
     fastify.post<{ Reply: ControlResponse }>("/control/reset", async (_request, reply) => {
-      resetKillSwitch();
+      const readinessBeforeReset = buildRuntimeReadiness(runtime?.getSnapshot());
       if (runtime) {
-        await runtime.resetLiveKill("api_reset");
+        const runtimeResult = await runtime.resetLiveKill("api_reset");
+        if (!runtimeResult.success) {
+          return reply.status(409).send({
+            success: false,
+            message: runtimeResult.message,
+            runtimeStatus: runtime.getStatus(),
+            killSwitch: getKillSwitchState(),
+            liveControl: getMicroLiveControlSnapshot(),
+            readiness: readinessBeforeReset,
+          });
+        }
       }
+      resetKillSwitch();
       return reply.status(200).send({
         success: true,
-        message: "Kill switch reset. Runtime remains in current control state until explicit resume.",
+        message: "Kill switch reset. Live-test round returned to a safe preflighted state until explicit resume.",
         runtimeStatus: runtime?.getStatus(),
         killSwitch: getKillSwitchState(),
         liveControl: getMicroLiveControlSnapshot(),

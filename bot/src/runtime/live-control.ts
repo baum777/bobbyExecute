@@ -1,5 +1,6 @@
 import type { TradeIntent } from "../core/contracts/trade.js";
 import { getKillSwitchState, isKillSwitchHalted, triggerKillSwitch } from "../governance/kill-switch.js";
+import { getDailyLossState } from "../governance/daily-loss-tracker.js";
 
 export type LiveControlPosture =
   | "live_unavailable"
@@ -7,6 +8,8 @@ export type LiveControlPosture =
   | "live_armed"
   | "live_blocked"
   | "live_killed";
+
+export type LiveTestRoundStatus = "idle" | "preflighted" | "running" | "stopped" | "completed" | "failed";
 
 export type RolloutPosture =
   | "paper_only"
@@ -52,6 +55,16 @@ export interface RolloutSnapshot {
 }
 
 export interface MicroLiveControlSnapshot {
+  mode: ExecutionMode;
+  liveTestMode: boolean;
+  roundStatus: LiveTestRoundStatus;
+  roundStartedAt?: string;
+  roundStoppedAt?: string;
+  roundCompletedAt?: string;
+  stopReason?: string;
+  failureReason?: string;
+  lastTransitionAt?: string;
+  lastTransitionBy?: string;
   posture: LiveControlPosture;
   rolloutPosture: RolloutPosture;
   rolloutConfigured: boolean;
@@ -64,6 +77,8 @@ export interface MicroLiveControlSnapshot {
   armed: boolean;
   killSwitchActive: boolean;
   blocked: boolean;
+  disarmed: boolean;
+  stopped: boolean;
   degraded: boolean;
   manualRearmRequired: boolean;
   reasonCode?: LiveControlReasonCode;
@@ -84,6 +99,8 @@ export interface MicroLiveControlSnapshot {
     tradesInWindow: number;
     failuresInWindow: number;
     dailyNotional: number;
+    tradesToday: number;
+    dailyLossUsd: number;
     lastExecutionAt?: string;
   };
 }
@@ -114,6 +131,14 @@ interface MutableControlState {
   blocked: boolean;
   degraded: boolean;
   manualRearmRequired: boolean;
+  roundStatus: LiveTestRoundStatus;
+  roundStartedAt?: string;
+  roundStoppedAt?: string;
+  roundCompletedAt?: string;
+  stopReason?: string;
+  failureReason?: string;
+  lastTransitionAt?: string;
+  lastTransitionBy?: string;
   reasonCode?: LiveControlReasonCode;
   reasonDetail?: string;
   lastReasonAt?: string;
@@ -154,6 +179,7 @@ const state: MutableControlState = {
   blocked: false,
   degraded: false,
   manualRearmRequired: false,
+  roundStatus: "idle",
   inFlight: 0,
   recentTradeAtMs: [],
   recentFailureAtMs: [],
@@ -212,6 +238,98 @@ function parseAllowlist(raw: string | undefined): string[] {
     .split(",")
     .map((value) => value.trim())
     .filter((value) => value.length > 0);
+}
+
+function isLiveTestModeEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return String(env.LIVE_TEST_MODE).toLowerCase() === "true";
+}
+
+function isTerminalRoundStatus(status: LiveTestRoundStatus): boolean {
+  return status === "stopped" || status === "completed" || status === "failed";
+}
+
+function clearRoundTerminalFields(): void {
+  state.roundStartedAt = undefined;
+  state.roundStoppedAt = undefined;
+  state.roundCompletedAt = undefined;
+  state.stopReason = undefined;
+  state.failureReason = undefined;
+}
+
+function markRoundTransition(
+  nextStatus: LiveTestRoundStatus,
+  actor: string,
+  nowIso: string,
+  detail?: string
+): void {
+  state.roundStatus = nextStatus;
+  state.lastTransitionAt = nowIso;
+  state.lastTransitionBy = actor;
+  if (nextStatus === "preflighted") {
+    clearRoundTerminalFields();
+    state.blocked = false;
+    state.degraded = false;
+    state.manualRearmRequired = false;
+    state.armed = false;
+    setReason("micro_live_disarmed", detail ?? "Live-test round preflighted.", nowIso);
+    return;
+  }
+
+  if (nextStatus === "running") {
+    state.roundStartedAt = state.roundStartedAt ?? nowIso;
+    state.blocked = false;
+    state.degraded = false;
+    state.manualRearmRequired = false;
+    state.reasonCode = undefined;
+    state.reasonDetail = undefined;
+    state.lastReasonAt = undefined;
+    return;
+  }
+
+  if (nextStatus === "stopped") {
+    state.roundStoppedAt = nowIso;
+    state.stopReason = detail;
+    state.armed = false;
+    state.blocked = true;
+    state.manualRearmRequired = true;
+    state.degraded = true;
+    setReason("micro_live_killed", detail ?? "Live-test round stopped.", nowIso);
+    return;
+  }
+
+  if (nextStatus === "completed") {
+    state.roundCompletedAt = nowIso;
+    state.stopReason = detail;
+    state.armed = false;
+    state.blocked = true;
+    state.manualRearmRequired = false;
+    state.degraded = false;
+    setReason("micro_live_disarmed", detail ?? "Live-test round completed.", nowIso);
+    return;
+  }
+
+  state.failureReason = detail;
+  state.roundStoppedAt = undefined;
+  state.roundCompletedAt = undefined;
+  state.armed = false;
+  state.blocked = true;
+  state.degraded = true;
+  state.manualRearmRequired = true;
+  setReason("micro_live_config_invalid", detail ?? "Live-test round failed.", nowIso);
+}
+
+function refuseRoundTransition(
+  nextStatus: LiveTestRoundStatus,
+  actor: string,
+  detail: string
+): { success: false; message: string; snapshot: MicroLiveControlSnapshot } {
+  const nowIso = new Date().toISOString();
+  markRoundTransition("failed", actor, nowIso, detail);
+  return {
+    success: false,
+    message: `Live-test round transition to '${nextStatus}' denied: ${detail}`,
+    snapshot: getMicroLiveControlSnapshot(),
+  };
 }
 
 function readExecutionMode(env: NodeJS.ProcessEnv): ExecutionMode {
@@ -325,7 +443,7 @@ function evaluatePosture(executionMode: ExecutionMode, rollout: RolloutSnapshot)
   if (isKillSwitchHalted()) {
     return "live_killed";
   }
-  if (state.blocked) {
+  if (state.blocked || isTerminalRoundStatus(state.roundStatus)) {
     return "live_blocked";
   }
   if (
@@ -378,14 +496,26 @@ function parseIntentNotional(intent: TradeIntent): number | null {
 export function getMicroLiveControlSnapshot(): MicroLiveControlSnapshot {
   const executionMode = readExecutionMode(process.env);
   const liveEnabled = executionMode === "live";
+  const liveTestMode = isLiveTestModeEnabled();
   const killSwitch = getKillSwitchState();
   const capsConfig = readCaps(process.env);
   const caps = capsConfig.valid ? capsConfig.caps : DEFAULT_CAPS;
   const rollout = readRolloutPosture(executionMode);
   const now = Date.now();
   cleanupCounters(now, caps);
+  const dailyLossState = getDailyLossState();
 
   return {
+    mode: executionMode,
+    liveTestMode,
+    roundStatus: state.roundStatus,
+    roundStartedAt: state.roundStartedAt,
+    roundStoppedAt: state.roundStoppedAt,
+    roundCompletedAt: state.roundCompletedAt,
+    stopReason: state.stopReason,
+    failureReason: state.failureReason,
+    lastTransitionAt: state.lastTransitionAt,
+    lastTransitionBy: state.lastTransitionBy,
     posture: evaluatePosture(executionMode, rollout),
     rolloutPosture: rollout.posture,
     rolloutConfigured: rollout.configured,
@@ -397,7 +527,9 @@ export function getMicroLiveControlSnapshot(): MicroLiveControlSnapshot {
     liveEnabled,
     armed: state.armed,
     killSwitchActive: killSwitch.halted,
-    blocked: state.blocked,
+    blocked: state.blocked || isTerminalRoundStatus(state.roundStatus),
+    disarmed: !state.armed,
+    stopped: state.roundStatus === "stopped" || state.roundStatus === "completed" || state.roundStatus === "failed",
     degraded: state.degraded,
     manualRearmRequired: state.manualRearmRequired,
     reasonCode: state.reasonCode,
@@ -412,6 +544,8 @@ export function getMicroLiveControlSnapshot(): MicroLiveControlSnapshot {
       tradesInWindow: state.recentTradeAtMs.length,
       failuresInWindow: state.recentFailureAtMs.length,
       dailyNotional: state.dailyNotional,
+      tradesToday: state.recentTradeAtMs.length,
+      dailyLossUsd: dailyLossState.lossUsd,
       lastExecutionAt: state.lastExecutionAtMs ? new Date(state.lastExecutionAtMs).toISOString() : undefined,
     },
   };
@@ -426,6 +560,15 @@ export function armMicroLive(actor = "operator_api"): { success: boolean; messag
     return {
       success: false,
       message: "Arm denied: deployment is not in live mode.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  if (isLiveTestModeEnabled() && isTerminalRoundStatus(state.roundStatus)) {
+    markRoundTransition("failed", actor, nowIso, `Arm denied: live-test round is ${state.roundStatus}. Reset is required first.`);
+    return {
+      success: false,
+      message: `Arm denied: live-test round is ${state.roundStatus}. Reset is required first.`,
       snapshot: getMicroLiveControlSnapshot(),
     };
   }
@@ -495,13 +638,10 @@ export function disarmMicroLive(actor = "operator_api"): { success: boolean; mes
 
 export function killMicroLive(reason = "operator_kill_switch"): { success: boolean; message: string; snapshot: MicroLiveControlSnapshot } {
   const nowIso = new Date().toISOString();
-  state.armed = false;
-  state.blocked = false;
-  state.degraded = true;
-  state.manualRearmRequired = true;
+  markRoundTransition("stopped", "operator_kill_switch", nowIso, reason);
   state.lastOperatorAction = "kill";
   state.lastOperatorActionAt = nowIso;
-  setReason("micro_live_killed", reason, nowIso);
+  state.degraded = true;
   triggerKillSwitch(reason);
   return {
     success: true,
@@ -512,15 +652,197 @@ export function killMicroLive(reason = "operator_kill_switch"): { success: boole
 
 export function resetKilledMicroLive(actor = "operator_api"): { success: boolean; message: string; snapshot: MicroLiveControlSnapshot } {
   const nowIso = new Date().toISOString();
+  if (isLiveTestModeEnabled() && !isTerminalRoundStatus(state.roundStatus) && state.roundStatus !== "idle") {
+    return refuseRoundTransition(
+      "preflighted",
+      actor,
+      `Reset denied while live-test round status is ${state.roundStatus}. Stop or fail the round before resetting.`
+    );
+  }
+
   state.armed = false;
   state.degraded = false;
   state.manualRearmRequired = false;
   state.lastOperatorAction = "reset_kill";
   state.lastOperatorActionAt = nowIso;
+  if (isLiveTestModeEnabled()) {
+    markRoundTransition("preflighted", actor, nowIso, `Kill state reset by ${actor}; live-test round returned to preflighted.`);
+  }
   setReason("micro_live_disarmed", `Kill state reset by ${actor}; manual re-arm required.`, nowIso);
   return {
     success: true,
     message: "Kill state cleared for micro-live control; runtime remains disarmed.",
+    snapshot: getMicroLiveControlSnapshot(),
+  };
+}
+
+export function preflightLiveTestRound(actor = "bootstrap"): { success: boolean; message: string; snapshot: MicroLiveControlSnapshot } {
+  const nowIso = new Date().toISOString();
+  if (!isLiveTestModeEnabled()) {
+    return {
+      success: true,
+      message: "Live-test mode is disabled; preflight is a no-op.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  if (state.roundStatus === "running") {
+    return refuseRoundTransition("preflighted", actor, "Preflight denied while live-test round is already running.");
+  }
+
+  if (state.roundStatus === "preflighted") {
+    return {
+      success: true,
+      message: "Live-test round already preflighted.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  markRoundTransition("preflighted", actor, nowIso, "Live-test round preflighted.");
+  return {
+    success: true,
+    message: "Live-test round preflighted.",
+    snapshot: getMicroLiveControlSnapshot(),
+  };
+}
+
+export function startLiveTestRound(actor = "runtime_start"): { success: boolean; message: string; snapshot: MicroLiveControlSnapshot } {
+  const nowIso = new Date().toISOString();
+  if (!isLiveTestModeEnabled()) {
+    return {
+      success: true,
+      message: "Live-test mode is disabled; start is a no-op.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  if (isTerminalRoundStatus(state.roundStatus)) {
+    return refuseRoundTransition("running", actor, `Start denied while live-test round is ${state.roundStatus}. Reset is required first.`);
+  }
+
+  if (state.roundStatus === "idle") {
+    markRoundTransition("preflighted", actor, nowIso, "Live-test round auto-preflighted for startup.");
+  }
+
+  if (state.roundStatus === "running") {
+    return {
+      success: true,
+      message: "Live-test round already running.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  if (state.roundStatus !== "preflighted") {
+    return refuseRoundTransition("running", actor, `Start denied while live-test round is ${state.roundStatus}.`);
+  }
+
+  markRoundTransition("running", actor, nowIso, "Live-test round started.");
+  return {
+    success: true,
+    message: "Live-test round started.",
+    snapshot: getMicroLiveControlSnapshot(),
+  };
+}
+
+export function stopLiveTestRound(
+  reason = "operator_emergency_stop",
+  actor = "operator_api"
+): { success: boolean; message: string; snapshot: MicroLiveControlSnapshot } {
+  const nowIso = new Date().toISOString();
+  if (!isLiveTestModeEnabled()) {
+    return {
+      success: true,
+      message: "Live-test mode is disabled; stop is a no-op.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  if (state.roundStatus === "stopped") {
+    return {
+      success: true,
+      message: "Live-test round already stopped.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  if (state.roundStatus === "completed" || state.roundStatus === "failed") {
+    return refuseRoundTransition("stopped", actor, `Stop denied while live-test round is ${state.roundStatus}. Reset is required first.`);
+  }
+
+  markRoundTransition("stopped", actor, nowIso, reason);
+  state.armed = false;
+  state.lastOperatorAction = "kill";
+  state.lastOperatorActionAt = nowIso;
+  setReason("micro_live_killed", reason, nowIso);
+  return {
+    success: true,
+    message: "Live-test round stopped.",
+    snapshot: getMicroLiveControlSnapshot(),
+  };
+}
+
+export function completeLiveTestRound(
+  reason = "runtime_stop",
+  actor = "runtime_stop"
+): { success: boolean; message: string; snapshot: MicroLiveControlSnapshot } {
+  const nowIso = new Date().toISOString();
+  if (!isLiveTestModeEnabled()) {
+    return {
+      success: true,
+      message: "Live-test mode is disabled; completion is a no-op.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  if (state.roundStatus === "completed") {
+    return {
+      success: true,
+      message: "Live-test round already completed.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  if (state.roundStatus === "failed") {
+    return refuseRoundTransition("completed", actor, "Completion denied while live-test round is failed. Reset is required first.");
+  }
+
+  markRoundTransition("completed", actor, nowIso, reason);
+  return {
+    success: true,
+    message: "Live-test round completed.",
+    snapshot: getMicroLiveControlSnapshot(),
+  };
+}
+
+export function resetLiveTestRound(actor = "operator_api"): { success: boolean; message: string; snapshot: MicroLiveControlSnapshot } {
+  const nowIso = new Date().toISOString();
+  if (!isLiveTestModeEnabled()) {
+    return {
+      success: true,
+      message: "Live-test mode is disabled; reset is a no-op.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  if (state.roundStatus === "running") {
+    return refuseRoundTransition("preflighted", actor, "Reset denied while live-test round is running.");
+  }
+
+  if (state.roundStatus === "preflighted" || state.roundStatus === "idle") {
+    return {
+      success: true,
+      message: "Live-test round already safe to start.",
+      snapshot: getMicroLiveControlSnapshot(),
+    };
+  }
+
+  markRoundTransition("preflighted", actor, nowIso, `Live-test round reset by ${actor}.`);
+  state.reasonCode = undefined;
+  state.reasonDetail = undefined;
+  state.lastReasonAt = undefined;
+  return {
+    success: true,
+    message: "Live-test round reset to preflighted.",
     snapshot: getMicroLiveControlSnapshot(),
   };
 }
@@ -665,6 +987,16 @@ export function evaluateMicroLiveIntent(intent: TradeIntent): LiveControlDecisio
     );
   }
 
+  if (isLiveTestModeEnabled() && state.roundStatus !== "running") {
+    return refuse(
+      executionMode,
+      "micro_live_blocked",
+      "preflight",
+      `Live intent rejected because live-test round is ${state.roundStatus}; running state is required.`,
+      true
+    );
+  }
+
   if (state.recentTradeAtMs.length >= caps.maxTradesPerWindow) {
     return refuse(
       executionMode,
@@ -757,6 +1089,14 @@ export function resetMicroLiveControlForTests(): void {
   state.blocked = false;
   state.degraded = false;
   state.manualRearmRequired = false;
+  state.roundStatus = "idle";
+  state.roundStartedAt = undefined;
+  state.roundStoppedAt = undefined;
+  state.roundCompletedAt = undefined;
+  state.stopReason = undefined;
+  state.failureReason = undefined;
+  state.lastTransitionAt = undefined;
+  state.lastTransitionBy = undefined;
   state.reasonCode = undefined;
   state.reasonDetail = undefined;
   state.lastReasonAt = undefined;

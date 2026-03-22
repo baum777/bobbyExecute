@@ -3,7 +3,7 @@ import type { Config } from "../config/config-schema.js";
 import type { ExecutionReport, RpcVerificationReport, TradeIntent } from "../core/contracts/trade.js";
 import type { MarketSnapshot } from "../core/contracts/market.js";
 import type { WalletSnapshot } from "../core/contracts/wallet.js";
-import { isKillSwitchHalted } from "../governance/kill-switch.js";
+import { isKillSwitchHalted, triggerKillSwitch } from "../governance/kill-switch.js";
 import { CircuitBreaker } from "../governance/circuit-breaker.js";
 import { FileSystemJournalWriter, type JournalWriter } from "../journal-writer/writer.js";
 import type { JournalEntry } from "../core/contracts/journal.js";
@@ -30,10 +30,15 @@ import {
 import type { ActionLogger } from "../observability/action-log.js";
 import {
   armMicroLive,
+  completeLiveTestRound,
   disarmMicroLive,
   getMicroLiveControlSnapshot,
   killMicroLive,
+  preflightLiveTestRound,
+  resetLiveTestRound,
   resetKilledMicroLive,
+  startLiveTestRound,
+  stopLiveTestRound,
 } from "./live-control.js";
 
 export type RuntimeStatus = "idle" | "running" | "paused" | "stopped" | "error";
@@ -273,6 +278,19 @@ export class DryRunRuntime {
         },
       });
     }
+    if (this.mode === "live" && this.config.liveTestMode) {
+      const startResult = preflightLiveTestRound("runtime_start");
+      if (!startResult.success) {
+        this.status = "error";
+        throw new Error(startResult.message);
+      }
+      const liveStart = startLiveTestRound("runtime_start");
+      if (!liveStart.success) {
+        this.status = "error";
+        throw new Error(liveStart.message);
+      }
+      return;
+    }
     await this.runCycle({ propagateError: true });
     this.intervalRef = setInterval(() => {
       void this.runCycle();
@@ -284,12 +302,25 @@ export class DryRunRuntime {
       clearInterval(this.intervalRef);
       this.intervalRef = null;
     }
+    if (this.mode === "live" && this.config.liveTestMode) {
+      completeLiveTestRound("runtime_stop", "runtime_stop");
+    }
     this.status = "stopped";
   }
 
   async emergencyStop(reason = "operator_emergency_stop"): Promise<RuntimeControlResult> {
     this.status = "paused";
-    const control = killMicroLive(reason);
+    const control = this.mode === "live" && this.config.liveTestMode ? stopLiveTestRound(reason, "api_emergency_stop") : killMicroLive(reason);
+    if (!control.success) {
+      return {
+        success: false,
+        status: this.status,
+        message: control.message,
+      };
+    }
+    if (this.mode === "live" && this.config.liveTestMode) {
+      void triggerKillSwitch(reason);
+    }
     await this.recordIncident({
       severity: "critical",
       type: "emergency_stop",
@@ -349,6 +380,16 @@ export class DryRunRuntime {
         message: `Resume unsupported while runtime status=${this.status}`,
       };
     }
+    if (this.mode === "live" && this.config.liveTestMode) {
+      const liveStart = startLiveTestRound("api_resume");
+      if (!liveStart.success) {
+        return {
+          success: false,
+          status: this.status,
+          message: liveStart.message,
+        };
+      }
+    }
     this.status = "running";
     if (!this.intervalRef) {
       this.intervalRef = setInterval(() => {
@@ -369,6 +410,9 @@ export class DryRunRuntime {
     if (this.intervalRef) {
       clearInterval(this.intervalRef);
       this.intervalRef = null;
+    }
+    if (this.mode === "live" && this.config.liveTestMode) {
+      completeLiveTestRound(reason, "api_halt");
     }
     this.status = "stopped";
     await this.recordIncident({
@@ -451,7 +495,10 @@ export class DryRunRuntime {
   }
 
   async resetLiveKill(reason = "operator_reset_kill"): Promise<RuntimeControlResult> {
-    const control = resetKilledMicroLive(reason);
+    const control = this.mode === "live" && this.config.liveTestMode ? resetLiveTestRound(reason) : resetKilledMicroLive(reason);
+    if (this.mode === "live" && this.config.liveTestMode) {
+      this.status = "paused";
+    }
     await this.recordIncident({
       severity: "info",
       type: "live_control_disarmed",
@@ -463,7 +510,7 @@ export class DryRunRuntime {
       },
     });
     return {
-      success: true,
+      success: control.success,
       status: this.status,
       message: control.message,
     };

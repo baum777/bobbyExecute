@@ -39,6 +39,7 @@ export interface IncidentsResponse {
 export interface RuntimeStatusResponse {
   success: true;
   runtime: import("../../runtime/dry-run-runtime.js").RuntimeSnapshot;
+  liveControl?: import("../../runtime/live-control.js").MicroLiveControlSnapshot;
   readiness?: RuntimeReadiness;
 }
 
@@ -196,6 +197,7 @@ export function operatorRoutes(deps: OperatorRouteDeps): FastifyPluginAsync {
       return reply.status(200).send({
         success: true,
         runtime: runtimeSnapshot,
+        liveControl: runtimeSnapshot.liveControl,
         readiness: buildRuntimeReadiness(runtimeSnapshot),
       });
     });

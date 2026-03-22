@@ -40,20 +40,34 @@ bot/scripts/live-test-checklist.sh
 
 1. **Run preflight**: `cd bot && npm run live:preflight`
 2. **Start live-test server**: `cd bot && npm run live:test`
-3. **Verify health**: `curl http://localhost:3333/health`
-4. **Monitor KPIs**: Dashboard at `/kpi/summary`, `/kpi/adapters`, `/kpi/decisions`
+3. **Verify state**: `GET /health`, `GET /kpi/summary`, and `GET /runtime/status`
+4. **Monitor KPIs**: `/kpi/summary`, `/kpi/adapters`, `/kpi/decisions`
 5. **Emergency stop**: `POST /emergency-stop` if needed
-6. **Reset**: `POST /control/reset` (manual operator only)
+6. **Reset**: `POST /control/reset` only after the round is stopped, completed, or failed
 
 ## Live Test Round
 
-The current workflow is a controlled round with one live-test server session:
+The current workflow is a controlled, operator-visible live-test session:
 
 1. Preflight must pass.
 2. Server starts in `LIVE_TRADING=true`, `RPC_MODE=real`, `LIVE_TEST_MODE=true`.
-3. Operator validates `/health` and `/kpi/summary`.
-4. One bounded live round is executed through the guarded runtime/control flow.
-5. Operator stops the session or uses `POST /emergency-stop` / `POST /control/reset` if needed.
+3. Bootstrap initializes a live-test round in `preflighted` state and the runtime enters `running`.
+4. `/health`, `/kpi/summary`, and `/runtime/status` expose the live-test round state.
+5. `POST /emergency-stop` moves the round to `stopped` and triggers the kill switch.
+6. `POST /control/reset` clears the kill switch and returns the round to a safe `preflighted` state after a terminal stop or completion.
+
+This slice does **not** claim a real on-chain trade has completed. The runtime is bounded and observable, but actual live execution remains stubbed in this phase.
+
+### State Surfaces
+
+- `liveTestMode`
+- `roundStatus`
+- `roundStartedAt`
+- `roundStoppedAt`
+- `stopReason`
+- `failureReason`
+- `blocked`, `disarmed`, and `stopped`
+- `tradesToday` and `dailyLossUsd` when available
 
 ## Rollback Triggers
 
@@ -68,6 +82,16 @@ The current workflow is a controlled round with one live-test server session:
 - Record timeline, components, financial impact
 - Update this runbook with learnings
 - Document go/no-go for next stage
+
+## Success For This Slice
+
+Success means the operator can:
+
+1. Preflight the live-test configuration.
+2. Start the guarded live-test server without falling back to paper/dry semantics.
+3. Observe round state through `/health`, `/kpi/summary`, and `/runtime/status`.
+4. Trigger emergency stop and safe reset.
+5. See truthful stop/failure reasons when transitions are rejected.
 
 ## Related
 

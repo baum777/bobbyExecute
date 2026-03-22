@@ -17,6 +17,29 @@ function authHeaders(token = CONTROL_TOKEN): HeadersInit {
   return { "x-control-token": token };
 }
 
+async function createLiveTestRuntime(tempDirPath: string): Promise<DryRunRuntime> {
+  const { createDryRunRuntime } = await import("../../src/runtime/dry-run-runtime.js");
+  return createDryRunRuntime({
+    nodeEnv: "test",
+    dryRun: false,
+    tradingEnabled: true,
+    liveTestMode: true,
+    executionMode: "live",
+    rpcMode: "real",
+    rpcUrl: "https://api.mainnet-beta.solana.com",
+    dexpaprikaBaseUrl: "https://api.dexpaprika.com",
+    moralisBaseUrl: "https://solana-gateway.moralis.io",
+    walletAddress: "11111111111111111111111111111111",
+    controlToken: CONTROL_TOKEN,
+    operatorReadToken: "phase10-operator-read-token",
+    journalPath: join(tempDirPath, "journal.jsonl"),
+    circuitBreakerFailureThreshold: 5,
+    circuitBreakerRecoveryMs: 60_000,
+    maxSlippagePercent: 5,
+    reviewPolicyMode: "required",
+  });
+}
+
 describe("Control routes", () => {
   let server: Awaited<ReturnType<typeof createServer>>;
   let baseUrl: string;
@@ -100,6 +123,117 @@ describe("Control routes", () => {
 
     const health = await fetch(`${baseUrl}/health`);
     expect((await health.json()).botStatus).toBe("paused");
+  });
+
+  it("POST /emergency-stop and /control/reset manage live-test round status explicitly", async () => {
+    const liveTempDir = await mkdtemp(join(tmpdir(), "control-live-stop-"));
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+    process.env.TRADING_ENABLED = "true";
+    process.env.LIVE_TEST_MODE = "true";
+    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    process.env.CONTROL_TOKEN = CONTROL_TOKEN;
+    process.env.OPERATOR_READ_TOKEN = "phase10-live-read-token";
+    process.env.ROLLOUT_POSTURE = "micro_live";
+
+    const runtimeLive = await createLiveTestRuntime(liveTempDir);
+    await runtimeLive.start();
+    const liveServer = await createServer({
+      port: PORT + 10,
+      host: "127.0.0.1",
+      runtime: runtimeLive,
+      getRuntimeSnapshot: () => runtimeLive.getSnapshot(),
+      getBotStatus: () => {
+        const s = runtimeLive.getStatus();
+        return s === "running" ? "running" : s === "paused" ? "paused" : "stopped";
+      },
+      controlAuthToken: CONTROL_TOKEN,
+    });
+
+    try {
+      const stopRes = await fetch(`http://127.0.0.1:${PORT + 10}/emergency-stop`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      expect(stopRes.status).toBe(200);
+      const stopBody = await stopRes.json();
+      expect(stopBody.success).toBe(true);
+      expect(stopBody.killSwitch.halted).toBe(true);
+      expect(stopBody.liveControl.liveTestMode).toBe(true);
+      expect(stopBody.liveControl.roundStatus).toBe("stopped");
+      expect(stopBody.liveControl.stopped).toBe(true);
+      expect(stopBody.liveControl.stopReason).toBe("kill_switch_emergency_stop");
+
+      const resetRes = await fetch(`http://127.0.0.1:${PORT + 10}/control/reset`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      expect(resetRes.status).toBe(200);
+      const resetBody = await resetRes.json();
+      expect(resetBody.success).toBe(true);
+      expect(resetBody.killSwitch.halted).toBe(false);
+      expect(resetBody.runtimeStatus).toBe("paused");
+      expect(resetBody.liveControl.roundStatus).toBe("preflighted");
+      expect(resetBody.liveControl.disarmed).toBe(true);
+      expect(resetBody.liveControl.roundStoppedAt).toBeUndefined();
+    } finally {
+      await runtimeLive.stop();
+      await liveServer.close();
+      await rm(liveTempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("POST /control/reset fails closed while a live-test round is running and can recover after failure", async () => {
+    const liveTempDir = await mkdtemp(join(tmpdir(), "control-live-reset-"));
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+    process.env.TRADING_ENABLED = "true";
+    process.env.LIVE_TEST_MODE = "true";
+    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    process.env.CONTROL_TOKEN = CONTROL_TOKEN;
+    process.env.OPERATOR_READ_TOKEN = "phase10-live-read-token";
+    process.env.ROLLOUT_POSTURE = "micro_live";
+
+    const runtimeLive = await createLiveTestRuntime(liveTempDir);
+    await runtimeLive.start();
+    const liveServer = await createServer({
+      port: PORT + 11,
+      host: "127.0.0.1",
+      runtime: runtimeLive,
+      getRuntimeSnapshot: () => runtimeLive.getSnapshot(),
+      getBotStatus: () => {
+        const s = runtimeLive.getStatus();
+        return s === "running" ? "running" : s === "paused" ? "paused" : "stopped";
+      },
+      controlAuthToken: CONTROL_TOKEN,
+    });
+
+    try {
+      const firstReset = await fetch(`http://127.0.0.1:${PORT + 11}/control/reset`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      expect(firstReset.status).toBe(409);
+      const firstBody = await firstReset.json();
+      expect(firstBody.success).toBe(false);
+      expect(firstBody.liveControl.roundStatus).toBe("failed");
+      expect(firstBody.runtimeStatus).toBe("paused");
+
+      const secondReset = await fetch(`http://127.0.0.1:${PORT + 11}/control/reset`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      expect(secondReset.status).toBe(200);
+      const secondBody = await secondReset.json();
+      expect(secondBody.success).toBe(true);
+      expect(secondBody.killSwitch.halted).toBe(false);
+      expect(secondBody.liveControl.roundStatus).toBe("preflighted");
+      expect(secondBody.runtimeStatus).toBe("paused");
+    } finally {
+      await runtimeLive.stop();
+      await liveServer.close();
+      await rm(liveTempDir, { recursive: true, force: true });
+    }
   });
 
   it("POST /control/resume fails explicitly while kill-switch is active", async () => {

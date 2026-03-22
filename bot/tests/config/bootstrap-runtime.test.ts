@@ -8,6 +8,7 @@ import { resetKillSwitch } from "../../src/governance/kill-switch.js";
 import type { MarketSnapshot } from "../../src/core/contracts/market.js";
 import type { WalletSnapshot } from "../../src/core/contracts/wallet.js";
 import { InMemoryActionLogger } from "../../src/observability/action-log.js";
+import { resetMicroLiveControlForTests } from "../../src/runtime/live-control.js";
 
 const ORIG_ENV = process.env;
 
@@ -16,6 +17,7 @@ describe("bootstrap runtime closure (phase-1)", () => {
 
   beforeEach(() => {
     resetConfigCache();
+    resetMicroLiveControlForTests();
     process.env = { ...ORIG_ENV };
     delete process.env.LIVE_TRADING;
     delete process.env.RPC_MODE;
@@ -32,6 +34,7 @@ describe("bootstrap runtime closure (phase-1)", () => {
 
   afterEach(() => {
     resetKillSwitch();
+    resetMicroLiveControlForTests();
     resetConfigCache();
     process.env = ORIG_ENV;
   });
@@ -154,6 +157,57 @@ describe("bootstrap runtime closure (phase-1)", () => {
       expect(body.runtime?.lastEngineStage).toBe("monitor");
       expect(body.runtime?.lastBlockedReason).toBeUndefined();
       expect(body.runtime?.lastIntakeOutcome).toBe("ok");
+    } finally {
+      await runtime.stop();
+      await server.close();
+    }
+  });
+
+  it("starts guarded live-test runtime in explicit live state without paper fallback", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+    process.env.TRADING_ENABLED = "true";
+    process.env.LIVE_TEST_MODE = "true";
+    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    process.env.CONTROL_TOKEN = "phase10-live-control-token";
+    process.env.OPERATOR_READ_TOKEN = "phase10-live-read-token";
+    process.env.ROLLOUT_POSTURE = "micro_live";
+
+    const { server, runtime } = await bootstrap({
+      host: "127.0.0.1",
+      port: 3359,
+    });
+
+    try {
+      const snapshot = runtime.getSnapshot();
+      expect(runtime.getStatus()).toBe("running");
+      expect(snapshot.mode).toBe("live");
+      expect(snapshot.paperModeActive).toBe(false);
+      expect(snapshot.liveControl?.liveTestMode).toBe(true);
+      expect(snapshot.liveControl?.roundStatus).toBe("running");
+      expect(snapshot.liveControl?.roundStartedAt).toBeTruthy();
+      expect(snapshot.liveControl?.roundStoppedAt).toBeUndefined();
+      expect(snapshot.liveControl?.stopReason).toBeUndefined();
+
+      const [healthRes, summaryRes] = await Promise.all([
+        fetch("http://127.0.0.1:3359/health"),
+        fetch("http://127.0.0.1:3359/kpi/summary"),
+      ]);
+
+      expect(healthRes.status).toBe(200);
+      expect(summaryRes.status).toBe(200);
+
+      const health = await healthRes.json();
+      const summary = await summaryRes.json();
+
+      expect(health.runtime?.mode).toBe("live");
+      expect(health.runtime?.paperModeActive).toBe(false);
+      expect(health.runtime?.liveControl?.liveTestMode).toBe(true);
+      expect(health.runtime?.liveControl?.roundStatus).toBe("running");
+      expect(summary.runtime?.mode).toBe("live");
+      expect(summary.runtime?.paperModeActive).toBe(false);
+      expect(summary.runtime?.liveControl?.roundStatus).toBe("running");
+      expect(summary.runtime?.liveControl?.disarmed).toBe(true);
     } finally {
       await runtime.stop();
       await server.close();

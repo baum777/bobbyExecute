@@ -54,6 +54,8 @@ npm run live:preflight
 npm run live:test
 ```
 
+Live-test starts are fail-closed and operator-visible. Check `/health`, `/kpi/summary`, and `/runtime/status` for round state, then use `POST /emergency-stop` or `POST /control/reset` if needed.
+
 ## Config
 
 - `src/config/guardrails.yaml` – risk limits, allowlist/denylist

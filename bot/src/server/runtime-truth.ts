@@ -4,9 +4,20 @@ export function buildRuntimeReadiness(runtime?: RuntimeSnapshot): {
   posture: "healthy_for_posture" | "degraded_but_safe_in_paper" | "blocked_for_live" | "manual_review_required";
   liveAllowed: boolean;
   paperSafe: boolean;
+  liveTestMode: boolean;
   rolloutPosture: "paper_only" | "micro_live" | "staged_live_candidate" | "paused_or_rolled_back";
   rolloutConfigured: boolean;
   rolloutConfigValid: boolean;
+  roundStatus: "idle" | "preflighted" | "running" | "stopped" | "completed" | "failed";
+  roundStartedAt?: string;
+  roundStoppedAt?: string;
+  roundCompletedAt?: string;
+  stopReason?: string;
+  failureReason?: string;
+  blocked: boolean;
+  disarmed: boolean;
+  stopped: boolean;
+  lastTransitionAt?: string;
   canArmMicroLive: boolean;
   canUseStagedLiveCandidate: boolean;
   blockers: Array<{
@@ -78,6 +89,17 @@ export function buildRuntimeReadiness(runtime?: RuntimeSnapshot): {
     });
   }
 
+  if (liveControl.roundStatus === "stopped" || liveControl.roundStatus === "completed" || liveControl.roundStatus === "failed") {
+    blockers.push({
+      code: `live_round_${liveControl.roundStatus}`,
+      scope: "micro_live",
+      message:
+        liveControl.roundStatus === "failed"
+          ? "Live-test round failed and requires reset before resuming."
+          : "Live-test round is terminal and requires reset before resuming.",
+    });
+  }
+
   if (runtime.adapterHealth?.degraded === true) {
     blockers.push({
       code: "adapter_degraded",
@@ -93,6 +115,9 @@ export function buildRuntimeReadiness(runtime?: RuntimeSnapshot): {
     liveControl.rolloutPosture !== "paused_or_rolled_back" &&
     liveControl.killSwitchActive !== true &&
     liveControl.blocked !== true &&
+    liveControl.roundStatus !== "failed" &&
+    liveControl.roundStatus !== "stopped" &&
+    liveControl.roundStatus !== "completed" &&
     runtime.status !== "error" &&
     runtime.adapterHealth?.degraded !== true;
 
@@ -111,9 +136,20 @@ export function buildRuntimeReadiness(runtime?: RuntimeSnapshot): {
       posture: "manual_review_required",
       liveAllowed: false,
       paperSafe,
+      liveTestMode: liveControl.liveTestMode,
       rolloutPosture: liveControl.rolloutPosture,
       rolloutConfigured: liveControl.rolloutConfigured,
       rolloutConfigValid: liveControl.rolloutConfigValid,
+      roundStatus: liveControl.roundStatus,
+      roundStartedAt: liveControl.roundStartedAt,
+      roundStoppedAt: liveControl.roundStoppedAt,
+      roundCompletedAt: liveControl.roundCompletedAt,
+      stopReason: liveControl.stopReason,
+      failureReason: liveControl.failureReason,
+      blocked: liveControl.blocked,
+      disarmed: liveControl.disarmed,
+      stopped: liveControl.stopped,
+      lastTransitionAt: liveControl.lastTransitionAt,
       canArmMicroLive,
       canUseStagedLiveCandidate,
       blockers,
@@ -130,9 +166,20 @@ export function buildRuntimeReadiness(runtime?: RuntimeSnapshot): {
       posture: "blocked_for_live",
       liveAllowed: false,
       paperSafe,
+      liveTestMode: liveControl.liveTestMode,
       rolloutPosture: liveControl.rolloutPosture,
       rolloutConfigured: liveControl.rolloutConfigured,
       rolloutConfigValid: liveControl.rolloutConfigValid,
+      roundStatus: liveControl.roundStatus,
+      roundStartedAt: liveControl.roundStartedAt,
+      roundStoppedAt: liveControl.roundStoppedAt,
+      roundCompletedAt: liveControl.roundCompletedAt,
+      stopReason: liveControl.stopReason,
+      failureReason: liveControl.failureReason,
+      blocked: liveControl.blocked,
+      disarmed: liveControl.disarmed,
+      stopped: liveControl.stopped,
+      lastTransitionAt: liveControl.lastTransitionAt,
       canArmMicroLive,
       canUseStagedLiveCandidate,
       blockers,
@@ -145,9 +192,20 @@ export function buildRuntimeReadiness(runtime?: RuntimeSnapshot): {
       posture: "degraded_but_safe_in_paper",
       liveAllowed,
       paperSafe,
+      liveTestMode: liveControl.liveTestMode,
       rolloutPosture: liveControl.rolloutPosture,
       rolloutConfigured: liveControl.rolloutConfigured,
       rolloutConfigValid: liveControl.rolloutConfigValid,
+      roundStatus: liveControl.roundStatus,
+      roundStartedAt: liveControl.roundStartedAt,
+      roundStoppedAt: liveControl.roundStoppedAt,
+      roundCompletedAt: liveControl.roundCompletedAt,
+      stopReason: liveControl.stopReason,
+      failureReason: liveControl.failureReason,
+      blocked: liveControl.blocked,
+      disarmed: liveControl.disarmed,
+      stopped: liveControl.stopped,
+      lastTransitionAt: liveControl.lastTransitionAt,
       canArmMicroLive,
       canUseStagedLiveCandidate,
       blockers,
@@ -159,9 +217,20 @@ export function buildRuntimeReadiness(runtime?: RuntimeSnapshot): {
     posture: "healthy_for_posture",
     liveAllowed,
     paperSafe,
+    liveTestMode: liveControl.liveTestMode,
     rolloutPosture: liveControl.rolloutPosture,
     rolloutConfigured: liveControl.rolloutConfigured,
     rolloutConfigValid: liveControl.rolloutConfigValid,
+    roundStatus: liveControl.roundStatus,
+    roundStartedAt: liveControl.roundStartedAt,
+    roundStoppedAt: liveControl.roundStoppedAt,
+    roundCompletedAt: liveControl.roundCompletedAt,
+    stopReason: liveControl.stopReason,
+    failureReason: liveControl.failureReason,
+    blocked: liveControl.blocked,
+    disarmed: liveControl.disarmed,
+    stopped: liveControl.stopped,
+    lastTransitionAt: liveControl.lastTransitionAt,
     canArmMicroLive,
     canUseStagedLiveCandidate,
     blockers,

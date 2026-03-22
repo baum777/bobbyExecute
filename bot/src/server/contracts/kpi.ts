@@ -6,9 +6,20 @@ export interface RuntimeReadiness {
   posture: "healthy_for_posture" | "degraded_but_safe_in_paper" | "blocked_for_live" | "manual_review_required";
   liveAllowed: boolean;
   paperSafe: boolean;
+  liveTestMode: boolean;
   rolloutPosture: "paper_only" | "micro_live" | "staged_live_candidate" | "paused_or_rolled_back";
   rolloutConfigured: boolean;
   rolloutConfigValid: boolean;
+  roundStatus: "idle" | "preflighted" | "running" | "stopped" | "completed" | "failed";
+  roundStartedAt?: string;
+  roundStoppedAt?: string;
+  roundCompletedAt?: string;
+  stopReason?: string;
+  failureReason?: string;
+  blocked: boolean;
+  disarmed: boolean;
+  stopped: boolean;
+  lastTransitionAt?: string;
   canArmMicroLive: boolean;
   canUseStagedLiveCandidate: boolean;
   blockers: Array<{
@@ -20,6 +31,16 @@ export interface RuntimeReadiness {
 }
 
 export interface RuntimeLiveControl {
+  mode: "dry" | "paper" | "live";
+  liveTestMode: boolean;
+  roundStatus: "idle" | "preflighted" | "running" | "stopped" | "completed" | "failed";
+  roundStartedAt?: string;
+  roundStoppedAt?: string;
+  roundCompletedAt?: string;
+  stopReason?: string;
+  failureReason?: string;
+  lastTransitionAt?: string;
+  lastTransitionBy?: string;
   posture: string;
   rolloutPosture: RuntimeReadiness["rolloutPosture"];
   rolloutConfigured: boolean;
@@ -42,6 +63,8 @@ export interface RuntimeLiveControl {
   armed: boolean;
   killSwitchActive: boolean;
   blocked: boolean;
+  disarmed: boolean;
+  stopped: boolean;
   reasonCode?: string;
   reasonDetail?: string;
   lastOperatorAction?: "arm" | "disarm" | "kill" | "reset_kill";
@@ -52,6 +75,15 @@ export interface RuntimeLiveControl {
     at: string;
     detail?: string;
     operatorActionRequired: boolean;
+  };
+  counters: {
+    inFlight: number;
+    tradesInWindow: number;
+    failuresInWindow: number;
+    dailyNotional: number;
+    tradesToday: number;
+    dailyLossUsd: number;
+    lastExecutionAt?: string;
   };
 }
 
@@ -156,9 +188,20 @@ export interface HealthResponse {
       posture: RuntimeReadiness["posture"];
       liveAllowed: boolean;
       paperSafe: boolean;
+      liveTestMode: boolean;
       rolloutPosture: RuntimeReadiness["rolloutPosture"];
       rolloutConfigured: boolean;
       rolloutConfigValid: boolean;
+      roundStatus: RuntimeReadiness["roundStatus"];
+      roundStartedAt?: string;
+      roundStoppedAt?: string;
+      roundCompletedAt?: string;
+      stopReason?: string;
+      failureReason?: string;
+      blocked: boolean;
+      disarmed: boolean;
+      stopped: boolean;
+      lastTransitionAt?: string;
       reason?: string;
     };
     recentHistory?: RuntimeRecentHistory;
@@ -204,9 +247,20 @@ export interface KpiSummaryResponse {
       posture: RuntimeReadiness["posture"];
       liveAllowed: boolean;
       paperSafe: boolean;
+      liveTestMode: boolean;
       rolloutPosture: RuntimeReadiness["rolloutPosture"];
       rolloutConfigured: boolean;
       rolloutConfigValid: boolean;
+      roundStatus: RuntimeReadiness["roundStatus"];
+      roundStartedAt?: string;
+      roundStoppedAt?: string;
+      roundCompletedAt?: string;
+      stopReason?: string;
+      failureReason?: string;
+      blocked: boolean;
+      disarmed: boolean;
+      stopped: boolean;
+      lastTransitionAt?: string;
       reason?: string;
     };
     recentHistory?: RuntimeRecentHistory;
