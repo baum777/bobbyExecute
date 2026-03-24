@@ -8,6 +8,8 @@
 import { assertRealModeForLive } from "../core/config/rpc.js";
 import type { Config } from "./config-schema.js";
 
+export type RolloutPosture = "paper_only" | "micro_live" | "staged_live_candidate" | "paused_or_rolled_back";
+
 const LIVE_TRADING_ENV = "LIVE_TRADING";
 const LIVE_TEST_MODE_ENV = "LIVE_TEST_MODE";
 const MAX_CAPITAL_USD_ENV = "LIVE_TEST_MAX_CAPITAL_USD";
@@ -84,6 +86,45 @@ export function assertLiveTradingPrerequisites(config: Config): void {
   if (config.operatorReadToken === config.controlToken) {
     throw new Error("LIVE_TRADING=true requires CONTROL_TOKEN and OPERATOR_READ_TOKEN to be distinct.");
   }
+}
+
+/**
+ * Runtime policy authority is TS/env only.
+ * YAML policy files are documentation/examples and cannot be authoritative at boot.
+ */
+export function assertRuntimePolicyAuthority(config: Config): void {
+  if (config.runtimePolicyAuthority === "ts-env") {
+    return;
+  }
+
+  throw new Error(
+    "Runtime policy authority mismatch: YAML cannot be authoritative at runtime. Use TS/env only."
+  );
+}
+
+export function parseRolloutPostureConfig(env: NodeJS.ProcessEnv = process.env): RolloutPosture | undefined {
+  const raw = env.ROLLOUT_POSTURE?.trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  const normalized = raw.toLowerCase();
+  if (
+    normalized === "paper_only" ||
+    normalized === "micro_live" ||
+    normalized === "staged_live_candidate" ||
+    normalized === "paused_or_rolled_back"
+  ) {
+    return normalized;
+  }
+
+  throw new Error(
+    `Startup readiness failed: Invalid rollout posture '${raw}'. Expected paper_only, micro_live, staged_live_candidate, or paused_or_rolled_back.`
+  );
+}
+
+export function assertValidRolloutPostureConfig(env: NodeJS.ProcessEnv = process.env): void {
+  parseRolloutPostureConfig(env);
 }
 
 /**

@@ -5,7 +5,6 @@
  */
 import { loadConfig } from "../config/load-config.js";
 import { bootstrap } from "../bootstrap.js";
-import { getMicroLiveControlSnapshot } from "../runtime/live-control.js";
 
 const entryConfig = loadConfig();
 const entryMode = entryConfig.executionMode === "live" ? "live-test" : entryConfig.executionMode;
@@ -21,22 +20,23 @@ console.log(
 
 bootstrap()
   .then(({ server, runtime }) => {
-    const liveControl = getMicroLiveControlSnapshot();
+    const runtimeSnapshot = runtime.getSnapshot();
+    const liveControl = runtimeSnapshot.liveControl;
     const addr = server.addresses()[0];
     const host = addr?.address ?? "0.0.0.0";
     const port = addr?.port ?? 3333;
     console.log(`Server listening on http://${host}:${port}`);
-    if (liveControl.liveTestMode) {
+    if (liveControl?.liveTestMode) {
       console.log(
         "[server] Live-test control state",
         JSON.stringify({
-          roundStatus: liveControl.roundStatus,
-          liveTestMode: liveControl.liveTestMode,
-          roundStartedAt: liveControl.roundStartedAt,
-          roundStoppedAt: liveControl.roundStoppedAt,
-          roundCompletedAt: liveControl.roundCompletedAt,
-          stopReason: liveControl.stopReason,
-          failureReason: liveControl.failureReason,
+          roundStatus: liveControl?.roundStatus,
+          liveTestMode: liveControl?.liveTestMode,
+          roundStartedAt: liveControl?.roundStartedAt,
+          roundStoppedAt: liveControl?.roundStoppedAt,
+          roundCompletedAt: liveControl?.roundCompletedAt,
+          stopReason: liveControl?.stopReason,
+          failureReason: liveControl?.failureReason,
         })
       );
     }

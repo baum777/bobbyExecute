@@ -3,13 +3,14 @@
  */
 import type { FastifyPluginAsync } from "fastify";
 import { triggerKillSwitch, resetKillSwitch, getKillSwitchState } from "../../governance/kill-switch.js";
-import type { DryRunRuntime, RuntimeControlResult } from "../../runtime/dry-run-runtime.js";
+import type { RuntimeController } from "../../runtime/controller.js";
+import type { RuntimeControlResult } from "../../runtime/dry-run-runtime.js";
 import { getMicroLiveControlSnapshot } from "../../runtime/live-control.js";
 import { buildRuntimeReadiness } from "../runtime-truth.js";
 import type { RuntimeReadiness } from "../contracts/kpi.js";
 
 export interface ControlRouteDeps {
-  runtime?: DryRunRuntime;
+  runtime?: RuntimeController;
   requiredToken?: string;
 }
 

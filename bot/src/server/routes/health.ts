@@ -4,8 +4,8 @@
 import type { FastifyPluginAsync } from "fastify";
 import type { HealthResponse } from "../contracts/kpi.js";
 import type { CircuitBreaker } from "../../governance/circuit-breaker.js";
-import { getKillSwitchState } from "../../governance/kill-switch.js";
 import { checkHealth } from "../../observability/health.js";
+import type { RuntimeController } from "../../runtime/controller.js";
 import type { RuntimeSnapshot } from "../../runtime/dry-run-runtime.js";
 import { buildRuntimeReadiness, buildRuntimeHistory } from "../runtime-truth.js";
 
@@ -16,80 +16,83 @@ export interface HealthRouteDeps {
   startedAt: number;
   getBotStatus?: () => "running" | "paused" | "stopped";
   getRuntimeSnapshot?: () => RuntimeSnapshot;
+  runtime?: RuntimeController;
 }
 
 export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
-  const { circuitBreaker, startedAt, getBotStatus, getRuntimeSnapshot } = deps;
+  const { circuitBreaker, startedAt, getBotStatus, getRuntimeSnapshot, runtime } = deps;
   return async (fastify) => {
     fastify.get<{ Reply: HealthResponse }>("/health", async (_request, reply) => {
-      const runtime = getRuntimeSnapshot?.();
-      const report = checkHealth(circuitBreaker, runtime);
+      const runtimeSnapshot = getRuntimeSnapshot?.() ?? runtime?.getSnapshot();
+      const report = checkHealth(circuitBreaker, runtimeSnapshot);
       const uptimeMs = Date.now() - startedAt;
-      const killState = getKillSwitchState();
+      const killState = runtimeSnapshot?.liveControl?.killSwitchActive
+        ? { halted: true, reason: runtimeSnapshot.liveControl.reasonDetail, triggeredAt: runtimeSnapshot.liveControl.lastTransitionAt }
+        : undefined;
       const body: HealthResponse = {
         status: report.status,
         uptimeMs,
         version: VERSION,
         botStatus: getBotStatus?.(),
-        killSwitch: killState.halted ? { halted: true, reason: killState.reason, triggeredAt: killState.triggeredAt } : undefined,
-        runtime: runtime
+        killSwitch: killState,
+        runtime: runtimeSnapshot
           ? {
-              status: runtime.status,
-              mode: runtime.mode,
-              paperModeActive: runtime.paperModeActive,
-              cycleInFlight: runtime.cycleInFlight,
-              counters: runtime.counters,
-              lastCycleAt: runtime.lastCycleAt,
-              lastDecisionAt: runtime.lastDecisionAt,
-              lastBlockedReason: runtime.lastState?.blockedReason,
-              lastEngineStage: runtime.lastState?.stage,
-              lastIntakeOutcome: runtime.lastCycleSummary?.intakeOutcome,
-              liveControl: runtime.liveControl
+              status: runtimeSnapshot.status,
+              mode: runtimeSnapshot.mode,
+              paperModeActive: runtimeSnapshot.paperModeActive,
+              cycleInFlight: runtimeSnapshot.cycleInFlight,
+              counters: runtimeSnapshot.counters,
+              lastCycleAt: runtimeSnapshot.lastCycleAt,
+              lastDecisionAt: runtimeSnapshot.lastDecisionAt,
+              lastBlockedReason: runtimeSnapshot.lastState?.blockedReason,
+              lastEngineStage: runtimeSnapshot.lastState?.stage,
+              lastIntakeOutcome: runtimeSnapshot.lastCycleSummary?.intakeOutcome,
+              liveControl: runtimeSnapshot.liveControl
                 ? {
-                    mode: runtime.liveControl.mode,
-                    liveTestMode: runtime.liveControl.liveTestMode,
-                    roundStatus: runtime.liveControl.roundStatus,
-                    roundStartedAt: runtime.liveControl.roundStartedAt,
-                    roundStoppedAt: runtime.liveControl.roundStoppedAt,
-                    roundCompletedAt: runtime.liveControl.roundCompletedAt,
-                    stopReason: runtime.liveControl.stopReason,
-                    failureReason: runtime.liveControl.failureReason,
-                    lastTransitionAt: runtime.liveControl.lastTransitionAt,
-                    lastTransitionBy: runtime.liveControl.lastTransitionBy,
-                    posture: runtime.liveControl.posture,
-                    rolloutPosture: runtime.liveControl.rolloutPosture,
-                    rolloutConfigured: runtime.liveControl.rolloutConfigured,
-                    rolloutConfigValid: runtime.liveControl.rolloutConfigValid,
-                    rolloutReasonCode: runtime.liveControl.rolloutReasonCode,
-                    rolloutReasonDetail: runtime.liveControl.rolloutReasonDetail,
-                    rolloutLastReasonAt: runtime.liveControl.rolloutLastReasonAt,
-                    caps: runtime.liveControl.caps,
-                    armed: runtime.liveControl.armed,
-                    killSwitchActive: runtime.liveControl.killSwitchActive,
-                    blocked: runtime.liveControl.blocked,
-                    disarmed: runtime.liveControl.disarmed,
-                    stopped: runtime.liveControl.stopped,
-                    reasonCode: runtime.liveControl.reasonCode,
-                    reasonDetail: runtime.liveControl.reasonDetail,
-                    lastOperatorAction: runtime.liveControl.lastOperatorAction,
-                    lastOperatorActionAt: runtime.liveControl.lastOperatorActionAt,
-                    lastGuardrailRefusal: runtime.liveControl.lastGuardrailRefusal,
-                    counters: runtime.liveControl.counters,
+                    mode: runtimeSnapshot.liveControl.mode,
+                    liveTestMode: runtimeSnapshot.liveControl.liveTestMode,
+                    roundStatus: runtimeSnapshot.liveControl.roundStatus,
+                    roundStartedAt: runtimeSnapshot.liveControl.roundStartedAt,
+                    roundStoppedAt: runtimeSnapshot.liveControl.roundStoppedAt,
+                    roundCompletedAt: runtimeSnapshot.liveControl.roundCompletedAt,
+                    stopReason: runtimeSnapshot.liveControl.stopReason,
+                    failureReason: runtimeSnapshot.liveControl.failureReason,
+                    lastTransitionAt: runtimeSnapshot.liveControl.lastTransitionAt,
+                    lastTransitionBy: runtimeSnapshot.liveControl.lastTransitionBy,
+                    posture: runtimeSnapshot.liveControl.posture,
+                    rolloutPosture: runtimeSnapshot.liveControl.rolloutPosture,
+                    rolloutConfigured: runtimeSnapshot.liveControl.rolloutConfigured,
+                    rolloutConfigValid: runtimeSnapshot.liveControl.rolloutConfigValid,
+                    rolloutReasonCode: runtimeSnapshot.liveControl.rolloutReasonCode,
+                    rolloutReasonDetail: runtimeSnapshot.liveControl.rolloutReasonDetail,
+                    rolloutLastReasonAt: runtimeSnapshot.liveControl.rolloutLastReasonAt,
+                    caps: runtimeSnapshot.liveControl.caps,
+                    armed: runtimeSnapshot.liveControl.armed,
+                    killSwitchActive: runtimeSnapshot.liveControl.killSwitchActive,
+                    blocked: runtimeSnapshot.liveControl.blocked,
+                    disarmed: runtimeSnapshot.liveControl.disarmed,
+                    stopped: runtimeSnapshot.liveControl.stopped,
+                    reasonCode: runtimeSnapshot.liveControl.reasonCode,
+                    reasonDetail: runtimeSnapshot.liveControl.reasonDetail,
+                    lastOperatorAction: runtimeSnapshot.liveControl.lastOperatorAction,
+                    lastOperatorActionAt: runtimeSnapshot.liveControl.lastOperatorActionAt,
+                    lastGuardrailRefusal: runtimeSnapshot.liveControl.lastGuardrailRefusal,
+                    counters: runtimeSnapshot.liveControl.counters,
                   }
                 : undefined,
-              degraded: runtime.degradedState,
-              adapterHealth: runtime.adapterHealth
+              degraded: runtimeSnapshot.degradedState,
+              adapterHealth: runtimeSnapshot.adapterHealth
                 ? {
-                    total: runtime.adapterHealth.total,
-                    healthy: runtime.adapterHealth.healthy,
-                    unhealthy: runtime.adapterHealth.unhealthy,
-                    degraded: runtime.adapterHealth.degraded,
-                    degradedAdapterIds: runtime.adapterHealth.degradedAdapterIds,
-                    unhealthyAdapterIds: runtime.adapterHealth.unhealthyAdapterIds,
+                    total: runtimeSnapshot.adapterHealth.total,
+                    healthy: runtimeSnapshot.adapterHealth.healthy,
+                    unhealthy: runtimeSnapshot.adapterHealth.unhealthy,
+                    degraded: runtimeSnapshot.adapterHealth.degraded,
+                    degradedAdapterIds: runtimeSnapshot.adapterHealth.degradedAdapterIds,
+                    unhealthyAdapterIds: runtimeSnapshot.adapterHealth.unhealthyAdapterIds,
                   }
                 : undefined,
-              readiness: buildRuntimeReadiness(runtime),
-              recentHistory: buildRuntimeHistory(runtime),
+              readiness: buildRuntimeReadiness(runtimeSnapshot),
+              recentHistory: buildRuntimeHistory(runtimeSnapshot),
             }
           : undefined,
       };

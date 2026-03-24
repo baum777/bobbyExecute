@@ -218,7 +218,8 @@ export class DryRunRuntime {
     private readonly config: Config,
     deps: DryRunRuntimeDeps = {}
   ) {
-    this.journalWriter = deps.journalWriter ?? new FileSystemJournalWriter(config.journalPath);
+    this.journalWriter =
+      deps.journalWriter ?? new FileSystemJournalWriter(config.journalPath, { autoStartPeriodicFlush: false });
     this.engine =
       deps.engine ??
       new Engine({

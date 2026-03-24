@@ -1,73 +1,29 @@
 /**
- * App bootstrap - config load, engine wire, server start.
- * Normalized planning package P1: single entry point.
+ * App bootstrap - config load, runtime selection, server start.
  * Fail-closed: exits on config validation failure.
  */
 import { loadConfig } from "./config/load-config.js";
 import { createServer } from "./server/index.js";
-import {
-  createDryRunRuntime,
-  type DryRunRuntimeDeps,
-  type RuntimeSnapshot,
-} from "./runtime/dry-run-runtime.js";
+import { createRuntime, type RuntimeDeps } from "./runtime/create-runtime.js";
 import { getKillSwitchState } from "./governance/kill-switch.js";
-import {
-  getMicroLiveControlSnapshot,
-  preflightLiveTestRound,
-} from "./runtime/live-control.js";
-import { createAdaptersWithCircuitBreaker } from "./adapters/adapters-with-cb.js";
-import {
-  assertCanonicalPaperMarketAdapters,
-  createCanonicalPaperMarketAdapters,
-  createCanonicalPaperWalletSnapshotFetcher,
-} from "./adapters/provider-roles.js";
+import type { RuntimeController } from "./runtime/controller.js";
 import type { Config } from "./config/config-schema.js";
-import { CircuitBreaker } from "./governance/circuit-breaker.js";
-import { FileSystemActionLogger } from "./observability/action-log.js";
-
-const DEFAULT_PAPER_TOKEN_ID = "So11111111111111111111111111111111111111112";
 
 /**
- * Bootstrap the application: validate config, start server.
- * Call live prerequisite checks via loadConfig before any execution.
+ * Bootstrap the application: validate config, start runtime, start server.
  */
 export async function bootstrap(options?: {
   port?: number;
   host?: string;
-  runtimeDeps?: DryRunRuntimeDeps;
+  runtimeDeps?: RuntimeDeps;
 }): Promise<{
   server: Awaited<ReturnType<typeof createServer>>;
-  runtime: ReturnType<typeof createDryRunRuntime>;
+  runtime: RuntimeController;
 }> {
   const config = loadConfig();
-  let startupControl = getMicroLiveControlSnapshot();
-  if (!startupControl.rolloutConfigValid) {
-    throw new Error(
-      `Startup readiness failed: ${startupControl.rolloutReasonDetail ?? "rollout posture configuration is invalid."}`
-    );
-  }
-  if (
-    config.executionMode === "live" &&
-    (startupControl.posture === "live_blocked" ||
-      startupControl.posture === "live_killed" ||
-      startupControl.rolloutPosture === "paper_only" ||
-      startupControl.rolloutPosture === "paused_or_rolled_back")
-  ) {
-    throw new Error(
-      `Startup readiness failed: rollout posture '${startupControl.rolloutPosture}' does not permit live deployment.`
-    );
-  }
-  if (config.executionMode === "live") {
-    const liveTestPreflight = preflightLiveTestRound("bootstrap");
-    if (!liveTestPreflight.success) {
-      throw new Error(`Startup readiness failed: ${liveTestPreflight.message}`);
-    }
-    startupControl = liveTestPreflight.snapshot;
-  }
   const port = options?.port ?? parseInt(process.env.PORT ?? "3333", 10);
   const host = options?.host ?? process.env.HOST ?? "0.0.0.0";
-  const runtimeDeps = createBootstrapRuntimeDeps(config, options?.runtimeDeps);
-  const runtime = createDryRunRuntime(config, runtimeDeps);
+  const runtime = await createRuntime(config, options?.runtimeDeps ?? {});
 
   console.info(
     "[bootstrap] Starting BobbyExecution runtime",
@@ -76,18 +32,13 @@ export async function bootstrap(options?: {
       rpcMode: config.rpcMode,
       tradingEnabled: config.tradingEnabled,
       safetyPosture: "fail-closed",
-      rolloutPosture: startupControl.rolloutPosture,
-      rolloutConfigValid: startupControl.rolloutConfigValid,
-      liveControlPosture: startupControl.posture,
-      liveTestMode: startupControl.liveTestMode,
-      liveTestRoundStatus: startupControl.roundStatus,
+      runtimePolicyAuthority: config.runtimePolicyAuthority,
     })
   );
 
   await runtime.start();
 
-  const getRuntimeSnapshot = (): RuntimeSnapshot => runtime.getSnapshot();
-
+  const getRuntimeSnapshot = () => runtime.getSnapshot();
   const getBotStatus = (): "running" | "paused" | "stopped" => {
     if (getKillSwitchState().halted) return "paused";
     const runtimeStatus = runtime.getStatus();
@@ -106,7 +57,6 @@ export async function bootstrap(options?: {
       runtime,
       controlAuthToken: config.controlToken,
       operatorReadAuthToken: config.operatorReadToken,
-      actionLogger: runtimeDeps.actionLogger,
     });
   } catch (error) {
     await runtime.stop();
@@ -114,55 +64,4 @@ export async function bootstrap(options?: {
   }
 
   return { server, runtime };
-}
-
-function createBootstrapRuntimeDeps(config: Config, runtimeDeps?: DryRunRuntimeDeps): DryRunRuntimeDeps {
-  const actionLogger =
-    runtimeDeps?.actionLogger ??
-    new FileSystemActionLogger(config.journalPath.replace(/\.jsonl$/i, "") + ".actions.jsonl");
-  if (config.executionMode !== "paper") {
-    return {
-      ...runtimeDeps,
-      actionLogger,
-    };
-  }
-
-  if (!config.walletAddress) {
-    throw new Error("Paper runtime requires WALLET_ADDRESS so wallet snapshot dependencies can be wired.");
-  }
-
-  const adapterBundle = createAdaptersWithCircuitBreaker({
-    circuitBreakerConfig: {
-      failureThreshold: config.circuitBreakerFailureThreshold,
-      recoveryTimeMs: config.circuitBreakerRecoveryMs,
-    },
-    dexpaprika: { baseUrl: config.dexpaprikaBaseUrl, network: "solana" },
-    moralis: { baseUrl: config.moralisBaseUrl, chain: "solana" },
-  });
-  const paperMarketAdapters =
-    runtimeDeps?.paperMarketAdapters ??
-    createCanonicalPaperMarketAdapters({
-      dexpaprika: adapterBundle.dexpaprika,
-      tokenId: DEFAULT_PAPER_TOKEN_ID,
-    });
-  assertCanonicalPaperMarketAdapters(paperMarketAdapters);
-  const paperAdapterCircuitBreaker =
-    runtimeDeps?.paperAdapterCircuitBreaker ??
-    new CircuitBreaker(paperMarketAdapters.map((adapter) => adapter.id), {
-      failureThreshold: config.circuitBreakerFailureThreshold,
-      recoveryTimeMs: config.circuitBreakerRecoveryMs,
-    });
-
-  return {
-    ...runtimeDeps,
-    actionLogger,
-    paperAdapterCircuitBreaker,
-    paperMarketAdapters,
-    fetchPaperWalletSnapshot:
-      runtimeDeps?.fetchPaperWalletSnapshot ??
-      createCanonicalPaperWalletSnapshotFetcher({
-        moralis: adapterBundle.moralis,
-        walletAddress: config.walletAddress!,
-      }),
-  };
 }

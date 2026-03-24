@@ -5,6 +5,7 @@ import type { Clock } from "../core/clock.js";
 import { SystemClock } from "../core/clock.js";
 import { triggerKillSwitch } from "./kill-switch.js";
 import { getLiveTestConfig } from "../config/safety.js";
+import type { DailyLossRepository } from "../persistence/daily-loss-repository.js";
 
 export interface DailyLossState {
   dateKey: string;
@@ -17,10 +18,48 @@ let state: DailyLossState = {
   tradesCount: 0,
   lossUsd: 0,
 };
+let repository: DailyLossRepository | undefined;
+
+export function configureDailyLossRepository(nextRepository?: DailyLossRepository): void {
+  repository = nextRepository;
+}
+
+export async function loadDailyLossState(nextRepository?: DailyLossRepository): Promise<DailyLossState> {
+  const repo = nextRepository ?? repository;
+  if (!repo) {
+    return getDailyLossState();
+  }
+
+  const loaded = repo.loadSync();
+  if (loaded) {
+    state = { ...loaded };
+  }
+  return getDailyLossState();
+}
+
+export function hydrateDailyLossState(nextState: DailyLossState): void {
+  state = { ...nextState };
+  persistDailyLossState();
+}
+
+function persistDailyLossState(): void {
+  if (!repository) {
+    return;
+  }
+
+  const snapshot = getDailyLossState();
+  if (typeof repository.saveSync === "function") {
+    repository.saveSync(snapshot);
+    return;
+  }
+
+  void repository.save(snapshot);
+}
 
 /** Reset for tests. */
 export function resetDailyLossState(): void {
   state = { dateKey: "", tradesCount: 0, lossUsd: 0 };
+  persistDailyLossState();
 }
 
 function toDateKey(clock: Clock): string {
@@ -40,6 +79,7 @@ function checkLimit(clock?: Clock): boolean {
   const key = toDateKey(c);
   if (state.dateKey !== key) {
     state = { dateKey: key, tradesCount: 0, lossUsd: 0 };
+    persistDailyLossState();
     return false;
   }
   const config = getLiveTestConfig();
@@ -81,6 +121,7 @@ export function recordTrade(lossUsd: number, clock?: Clock): void {
   if (config.enabled && state.lossUsd >= config.maxDailyLossUsd) {
     triggerKillSwitch(`Daily loss limit reached: ${state.lossUsd.toFixed(2)} USD >= ${config.maxDailyLossUsd} USD`);
   }
+  persistDailyLossState();
 }
 
 /**

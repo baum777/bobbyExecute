@@ -11,7 +11,8 @@ import type { CircuitBreaker } from "../governance/circuit-breaker.js";
 import type { ActionLogger } from "../observability/action-log.js";
 import type { KpiRouteDeps } from "./routes/kpi.js";
 import type { HealthRouteDeps } from "./routes/health.js";
-import type { DryRunRuntime, RuntimeSnapshot } from "../runtime/dry-run-runtime.js";
+import type { RuntimeController } from "../runtime/controller.js";
+import type { RuntimeSnapshot } from "../runtime/dry-run-runtime.js";
 
 export interface ServerConfig {
   port?: number;
@@ -24,7 +25,7 @@ export interface ServerConfig {
   chaosPassRate?: number;
   riskScore?: number;
   getRuntimeSnapshot?: () => RuntimeSnapshot;
-  runtime?: DryRunRuntime;
+  runtime?: RuntimeController;
   controlAuthToken?: string;
   operatorReadAuthToken?: string;
 }

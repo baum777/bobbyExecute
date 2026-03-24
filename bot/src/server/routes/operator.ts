@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import type { DryRunRuntime } from "../../runtime/dry-run-runtime.js";
+import type { RuntimeController } from "../../runtime/controller.js";
 import type { IncidentRecord } from "../../persistence/incident-repository.js";
 import type { RuntimeCycleSummary } from "../../persistence/runtime-cycle-summary-repository.js";
 import type { JournalEntry } from "../../core/contracts/journal.js";
@@ -10,7 +10,7 @@ const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
 
 export interface OperatorRouteDeps {
-  runtime?: DryRunRuntime;
+  runtime?: RuntimeController;
   getRuntimeSnapshot?: () => import("../../runtime/dry-run-runtime.js").RuntimeSnapshot;
   requiredToken?: string;
 }

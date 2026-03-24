@@ -1,6 +1,12 @@
 import type { TradeIntent } from "../core/contracts/trade.js";
 import { getKillSwitchState, isKillSwitchHalted, triggerKillSwitch } from "../governance/kill-switch.js";
 import { getDailyLossState } from "../governance/daily-loss-tracker.js";
+import type {
+  LiveControlRepository,
+  PersistedLiveControlState,
+  LiveControlReasonCode as PersistedLiveControlReasonCode,
+  LiveControlRoundStatus as PersistedLiveControlRoundStatus,
+} from "../persistence/live-control-repository.js";
 
 export type LiveControlPosture =
   | "live_unavailable"
@@ -186,6 +192,97 @@ const state: MutableControlState = {
   dailyNotional: 0,
   dailyKey: toDayKey(Date.now()),
 };
+let repository: LiveControlRepository | undefined;
+
+export function configureLiveControlRepository(nextRepository?: LiveControlRepository): void {
+  repository = nextRepository;
+}
+
+export async function loadLiveControlState(nextRepository?: LiveControlRepository): Promise<void> {
+  const repo = nextRepository ?? repository;
+  if (!repo) {
+    return;
+  }
+
+  const loaded = repo.loadSync();
+  if (loaded) {
+    hydrateLiveControlState(loaded);
+  }
+}
+
+export function hydrateLiveControlState(nextState: PersistedLiveControlState): void {
+  state.armed = nextState.armed;
+  state.blocked = nextState.blocked;
+  state.degraded = nextState.degraded;
+  state.manualRearmRequired = nextState.manualRearmRequired;
+  state.roundStatus = nextState.roundStatus as LiveTestRoundStatus;
+  state.roundStartedAt = nextState.roundStartedAt;
+  state.roundStoppedAt = nextState.roundStoppedAt;
+  state.roundCompletedAt = nextState.roundCompletedAt;
+  state.stopReason = nextState.stopReason;
+  state.failureReason = nextState.failureReason;
+  state.lastTransitionAt = nextState.lastTransitionAt;
+  state.lastTransitionBy = nextState.lastTransitionBy;
+  state.reasonCode = nextState.reasonCode;
+  state.reasonDetail = nextState.reasonDetail;
+  state.lastReasonAt = nextState.lastReasonAt;
+  state.lastOperatorAction = nextState.lastOperatorAction;
+  state.lastOperatorActionAt = nextState.lastOperatorActionAt;
+  state.lastGuardrailRefusal = nextState.lastGuardrailRefusal
+    ? { ...nextState.lastGuardrailRefusal }
+    : undefined;
+  state.inFlight = nextState.inFlight;
+  state.recentTradeAtMs = [...nextState.recentTradeAtMs];
+  state.recentFailureAtMs = [...nextState.recentFailureAtMs];
+  state.dailyNotional = nextState.dailyNotional;
+  state.dailyKey = nextState.dailyKey;
+  state.lastExecutionAtMs = nextState.lastExecutionAtMs;
+}
+
+function snapshotLiveControlState(): PersistedLiveControlState {
+  return {
+    armed: state.armed,
+    blocked: state.blocked,
+    degraded: state.degraded,
+    manualRearmRequired: state.manualRearmRequired,
+    roundStatus: state.roundStatus as PersistedLiveControlRoundStatus,
+    roundStartedAt: state.roundStartedAt,
+    roundStoppedAt: state.roundStoppedAt,
+    roundCompletedAt: state.roundCompletedAt,
+    stopReason: state.stopReason,
+    failureReason: state.failureReason,
+    lastTransitionAt: state.lastTransitionAt,
+    lastTransitionBy: state.lastTransitionBy,
+    reasonCode: state.reasonCode as PersistedLiveControlReasonCode | undefined,
+    reasonDetail: state.reasonDetail,
+    lastReasonAt: state.lastReasonAt,
+    lastOperatorAction: state.lastOperatorAction,
+    lastOperatorActionAt: state.lastOperatorActionAt,
+    lastGuardrailRefusal: state.lastGuardrailRefusal
+      ? { ...state.lastGuardrailRefusal, code: state.lastGuardrailRefusal.code as PersistedLiveControlReasonCode }
+      : undefined,
+    inFlight: state.inFlight,
+    recentTradeAtMs: [...state.recentTradeAtMs],
+    recentFailureAtMs: [...state.recentFailureAtMs],
+    dailyNotional: state.dailyNotional,
+    dailyKey: state.dailyKey,
+    lastExecutionAtMs: state.lastExecutionAtMs,
+  };
+}
+
+function persistLiveControlState(): void {
+  if (!repository) {
+    return;
+  }
+
+  const snapshot = snapshotLiveControlState();
+  if (typeof repository.saveSync === "function") {
+    repository.saveSync(snapshot);
+    return;
+  }
+
+  void repository.save(snapshot);
+}
 
 function toDayKey(nowMs: number): string {
   return new Date(nowMs).toISOString().slice(0, 10);
@@ -272,6 +369,7 @@ function markRoundTransition(
     state.manualRearmRequired = false;
     state.armed = false;
     setReason("micro_live_disarmed", detail ?? "Live-test round preflighted.", nowIso);
+    persistLiveControlState();
     return;
   }
 
@@ -283,6 +381,7 @@ function markRoundTransition(
     state.reasonCode = undefined;
     state.reasonDetail = undefined;
     state.lastReasonAt = undefined;
+    persistLiveControlState();
     return;
   }
 
@@ -294,6 +393,7 @@ function markRoundTransition(
     state.manualRearmRequired = true;
     state.degraded = true;
     setReason("micro_live_killed", detail ?? "Live-test round stopped.", nowIso);
+    persistLiveControlState();
     return;
   }
 
@@ -305,6 +405,7 @@ function markRoundTransition(
     state.manualRearmRequired = false;
     state.degraded = false;
     setReason("micro_live_disarmed", detail ?? "Live-test round completed.", nowIso);
+    persistLiveControlState();
     return;
   }
 
@@ -316,6 +417,7 @@ function markRoundTransition(
   state.degraded = true;
   state.manualRearmRequired = true;
   setReason("micro_live_config_invalid", detail ?? "Live-test round failed.", nowIso);
+  persistLiveControlState();
 }
 
 function refuseRoundTransition(
@@ -411,23 +513,32 @@ function readCaps(env: NodeJS.ProcessEnv): { valid: true; caps: MicroLiveCaps } 
 }
 
 function cleanupCounters(nowMs: number, caps: MicroLiveCaps): void {
+  let changed = false;
   const dayKey = toDayKey(nowMs);
   if (state.dailyKey !== dayKey) {
     state.dailyKey = dayKey;
     state.dailyNotional = 0;
     state.recentTradeAtMs = [];
     state.recentFailureAtMs = [];
+    changed = true;
   }
-  state.recentTradeAtMs = state.recentTradeAtMs.filter((timestamp) => nowMs - timestamp <= caps.windowMs);
-  state.recentFailureAtMs = state.recentFailureAtMs.filter(
-    (timestamp) => nowMs - timestamp <= caps.failureWindowMs
-  );
+  const nextTrades = state.recentTradeAtMs.filter((timestamp) => nowMs - timestamp <= caps.windowMs);
+  const nextFailures = state.recentFailureAtMs.filter((timestamp) => nowMs - timestamp <= caps.failureWindowMs);
+  if (nextTrades.length !== state.recentTradeAtMs.length || nextFailures.length !== state.recentFailureAtMs.length) {
+    changed = true;
+  }
+  state.recentTradeAtMs = nextTrades;
+  state.recentFailureAtMs = nextFailures;
+  if (changed) {
+    persistLiveControlState();
+  }
 }
 
 function setReason(code: LiveControlReasonCode, detail: string | undefined, nowIso: string): void {
   state.reasonCode = code;
   state.reasonDetail = detail;
   state.lastReasonAt = nowIso;
+  persistLiveControlState();
 }
 
 function evaluatePosture(executionMode: ExecutionMode, rollout: RolloutSnapshot): LiveControlPosture {
@@ -616,6 +727,7 @@ export function armMicroLive(actor = "operator_api"): { success: boolean; messag
   state.reasonDetail = undefined;
   state.lastOperatorAction = "arm";
   state.lastOperatorActionAt = nowIso;
+  persistLiveControlState();
   return {
     success: true,
     message: `Micro-live armed by ${actor}.`,
@@ -629,6 +741,7 @@ export function disarmMicroLive(actor = "operator_api"): { success: boolean; mes
   state.lastOperatorAction = "disarm";
   state.lastOperatorActionAt = nowIso;
   setReason("micro_live_disarmed", `Disarmed by ${actor}`, nowIso);
+  persistLiveControlState();
   return {
     success: true,
     message: `Micro-live disarmed by ${actor}.`,
@@ -643,6 +756,7 @@ export function killMicroLive(reason = "operator_kill_switch"): { success: boole
   state.lastOperatorActionAt = nowIso;
   state.degraded = true;
   triggerKillSwitch(reason);
+  persistLiveControlState();
   return {
     success: true,
     message: "Micro-live kill switch activated.",
@@ -669,6 +783,7 @@ export function resetKilledMicroLive(actor = "operator_api"): { success: boolean
     markRoundTransition("preflighted", actor, nowIso, `Kill state reset by ${actor}; live-test round returned to preflighted.`);
   }
   setReason("micro_live_disarmed", `Kill state reset by ${actor}; manual re-arm required.`, nowIso);
+  persistLiveControlState();
   return {
     success: true,
     message: "Kill state cleared for micro-live control; runtime remains disarmed.",
@@ -699,6 +814,7 @@ export function preflightLiveTestRound(actor = "bootstrap"): { success: boolean;
   }
 
   markRoundTransition("preflighted", actor, nowIso, "Live-test round preflighted.");
+  persistLiveControlState();
   return {
     success: true,
     message: "Live-test round preflighted.",
@@ -737,6 +853,7 @@ export function startLiveTestRound(actor = "runtime_start"): { success: boolean;
   }
 
   markRoundTransition("running", actor, nowIso, "Live-test round started.");
+  persistLiveControlState();
   return {
     success: true,
     message: "Live-test round started.",
@@ -774,6 +891,7 @@ export function stopLiveTestRound(
   state.lastOperatorAction = "kill";
   state.lastOperatorActionAt = nowIso;
   setReason("micro_live_killed", reason, nowIso);
+  persistLiveControlState();
   return {
     success: true,
     message: "Live-test round stopped.",
@@ -807,6 +925,7 @@ export function completeLiveTestRound(
   }
 
   markRoundTransition("completed", actor, nowIso, reason);
+  persistLiveControlState();
   return {
     success: true,
     message: "Live-test round completed.",
@@ -840,6 +959,7 @@ export function resetLiveTestRound(actor = "operator_api"): { success: boolean; 
   state.reasonCode = undefined;
   state.reasonDetail = undefined;
   state.lastReasonAt = undefined;
+  persistLiveControlState();
   return {
     success: true,
     message: "Live-test round reset to preflighted.",
@@ -1045,6 +1165,7 @@ export function evaluateMicroLiveIntent(intent: TradeIntent): LiveControlDecisio
   }
 
   state.inFlight += 1;
+  persistLiveControlState();
   return {
     allowed: true,
     attempt: {
@@ -1066,6 +1187,7 @@ export function finalizeMicroLiveIntent(attempt: LiveExecutionAttempt, report: {
     state.recentTradeAtMs.push(nowMs);
     state.dailyNotional += attempt.notional;
     state.lastExecutionAtMs = nowMs;
+    persistLiveControlState();
     return;
   }
 
@@ -1082,6 +1204,7 @@ export function finalizeMicroLiveIntent(attempt: LiveExecutionAttempt, report: {
       new Date(nowMs).toISOString()
     );
   }
+  persistLiveControlState();
 }
 
 export function resetMicroLiveControlForTests(): void {
@@ -1109,4 +1232,5 @@ export function resetMicroLiveControlForTests(): void {
   state.dailyNotional = 0;
   state.dailyKey = toDayKey(Date.now());
   state.lastExecutionAtMs = undefined;
+  persistLiveControlState();
 }

@@ -24,6 +24,7 @@ export const ConfigSchema = z
     dryRun: z.coerce.boolean().default(true),
     tradingEnabled: z.coerce.boolean().default(false),
     liveTestMode: z.coerce.boolean().default(false),
+    runtimePolicyAuthority: z.enum(["ts-env", "yaml"]).default("ts-env"),
 
     // Execution mode semantics (from LIVE_TRADING env)
     executionMode: z
@@ -148,6 +149,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     dryRun: env.DRY_RUN,
     tradingEnabled: env.TRADING_ENABLED,
     liveTestMode: env.LIVE_TEST_MODE,
+    runtimePolicyAuthority: env.RUNTIME_POLICY_AUTHORITY,
     executionMode: parseExecutionMode(env),
     rpcMode: parseRpcMode(env),
     rpcUrl: env.RPC_URL ?? "https://api.mainnet-beta.solana.com",

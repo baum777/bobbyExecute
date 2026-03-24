@@ -4,7 +4,12 @@
  * Calls assertLiveTradingPrerequisites after parse.
  */
 import { parseConfig, type Config } from "./config-schema.js";
-import { assertLiveTestPrerequisites, assertLiveTradingPrerequisites } from "./safety.js";
+import {
+  assertLiveTestPrerequisites,
+  assertLiveTradingPrerequisites,
+  assertValidRolloutPostureConfig,
+  assertRuntimePolicyAuthority,
+} from "./safety.js";
 
 let cachedConfig: Config | null = null;
 
@@ -17,6 +22,8 @@ export function loadConfig(env?: Record<string, string | undefined>): Config {
 
   const source = (env ?? process.env) as Record<string, string | undefined>;
   cachedConfig = parseConfig(source);
+  assertRuntimePolicyAuthority(cachedConfig);
+  assertValidRolloutPostureConfig(source);
   assertLiveTradingPrerequisites(cachedConfig);
   assertLiveTestPrerequisites(cachedConfig);
   return cachedConfig;
