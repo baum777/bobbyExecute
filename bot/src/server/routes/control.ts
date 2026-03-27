@@ -229,6 +229,13 @@ function buildFallbackRestartAlerts(
     highestOpenSeverity: undefined,
     divergenceAlerting: false,
     openSourceCategories: [],
+    externalNotificationCount: 0,
+    notificationFailureCount: 0,
+    notificationSuppressedCount: 0,
+    latestNotificationStatus: undefined,
+    latestNotificationAt: undefined,
+    latestNotificationFailureReason: undefined,
+    latestNotificationSuppressionReason: undefined,
     lastEvaluatedAt: worker?.observedAt ?? new Date().toISOString(),
   };
 }

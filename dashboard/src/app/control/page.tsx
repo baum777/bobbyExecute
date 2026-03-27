@@ -404,6 +404,23 @@ export default function ControlPage() {
               <p className="mt-1 text-sm text-text-primary">{safeRelative(restartAlertSummary?.lastSuccessfulRestartConvergenceAt)}</p>
               <p className="text-xs text-text-muted">{safeTimestamp(restartAlertSummary?.lastSuccessfulRestartConvergenceAt)}</p>
             </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/50 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">External notifications</p>
+              <p className="mt-1 text-sm text-text-primary">{restartAlertSummary?.externalNotificationCount ?? 0}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/50 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">Notification failures</p>
+              <p className="mt-1 text-sm text-text-primary">{restartAlertSummary?.notificationFailureCount ?? 0}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/50 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">Notification suppression</p>
+              <p className="mt-1 text-sm text-text-primary">{restartAlertSummary?.notificationSuppressedCount ?? 0}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/50 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">Latest notification</p>
+              <p className="mt-1 text-sm text-text-primary">{restartAlertSummary?.latestNotificationStatus?.toUpperCase() ?? 'NONE'}</p>
+              <p className="text-xs text-text-muted">{safeTimestamp(restartAlertSummary?.latestNotificationAt)}</p>
+            </div>
           </div>
 
           <p className="text-xs text-text-muted">
@@ -472,6 +489,26 @@ export default function ControlPage() {
                     <div>Last seen: {safeTimestamp(alert.lastSeenAt)}</div>
                     <div>Acknowledged: {alert.acknowledgedAt ? `${safeTimestamp(alert.acknowledgedAt)} · ${alert.acknowledgedBy ?? '—'}` : 'No'}</div>
                     <div>Resolved: {alert.resolvedAt ? `${safeTimestamp(alert.resolvedAt)} · ${alert.resolvedBy ?? '—'}` : 'No'}</div>
+                  </div>
+
+                  <div className="rounded border border-border-subtle bg-bg-surface-hover/30 p-3 text-xs text-text-muted space-y-1">
+                    <p>
+                      Notification status: {alert.notification?.latestDeliveryStatus?.toUpperCase() ?? 'NONE'}
+                      {alert.notification?.externallyNotified ? ' · externally notified' : ' · local only'}
+                    </p>
+                    <p>
+                      Sink: {alert.notification?.sinkName ?? '—'}
+                      {alert.notification?.sinkType ? ` (${alert.notification.sinkType})` : ''}
+                      {' · '}
+                      Attempts: {alert.notification?.attemptCount ?? 0}
+                    </p>
+                    {(alert.notification?.lastFailureReason || alert.notification?.suppressionReason) && (
+                      <p>
+                        {alert.notification?.lastFailureReason ? `Failure: ${alert.notification.lastFailureReason}` : ''}
+                        {alert.notification?.lastFailureReason && alert.notification?.suppressionReason ? ' · ' : ''}
+                        {alert.notification?.suppressionReason ? `Suppressed: ${alert.notification.suppressionReason}` : ''}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">

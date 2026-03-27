@@ -97,6 +97,8 @@ Restart-required config changes are considered pending until the private control
 
 Restart alerts open when convergence stalls or fails. `acknowledge` records that an operator is investigating the incident, while `resolve` is only accepted when the underlying condition is no longer active or the governing workflow explicitly allows manual closure. Automatic resolution happens when the worker heartbeat and applied version evidence show the restart has converged.
 
+Critical restart alerts may also emit a server-side notification through the private control plane. The notification bridge is advisory only: alert persistence happens first, delivery is rate-limited, and delivery failures are recorded without changing the canonical restart state. Operators should inspect `/control/restart-alerts` and `/control/status` if an alert remains open after a notification attempt.
+
 ## Alert Triggers
 
 Alert when:

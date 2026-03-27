@@ -99,6 +99,8 @@ The dashboard now calls the private control service through server-side proxy ro
 
 Restart-required config changes can now open durable restart alerts when worker convergence stalls or fails. Operators acknowledge an alert to record investigation, and resolve it only when the underlying condition has cleared or an explicit governed manual resolution is justified.
 
+Selected restart alerts can also notify an external server-side webhook through the private control plane. The webhook URL and token live only in Render service env vars on the control service, and notification delivery is rate-limited so repeated alert polling does not spam operators. Canonical alert state remains the Postgres source of truth even when notification delivery fails.
+
 ## Repo Layout
 
 ```text

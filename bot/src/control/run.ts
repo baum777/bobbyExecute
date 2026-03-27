@@ -9,7 +9,12 @@ import { createRuntimeVisibilityRepository } from "../persistence/runtime-visibi
 import { createWorkerRestartRepository } from "../persistence/worker-restart-repository.js";
 import { createWorkerRestartAlertRepository } from "../persistence/worker-restart-alert-repository.js";
 import { createWorkerRestartService } from "./worker-restart-service.js";
-import { WorkerRestartAlertService, createStructuredWorkerRestartAlertSink } from "./worker-restart-alert-service.js";
+import { WorkerRestartAlertService } from "./worker-restart-alert-service.js";
+import {
+  WorkerRestartNotificationService,
+  createStructuredWorkerRestartNotificationSink,
+  createGenericWebhookNotificationSink,
+} from "./worker-restart-notification-service.js";
 
 const entryConfig = loadConfig();
 if (!entryConfig.controlToken) {
@@ -25,6 +30,15 @@ const restartConvergenceTimeoutMs = (() => {
   const parsed = Number.parseInt(process.env.CONTROL_RESTART_CONVERGENCE_TIMEOUT_MS ?? "600000", 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 600000;
 })();
+const restartNotificationCooldownMs = (() => {
+  const parsed = Number.parseInt(process.env.CONTROL_RESTART_ALERT_NOTIFICATION_COOLDOWN_MS ?? "300000", 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 300000;
+})();
+const restartAlertWebhookTimeoutMs = (() => {
+  const parsed = Number.parseInt(process.env.CONTROL_RESTART_ALERT_WEBHOOK_TIMEOUT_MS ?? "5000", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 5000;
+})();
+const restartAlertWebhookRequired = (process.env.CONTROL_RESTART_ALERT_WEBHOOK_REQUIRED ?? "false").trim().toLowerCase() === "true";
 
 console.log(
   "[control] Starting BobbyExecute control plane",
@@ -54,13 +68,32 @@ console.log(
   const restartAlertRepository = await createWorkerRestartAlertRepository(process.env.DATABASE_URL);
   await restartAlertRepository.ensureSchema();
 
+  const structuredNotificationSink = createStructuredWorkerRestartNotificationSink(console);
+  const webhookNotificationSink = createGenericWebhookNotificationSink({
+    name: "restart-alert-webhook",
+    url: process.env.CONTROL_RESTART_ALERT_WEBHOOK_URL,
+    token: process.env.CONTROL_RESTART_ALERT_WEBHOOK_TOKEN,
+    headerName: process.env.CONTROL_RESTART_ALERT_WEBHOOK_HEADER,
+    timeoutMs: restartAlertWebhookTimeoutMs,
+    required: restartAlertWebhookRequired,
+    logger: console,
+  });
+  const notificationService = new WorkerRestartNotificationService({
+    environment: runtimeEnvironment,
+    workerServiceName,
+    alertRepository: restartAlertRepository,
+    sinks: [structuredNotificationSink, webhookNotificationSink],
+    notificationCooldownMs: restartNotificationCooldownMs,
+    logger: console,
+  });
+
   const restartAlertService = new WorkerRestartAlertService({
     environment: runtimeEnvironment,
     workerServiceName,
     restartRepository,
     alertRepository: restartAlertRepository,
     convergenceTimeoutMs: restartConvergenceTimeoutMs,
-    alertSink: createStructuredWorkerRestartAlertSink(console),
+    notificationService,
     logger: console,
   });
 

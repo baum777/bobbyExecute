@@ -73,9 +73,19 @@ environments:
             value: "300000"
           - key: CONTROL_RESTART_CONVERGENCE_TIMEOUT_MS
             value: "600000"
+          - key: CONTROL_RESTART_ALERT_NOTIFICATION_COOLDOWN_MS
+            value: "300000"
+          - key: CONTROL_RESTART_ALERT_WEBHOOK_TIMEOUT_MS
+            value: "5000"
+          - key: CONTROL_RESTART_ALERT_WEBHOOK_REQUIRED
+            value: "true"
           - key: WORKER_SERVICE_NAME
             value: bobbyexecute-runtime-staging
           - key: WORKER_DEPLOY_HOOK_URL
+            sync: false
+          - key: CONTROL_RESTART_ALERT_WEBHOOK_URL
+            sync: false
+          - key: CONTROL_RESTART_ALERT_WEBHOOK_TOKEN
             sync: false
           - key: DATABASE_URL
             fromDatabase:
@@ -259,9 +269,19 @@ environments:
             value: "300000"
           - key: CONTROL_RESTART_CONVERGENCE_TIMEOUT_MS
             value: "600000"
+          - key: CONTROL_RESTART_ALERT_NOTIFICATION_COOLDOWN_MS
+            value: "300000"
+          - key: CONTROL_RESTART_ALERT_WEBHOOK_TIMEOUT_MS
+            value: "5000"
+          - key: CONTROL_RESTART_ALERT_WEBHOOK_REQUIRED
+            value: "true"
           - key: WORKER_SERVICE_NAME
             value: bobbyexecute-runtime-production
           - key: WORKER_DEPLOY_HOOK_URL
+            sync: false
+          - key: CONTROL_RESTART_ALERT_WEBHOOK_URL
+            sync: false
+          - key: CONTROL_RESTART_ALERT_WEBHOOK_TOKEN
             sync: false
           - key: DATABASE_URL
             fromDatabase:

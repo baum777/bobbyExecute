@@ -86,6 +86,7 @@ npm run live:test
 - `/control/runtime-config` is the first-class runtime behavior control surface for mode, pause, kill switch, filters, thresholds, and reload state on the private control service.
 - `/control/restart-worker` is the private, audited orchestration path for restart-required config promotions.
 - `/control/restart-alerts` exposes durable restart incidents, severity, acknowledgement state, and recommended operator actions.
+- The private control plane can also forward selected restart-alert events to a server-side webhook sink. The browser never receives the webhook URL or token, and notification delivery failures do not change canonical alert state.
 - If the control token is missing, the protected routes fail closed.
 
 ## Related Docs

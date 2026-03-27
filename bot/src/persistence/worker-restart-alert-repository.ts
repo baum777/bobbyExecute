@@ -11,6 +11,41 @@ export type WorkerRestartAlertSourceCategory =
   | "applied_version_stalled"
   | "repeated_restart_failures"
   | "convergence_timeout";
+export type WorkerRestartAlertNotificationEventType =
+  | "alert_opened"
+  | "alert_escalated"
+  | "alert_acknowledged"
+  | "alert_resolved"
+  | "alert_repeated_failure_summary";
+export type WorkerRestartAlertNotificationStatus = "pending" | "sent" | "skipped" | "suppressed" | "failed";
+
+export interface WorkerRestartAlertNotificationSummary {
+  externallyNotified: boolean;
+  sinkName?: string;
+  sinkType?: string;
+  eventType?: WorkerRestartAlertNotificationEventType;
+  latestDeliveryStatus?: WorkerRestartAlertNotificationStatus;
+  attemptCount: number;
+  lastAttemptedAt?: string;
+  lastFailureReason?: string;
+  suppressionReason?: string;
+  dedupeKey?: string;
+  payloadFingerprint?: string;
+}
+
+export type WorkerRestartAlertEventAction =
+  | "opened"
+  | "updated"
+  | "escalated"
+  | "reopened"
+  | "acknowledged"
+  | "acknowledge_rejected"
+  | "resolved"
+  | "resolve_rejected"
+  | "notification_sent"
+  | "notification_skipped"
+  | "notification_suppressed"
+  | "notification_failed";
 
 export interface WorkerRestartAlertRecord {
   id: string;
@@ -43,6 +78,7 @@ export interface WorkerRestartAlertRecord {
   lastWorkerHeartbeatAt?: string;
   lastAppliedVersionId?: string;
   requestedVersionId?: string;
+  notification?: WorkerRestartAlertNotificationSummary;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,16 +87,7 @@ export interface WorkerRestartAlertEventRecord {
   id: string;
   environment: string;
   alertId: string;
-  action:
-    | "opened"
-    | "updated"
-    | "escalated"
-    | "reopened"
-    | "acknowledged"
-    | "acknowledge_rejected"
-    | "resolved"
-    | "resolve_rejected"
-    | "notification_failed";
+  action: WorkerRestartAlertEventAction;
   actor: string;
   accepted: boolean;
   beforeStatus?: WorkerRestartAlertStatus;
@@ -69,6 +96,18 @@ export interface WorkerRestartAlertEventRecord {
   summary?: string;
   note?: string;
   metadata?: Record<string, unknown>;
+  notificationSinkName?: string;
+  notificationSinkType?: string;
+  notificationEventType?: WorkerRestartAlertNotificationEventType;
+  notificationStatus?: WorkerRestartAlertNotificationStatus;
+  notificationDedupeKey?: string;
+  notificationPayloadFingerprint?: string;
+  notificationAttemptCount?: number;
+  notificationFailureReason?: string;
+  notificationSuppressionReason?: string;
+  notificationResponseStatus?: number;
+  notificationResponseBody?: string;
+  notificationScope?: "internal" | "external";
   createdAt: string;
 }
 
@@ -143,6 +182,24 @@ function mapEvent(row: Record<string, unknown>): WorkerRestartAlertEventRecord {
     summary: row.summary == null ? undefined : String(row.summary),
     note: row.note == null ? undefined : String(row.note),
     metadata: row.metadata_json == null ? undefined : clone(row.metadata_json as Record<string, unknown>),
+    notificationSinkName: row.notification_sink_name == null ? undefined : String(row.notification_sink_name),
+    notificationSinkType: row.notification_sink_type == null ? undefined : String(row.notification_sink_type),
+    notificationEventType: row.notification_event_type == null ? undefined : (String(row.notification_event_type) as WorkerRestartAlertNotificationEventType),
+    notificationStatus: row.notification_status == null ? undefined : (String(row.notification_status) as WorkerRestartAlertNotificationStatus),
+    notificationDedupeKey: row.notification_dedupe_key == null ? undefined : String(row.notification_dedupe_key),
+    notificationPayloadFingerprint:
+      row.notification_payload_fingerprint == null ? undefined : String(row.notification_payload_fingerprint),
+    notificationAttemptCount:
+      row.notification_attempt_count == null ? undefined : Number(row.notification_attempt_count),
+    notificationFailureReason:
+      row.notification_failure_reason == null ? undefined : String(row.notification_failure_reason),
+    notificationSuppressionReason:
+      row.notification_suppression_reason == null ? undefined : String(row.notification_suppression_reason),
+    notificationResponseStatus:
+      row.notification_response_status == null ? undefined : Number(row.notification_response_status),
+    notificationResponseBody:
+      row.notification_response_body == null ? undefined : String(row.notification_response_body),
+    notificationScope: row.notification_scope == null ? undefined : (String(row.notification_scope) as "internal" | "external"),
     createdAt: String(row.created_at),
   };
 }
@@ -319,6 +376,18 @@ export class PostgresWorkerRestartAlertRepository implements WorkerRestartAlertR
           summary text,
           note text,
           metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+          notification_sink_name text,
+          notification_sink_type text,
+          notification_event_type text,
+          notification_status text,
+          notification_dedupe_key text,
+          notification_payload_fingerprint text,
+          notification_attempt_count integer,
+          notification_failure_reason text,
+          notification_suppression_reason text,
+          notification_response_status integer,
+          notification_response_body text,
+          notification_scope text,
           created_at timestamptz NOT NULL
         )
       `);
@@ -326,6 +395,22 @@ export class PostgresWorkerRestartAlertRepository implements WorkerRestartAlertR
         CREATE INDEX IF NOT EXISTS worker_restart_alert_events_environment_alert_idx
         ON worker_restart_alert_events (environment, alert_id, created_at DESC)
       `);
+      for (const column of [
+        "notification_sink_name text",
+        "notification_sink_type text",
+        "notification_event_type text",
+        "notification_status text",
+        "notification_dedupe_key text",
+        "notification_payload_fingerprint text",
+        "notification_attempt_count integer",
+        "notification_failure_reason text",
+        "notification_suppression_reason text",
+        "notification_response_status integer",
+        "notification_response_body text",
+        "notification_scope text",
+      ]) {
+        await client.query(`ALTER TABLE worker_restart_alert_events ADD COLUMN IF NOT EXISTS ${column}`);
+      }
     });
   }
 
@@ -484,8 +569,11 @@ export class PostgresWorkerRestartAlertRepository implements WorkerRestartAlertR
         `
           INSERT INTO worker_restart_alert_events (
             id, environment, alert_id, action, actor, accepted, before_status, after_status,
-            reason_code, summary, note, metadata_json, created_at
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+            reason_code, summary, note, metadata_json, notification_sink_name, notification_sink_type,
+            notification_event_type, notification_status, notification_dedupe_key, notification_payload_fingerprint,
+            notification_attempt_count, notification_failure_reason, notification_suppression_reason,
+            notification_response_status, notification_response_body, notification_scope, created_at
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
         `,
         [
           record.id,
@@ -500,6 +588,18 @@ export class PostgresWorkerRestartAlertRepository implements WorkerRestartAlertR
           record.summary ?? null,
           record.note ?? null,
           JSON.stringify(record.metadata ?? {}),
+          record.notificationSinkName ?? null,
+          record.notificationSinkType ?? null,
+          record.notificationEventType ?? null,
+          record.notificationStatus ?? null,
+          record.notificationDedupeKey ?? null,
+          record.notificationPayloadFingerprint ?? null,
+          record.notificationAttemptCount ?? null,
+          record.notificationFailureReason ?? null,
+          record.notificationSuppressionReason ?? null,
+          record.notificationResponseStatus ?? null,
+          record.notificationResponseBody ?? null,
+          record.notificationScope ?? null,
           record.createdAt,
         ]
       );

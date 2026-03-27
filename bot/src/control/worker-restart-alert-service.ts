@@ -4,12 +4,16 @@ import type { WorkerRestartRecordStatus, WorkerRestartRepository, WorkerRestartR
 import type { WorkerRestartSnapshot } from "./worker-restart-service.js";
 import type {
   WorkerRestartAlertEventRecord,
+  WorkerRestartAlertNotificationEventType,
+  WorkerRestartAlertNotificationStatus,
+  WorkerRestartAlertNotificationSummary,
   WorkerRestartAlertRecord,
   WorkerRestartAlertRepository,
   WorkerRestartAlertSeverity,
   WorkerRestartAlertSourceCategory,
   WorkerRestartAlertStatus,
 } from "../persistence/worker-restart-alert-repository.js";
+import type { WorkerRestartNotificationService } from "./worker-restart-notification-service.js";
 
 export interface WorkerRestartAlertSummary {
   environment: string;
@@ -24,6 +28,13 @@ export interface WorkerRestartAlertSummary {
   highestOpenSeverity?: WorkerRestartAlertSeverity;
   divergenceAlerting: boolean;
   openSourceCategories: WorkerRestartAlertSourceCategory[];
+  externalNotificationCount: number;
+  notificationFailureCount: number;
+  notificationSuppressedCount: number;
+  latestNotificationStatus?: WorkerRestartAlertNotificationStatus;
+  latestNotificationAt?: string;
+  latestNotificationFailureReason?: string;
+  latestNotificationSuppressionReason?: string;
   lastEvaluatedAt?: string;
 }
 
@@ -41,17 +52,6 @@ export interface WorkerRestartAlertActionResponse {
   summary: WorkerRestartAlertSummary;
 }
 
-export interface WorkerRestartAlertSinkEvent {
-  action: "opened" | "updated" | "escalated" | "reopened" | "acknowledged" | "resolved";
-  alert: WorkerRestartAlertRecord;
-  note?: string;
-}
-
-export interface WorkerRestartAlertSink {
-  readonly kind: string;
-  notify(event: WorkerRestartAlertSinkEvent): Promise<void>;
-}
-
 export interface WorkerRestartAlertServiceOptions {
   environment: string;
   workerServiceName: string;
@@ -61,7 +61,7 @@ export interface WorkerRestartAlertServiceOptions {
   quietWindowMs?: number;
   repeatWindowMs?: number;
   repeatFailureThreshold?: number;
-  alertSink?: WorkerRestartAlertSink;
+  notificationService?: WorkerRestartNotificationService;
   logger?: Pick<Console, "info" | "warn" | "error">;
 }
 
@@ -114,6 +114,15 @@ function buildSummary(
   const activeAlerts = alerts.filter((alert) => alert.status !== "resolved");
   const openAlerts = activeAlerts.filter((alert) => alert.status === "open");
   const acknowledgedAlerts = activeAlerts.filter((alert) => alert.status === "acknowledged");
+  const notificationStates = alerts.map((alert) => alert.notification).filter(Boolean) as WorkerRestartAlertNotificationSummary[];
+  const externalNotificationCount = notificationStates.filter((state) => state.externallyNotified).length;
+  const notificationFailureCount = notificationStates.filter((state) => state.latestDeliveryStatus === "failed").length;
+  const notificationSuppressedCount = notificationStates.filter((state) =>
+    state.latestDeliveryStatus === "suppressed" || state.latestDeliveryStatus === "skipped"
+  ).length;
+  const latestNotification = notificationStates
+    .filter((state) => Boolean(state.lastAttemptedAt))
+    .sort((left, right) => Date.parse(String(right.lastAttemptedAt)) - Date.parse(String(left.lastAttemptedAt)))[0];
   const highestOpenSeverity = activeAlerts.reduce<WorkerRestartAlertSeverity | undefined>((current, alert) => {
     if (!current) return alert.severity;
     if (current === "critical") return current;
@@ -141,6 +150,13 @@ function buildSummary(
     highestOpenSeverity,
     divergenceAlerting: activeAlerts.length > 0,
     openSourceCategories: [...new Set(activeAlerts.map((alert) => alert.sourceCategory))],
+    externalNotificationCount,
+    notificationFailureCount,
+    notificationSuppressedCount,
+    latestNotificationStatus: latestNotification?.latestDeliveryStatus,
+    latestNotificationAt: latestNotification?.lastAttemptedAt,
+    latestNotificationFailureReason: latestNotification?.lastFailureReason,
+    latestNotificationSuppressionReason: latestNotification?.suppressionReason,
     lastEvaluatedAt,
   };
 }
@@ -164,6 +180,13 @@ function buildFallbackSummary(
     highestOpenSeverity: undefined,
     divergenceAlerting: false,
     openSourceCategories: [],
+    externalNotificationCount: 0,
+    notificationFailureCount: 0,
+    notificationSuppressedCount: 0,
+    latestNotificationStatus: undefined,
+    latestNotificationAt: undefined,
+    latestNotificationFailureReason: undefined,
+    latestNotificationSuppressionReason: undefined,
     lastEvaluatedAt,
   };
 }
@@ -631,20 +654,45 @@ export class WorkerRestartAlertService {
     return this.deps.repeatFailureThreshold ?? 2;
   }
 
-  private async emitTransition(action: WorkerRestartAlertSinkEvent["action"], alert: WorkerRestartAlertRecord, note?: string): Promise<void> {
-    if (!this.deps.alertSink) {
+  private async enrichAlert(alert: WorkerRestartAlertRecord): Promise<WorkerRestartAlertRecord> {
+    if (!this.deps.notificationService) {
+      return alert;
+    }
+
+    return this.deps.notificationService.summarizeAlert(alert);
+  }
+
+  private async enrichAlerts(alerts: WorkerRestartAlertRecord[]): Promise<WorkerRestartAlertRecord[]> {
+    if (!this.deps.notificationService) {
+      return alerts;
+    }
+
+    return this.deps.notificationService.summarizeAlerts(alerts);
+  }
+
+  private async dispatchNotification(
+    alert: WorkerRestartAlertRecord,
+    eventType: WorkerRestartAlertNotificationEventType,
+    note?: string
+  ): Promise<void> {
+    if (!this.deps.notificationService) {
       return;
     }
 
     try {
-      await this.deps.alertSink.notify({ action, alert: clone(alert), note });
+      await this.deps.notificationService.dispatch({
+        actor: "system",
+        alert: clone(alert),
+        eventType,
+        note,
+      });
     } catch (error) {
       await this.deps.alertRepository.recordEvent({
         id: randomUUID(),
         environment: alert.environment,
         alertId: alert.id,
         action: "notification_failed",
-        actor: "alert_sink",
+        actor: "notification_bridge",
         accepted: false,
         beforeStatus: alert.status,
         afterStatus: alert.status,
@@ -652,9 +700,13 @@ export class WorkerRestartAlertService {
         summary: alert.summary,
         note: error instanceof Error ? error.message : String(error),
         metadata: {
+          eventType,
           dedupeKey: alert.dedupeKey,
           sourceCategory: alert.sourceCategory,
         },
+        notificationEventType: eventType,
+        notificationStatus: "failed",
+        notificationScope: "external",
         createdAt: nowIso(),
       });
     }
@@ -745,7 +797,7 @@ export class WorkerRestartAlertService {
     };
 
     await this.deps.alertRepository.save(alert);
-    const action: WorkerRestartAlertSinkEvent["action"] | null = !existing
+    const action: WorkerRestartAlertEventRecord["action"] | null = !existing
       ? "opened"
       : isReopened
         ? "reopened"
@@ -753,6 +805,16 @@ export class WorkerRestartAlertService {
           ? "escalated"
           : conditionChanged || shouldIncrementOccurrence || statusChanged
             ? "updated"
+            : null;
+    const notificationEventType: WorkerRestartAlertNotificationEventType | null =
+      action === "opened" || action === "reopened"
+        ? alert.sourceCategory === "repeated_restart_failures"
+          ? "alert_repeated_failure_summary"
+          : "alert_opened"
+        : action === "escalated"
+          ? "alert_escalated"
+          : action === "updated" && alert.sourceCategory === "repeated_restart_failures"
+            ? "alert_repeated_failure_summary"
             : null;
 
     if (action && action !== "updated") {
@@ -778,7 +840,9 @@ export class WorkerRestartAlertService {
         },
         createdAt: now,
       });
-      await this.emitTransition(action, alert);
+      if (notificationEventType) {
+        await this.dispatchNotification(alert, notificationEventType);
+      }
     } else if (conditionChanged || shouldIncrementOccurrence || statusChanged) {
       await this.recordTransition("updated", alert, "system", true, undefined, {
         conditionSignature: alert.conditionSignature,
@@ -788,9 +852,12 @@ export class WorkerRestartAlertService {
         shouldIncrementOccurrence,
         statusChanged,
       });
+      if (notificationEventType) {
+        await this.dispatchNotification(alert, notificationEventType);
+      }
     }
 
-    return alert;
+    return this.enrichAlert(alert);
   }
 
   private async resolveAlert(existing: WorkerRestartAlertRecord, note: string, actor = "system"): Promise<WorkerRestartAlertRecord> {
@@ -823,8 +890,8 @@ export class WorkerRestartAlertService {
       },
       createdAt: now,
     });
-    await this.emitTransition("resolved", resolved, note);
-    return resolved;
+    await this.dispatchNotification(resolved, "alert_resolved", note);
+    return this.enrichAlert(resolved);
   }
 
   private async loadCurrentEvaluations(snapshot: WorkerRestartSnapshot): Promise<{
@@ -877,7 +944,7 @@ export class WorkerRestartAlertService {
       byKey.set(resolved.dedupeKey, resolved);
     }
 
-    const refreshedAlerts = await this.deps.alertRepository.list(this.deps.environment, 200);
+    const refreshedAlerts = await this.enrichAlerts(await this.deps.alertRepository.list(this.deps.environment, 200));
     const latestRestartRequestStatus = recentRequests[0]?.status ?? snapshot.request?.status;
     return buildSummary(
       this.deps.environment,
@@ -891,7 +958,7 @@ export class WorkerRestartAlertService {
 
   async list(snapshot: WorkerRestartSnapshot, limit = 50): Promise<WorkerRestartAlertListResponse> {
     const summary = await this.sync(snapshot);
-    const alerts = await this.deps.alertRepository.list(this.deps.environment, limit);
+    const alerts = await this.enrichAlerts(await this.deps.alertRepository.list(this.deps.environment, limit));
     return { summary, alerts };
   }
 
@@ -959,12 +1026,12 @@ export class WorkerRestartAlertService {
       },
       createdAt: now,
     });
-    await this.emitTransition("acknowledged", updated, input.note);
+    await this.dispatchNotification(updated, "alert_acknowledged", input.note);
     return {
       accepted: true,
       statusCode: 200,
       message: "restart alert acknowledged",
-      alert: updated,
+      alert: await this.enrichAlert(updated),
       summary: await this.sync(snapshot),
     };
   }
@@ -997,7 +1064,7 @@ export class WorkerRestartAlertService {
         statusCode: 409,
         message: "restart alert cannot be resolved while the underlying condition is still active",
         reason: "alert condition is still active",
-        alert: existing,
+        alert: await this.enrichAlert(existing),
         summary,
       };
     }
@@ -1007,7 +1074,7 @@ export class WorkerRestartAlertService {
         accepted: true,
         statusCode: 200,
         message: "restart alert already resolved",
-        alert: existing,
+        alert: await this.enrichAlert(existing),
         summary,
       };
     }
@@ -1021,39 +1088,4 @@ export class WorkerRestartAlertService {
       summary: await this.sync(snapshot),
     };
   }
-}
-
-export function createStructuredWorkerRestartAlertSink(
-  logger: Pick<Console, "info" | "warn" | "error"> = console
-): WorkerRestartAlertSink {
-  return {
-    kind: "structured_log",
-    async notify(event) {
-      const payload = {
-        action: event.action,
-        alertId: event.alert.id,
-        environment: event.alert.environment,
-        restartRequestId: event.alert.restartRequestId,
-        sourceCategory: event.alert.sourceCategory,
-        severity: event.alert.severity,
-        status: event.alert.status,
-        summary: event.alert.summary,
-        note: event.note,
-      };
-
-      switch (event.action) {
-        case "resolved":
-          logger.info("[restart-alert] resolved", JSON.stringify(payload));
-          break;
-        case "escalated":
-        case "opened":
-        case "reopened":
-          logger.warn("[restart-alert] transition", JSON.stringify(payload));
-          break;
-        default:
-          logger.info("[restart-alert] update", JSON.stringify(payload));
-          break;
-      }
-    },
-  };
 }

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRuntimeConfigTestManager } from "../helpers/runtime-config-test-kit.js";
 import { createRuntimeVisibilityRepository, type RuntimeVisibilitySnapshot } from "../../src/persistence/runtime-visibility-repository.js";
 import {
@@ -10,6 +10,11 @@ import {
 } from "../../src/persistence/worker-restart-alert-repository.js";
 import { WorkerRestartAlertService } from "../../src/control/worker-restart-alert-service.js";
 import { WorkerRestartService } from "../../src/control/worker-restart-service.js";
+import {
+  WorkerRestartNotificationService,
+  createStructuredWorkerRestartNotificationSink,
+  type WorkerRestartNotificationSink,
+} from "../../src/control/worker-restart-notification-service.js";
 import type {
   WorkerRestartOrchestrator,
   WorkerRestartOrchestrationRequest,
@@ -168,6 +173,27 @@ function createOrchestrator(options: {
   };
 }
 
+function createWebhookSink(options: {
+  configured?: boolean;
+  notifyImpl?: WorkerRestartNotificationSink["notify"];
+} = {}): WorkerRestartNotificationSink {
+  return {
+    kind: "generic_webhook",
+    name: "test-webhook",
+    scope: "external",
+    configured: options.configured ?? true,
+    async notify(payload) {
+      if (options.notifyImpl) {
+        return options.notifyImpl(payload);
+      }
+      return {
+        status: "sent",
+        reason: "test webhook delivered",
+      };
+    },
+  };
+}
+
 async function createHarness(options: {
   orchestrator?: WorkerRestartOrchestrator;
   convergenceTimeoutMs?: number;
@@ -180,6 +206,17 @@ async function createHarness(options: {
   await visibilityRepository.save(buildVisibilitySnapshot());
   const restartRepository = new InMemoryWorkerRestartRepository();
   const alertRepository = new InMemoryWorkerRestartAlertRepository();
+  const notificationService = new WorkerRestartNotificationService({
+    environment: "test",
+    workerServiceName: "mock-runtime-worker",
+    alertRepository,
+    sinks: [
+      createStructuredWorkerRestartNotificationSink(console),
+      createWebhookSink(options.orchestrator ? { configured: true } : { configured: true }),
+    ],
+    notificationCooldownMs: 5_000,
+    logger: console,
+  });
   const alertService = new WorkerRestartAlertService({
     environment: "test",
     workerServiceName: "mock-runtime-worker",
@@ -189,6 +226,7 @@ async function createHarness(options: {
     quietWindowMs: options.quietWindowMs ?? 60_000,
     repeatWindowMs: options.repeatWindowMs ?? 3_600_000,
     repeatFailureThreshold: options.repeatFailureThreshold ?? 2,
+    notificationService,
   });
 
   const restartService = new WorkerRestartService({
@@ -291,10 +329,15 @@ describe("restart alert service", () => {
 
     const alerts = await harness.restartService.readRestartAlerts();
     expect(alerts.summary.openAlertCount).toBe(1);
+    expect(alerts.summary.externalNotificationCount).toBe(0);
     expect(alerts.alerts[0]).toMatchObject({
       sourceCategory: "orchestration_failure",
       severity: "warning",
       status: "open",
+    });
+    expect(alerts.alerts[0].notification).toMatchObject({
+      externallyNotified: false,
+      latestDeliveryStatus: "skipped",
     });
   });
 
@@ -406,6 +449,7 @@ describe("restart alert service", () => {
       status: "resolved",
       resolvedBy: "system",
     });
+    expect(alert?.notification?.latestDeliveryStatus).toBe("skipped");
   });
 
   it("dedupes repeated evaluation of the same active alert", async () => {

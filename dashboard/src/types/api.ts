@@ -65,6 +65,27 @@ export type WorkerRestartAlertSourceCategory =
   | 'applied_version_stalled'
   | 'repeated_restart_failures'
   | 'convergence_timeout';
+export type WorkerRestartAlertNotificationEventType =
+  | 'alert_opened'
+  | 'alert_escalated'
+  | 'alert_acknowledged'
+  | 'alert_resolved'
+  | 'alert_repeated_failure_summary';
+export type WorkerRestartAlertNotificationStatus = 'pending' | 'sent' | 'skipped' | 'suppressed' | 'failed';
+
+export interface WorkerRestartAlertNotificationSummary {
+  externallyNotified: boolean;
+  sinkName?: string;
+  sinkType?: string;
+  eventType?: WorkerRestartAlertNotificationEventType;
+  latestDeliveryStatus?: WorkerRestartAlertNotificationStatus;
+  attemptCount: number;
+  lastAttemptedAt?: string;
+  lastFailureReason?: string;
+  suppressionReason?: string;
+  dedupeKey?: string;
+  payloadFingerprint?: string;
+}
 
 export interface WorkerRestartStatus {
   required: boolean;
@@ -119,6 +140,7 @@ export interface WorkerRestartAlertRecord {
   lastWorkerHeartbeatAt?: string;
   lastAppliedVersionId?: string;
   requestedVersionId?: string;
+  notification?: WorkerRestartAlertNotificationSummary;
   createdAt: string;
   updatedAt: string;
 }
@@ -136,6 +158,13 @@ export interface WorkerRestartAlertSummary {
   highestOpenSeverity?: WorkerRestartAlertSeverity;
   divergenceAlerting: boolean;
   openSourceCategories: WorkerRestartAlertSourceCategory[];
+  externalNotificationCount?: number;
+  notificationFailureCount?: number;
+  notificationSuppressedCount?: number;
+  latestNotificationStatus?: WorkerRestartAlertNotificationStatus;
+  latestNotificationAt?: string;
+  latestNotificationFailureReason?: string;
+  latestNotificationSuppressionReason?: string;
   lastEvaluatedAt?: string;
 }
 

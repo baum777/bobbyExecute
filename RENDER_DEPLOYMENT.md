@@ -3,6 +3,16 @@
 This repo now ships a Render Blueprint at [`render.yaml`](render.yaml).
 The Blueprint is the source of truth for the current deployment baseline.
 
+## Stepwise Setup
+
+If you want the shortest implementation path, do this in order:
+
+1. Deploy the background worker as a Render `worker` service.
+2. Deploy the public bot API as a Render `web` service.
+3. Deploy the private control plane as a Render `pserv` service.
+4. Deploy the dashboard as a Render `web` service.
+5. Fill the secret env vars in the Render dashboard.
+
 ## Current Render Topology
 
 The deployed baseline now matches the worker split:
@@ -18,7 +28,7 @@ The public bot service stays read-only. Mutations live on the private control se
 
 ## Build And Start
 
-Bot service:
+Bot web service:
 
 - Build: `cd bot && npm ci && npm run build`
 - Start: `cd bot && npm run start:server`
@@ -45,6 +55,61 @@ Dashboard service:
 - Start: `cd dashboard && npm run start`
 - Public API base: `NEXT_PUBLIC_API_URL` is injected from the bot service's `RENDER_EXTERNAL_URL`
 - Privileged control proxy: `CONTROL_SERVICE_HOSTNAME` and `CONTROL_SERVICE_PORT` are injected from the private control service, and `CONTROL_TOKEN` stays server-side only
+
+## Required Environment Variables
+
+The Render Blueprint already defines these values. Grouped here for implementation clarity:
+
+Shared bot/runtime config:
+
+- `NODE_ENV=production`
+- `HOST=0.0.0.0` for the public web service
+- `RUNTIME_CONFIG_ENV=staging|production`
+- `LIVE_TRADING=false`
+- `DRY_RUN=true`
+- `TRADING_ENABLED=false`
+- `LIVE_TEST_MODE=false`
+- `RPC_MODE=stub`
+- `RUNTIME_POLICY_AUTHORITY=ts-env`
+- `REVIEW_POLICY_MODE=required`
+- `MAX_SLIPPAGE_PERCENT=5`
+- `CIRCUIT_BREAKER_FAILURE_THRESHOLD=5`
+- `CIRCUIT_BREAKER_RECOVERY_MS=60000`
+
+Public bot web service:
+
+- `DATABASE_URL`
+- `DASHBOARD_ORIGIN`
+
+Private control service:
+
+- `CONTROL_TOKEN`
+- `CONTROL_RESTARTS_ENABLED=true`
+- `CONTROL_RESTART_COOLDOWN_MS=300000`
+- `CONTROL_RESTART_CONVERGENCE_TIMEOUT_MS=600000`
+- `CONTROL_RESTART_ALERT_NOTIFICATION_COOLDOWN_MS=300000`
+- `CONTROL_RESTART_ALERT_WEBHOOK_TIMEOUT_MS=5000`
+- `CONTROL_RESTART_ALERT_WEBHOOK_REQUIRED=true`
+- `WORKER_SERVICE_NAME`
+- `WORKER_DEPLOY_HOOK_URL`
+- `CONTROL_RESTART_ALERT_WEBHOOK_URL`
+- `CONTROL_RESTART_ALERT_WEBHOOK_TOKEN`
+- `DATABASE_URL`
+- `REDIS_URL`
+
+Runtime worker:
+
+- `DATABASE_URL`
+- `REDIS_URL`
+- `JOURNAL_PATH=/var/data/journal.jsonl`
+- `WORKER_HEARTBEAT_INTERVAL_MS=5000`
+
+Dashboard service:
+
+- `CONTROL_TOKEN`
+- `CONTROL_SERVICE_HOSTNAME`
+- `CONTROL_SERVICE_PORT`
+- `NEXT_PUBLIC_API_URL`
 
 ## Environment Split
 
@@ -91,8 +156,13 @@ The private control service receives:
 - `CONTROL_RESTARTS_ENABLED=true` to allow restart orchestration
 - `CONTROL_RESTART_COOLDOWN_MS=300000` to rate-limit repeated restart requests
 - `CONTROL_RESTART_CONVERGENCE_TIMEOUT_MS=600000` to bound restart convergence waiting
+- `CONTROL_RESTART_ALERT_NOTIFICATION_COOLDOWN_MS=300000` to rate-limit alert notifications
+- `CONTROL_RESTART_ALERT_WEBHOOK_TIMEOUT_MS=5000` to cap external notification latency
+- `CONTROL_RESTART_ALERT_WEBHOOK_REQUIRED=true` so missing webhook config is visible as a failed delivery
 - `WORKER_SERVICE_NAME` for the worker target metadata
 - `WORKER_DEPLOY_HOOK_URL` as a server-side only deploy hook URL
+- `CONTROL_RESTART_ALERT_WEBHOOK_URL` as a server-side only notification endpoint
+- `CONTROL_RESTART_ALERT_WEBHOOK_TOKEN` as a server-side only notification secret
 - `DATABASE_URL` from the same Render Postgres instance
 - `REDIS_URL` from the same Render Key Value instance
 - `RUNTIME_CONFIG_ENV` to keep the runtime namespace aligned with the worker
@@ -126,13 +196,15 @@ The public bot and private control services read the summarized worker visibilit
 ## Rollout Notes
 
 1. Deploy staging first.
-2. Verify the public bot read surfaces: `/health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics`.
-3. Verify the control surfaces: `/control/status`, `/control/runtime-config`, `/control/history`, `/control/mode`, `/control/pause`, `/control/resume`, `/control/kill-switch`, `/control/runtime-config`, and `/control/reload`.
-4. Verify restart-required changes through `POST /control/restart-worker` and confirm the control status shows worker heartbeat, last applied version, reload nonce, and restart convergence state.
-5. If convergence stalls or fails, inspect `GET /control/restart-alerts` and acknowledge or resolve the alert from the dashboard or private control service.
-6. Confirm the dashboard proxy routes are using the private control service, not the public bot service.
-7. Promote the same commit to production only after staging is healthy.
-8. Treat `LIVE_TRADING`, `DRY_RUN`, `TRADING_ENABLED`, `LIVE_TEST_MODE`, `MAX_SLIPPAGE_PERCENT`, and the circuit breaker env values as boot-seed defaults only; runtime changes now go through the control API.
+2. For the bot web service, Render runs the build phase with `npm ci && npm run build`, then starts the server with `npm run start:server`.
+3. For the worker, Render runs the same build phase, then starts the background process with `npm run start:worker` and does not expect an HTTP port.
+4. Verify the public bot read surfaces: `/health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics`.
+5. Verify the control surfaces: `/control/status`, `/control/runtime-config`, `/control/history`, `/control/mode`, `/control/pause`, `/control/resume`, `/control/kill-switch`, `/control/runtime-config`, and `/control/reload`.
+6. Verify restart-required changes through `POST /control/restart-worker` and confirm the control status shows worker heartbeat, last applied version, reload nonce, and restart convergence state.
+7. If convergence stalls or fails, inspect `GET /control/restart-alerts` and acknowledge or resolve the alert from the dashboard or private control service.
+8. Confirm the dashboard proxy routes are using the private control service, not the public bot service.
+9. Promote the same commit to production only after staging is healthy.
+10. Treat `LIVE_TRADING`, `DRY_RUN`, `TRADING_ENABLED`, `LIVE_TEST_MODE`, `MAX_SLIPPAGE_PERCENT`, and the circuit breaker env values as boot-seed defaults only; runtime changes now go through the control API.
 
 ## Current Gap
 
@@ -143,4 +215,4 @@ The remaining operational gap is restart orchestration configuration:
 - restart-required promotions stay pending until a worker restart is requested and the worker converges on the requested version
 - stalled or failed convergence now raises a durable restart alert, so operators do not need to inspect raw tables to notice the failure
 
-Those inputs are server-side only and should be added before enabling restart promotion in production.
+Those inputs are server-side only and should be added before enabling restart promotion in production. The external notification bridge uses the same control-service secret boundary; the browser never sees the webhook URL or token.

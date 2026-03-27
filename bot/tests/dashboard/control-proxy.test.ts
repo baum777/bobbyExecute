@@ -83,8 +83,44 @@ describe("dashboard control proxy", () => {
             stalledRestartCount: 1,
             divergenceAlerting: true,
             openSourceCategories: ["restart_timeout"],
+            externalNotificationCount: 1,
+            notificationFailureCount: 0,
+            notificationSuppressedCount: 0,
+            latestNotificationStatus: "sent",
+            latestNotificationAt: "2026-01-01T00:00:00.000Z",
           },
-          alerts: [],
+          alerts: [
+            {
+              id: "alert-1",
+              environment: "test",
+              dedupeKey: "request:restart-1",
+              restartRequestId: "restart-1",
+              workerService: "mock-runtime-worker",
+              sourceCategory: "restart_timeout",
+              reasonCode: "restart_timeout",
+              severity: "warning",
+              status: "open",
+              summary: "restart timed out",
+              recommendedAction: "inspect worker",
+              conditionSignature: "signature-1",
+              occurrenceCount: 1,
+              firstSeenAt: "2026-01-01T00:00:00.000Z",
+              lastSeenAt: "2026-01-01T00:00:00.000Z",
+              lastEvaluatedAt: "2026-01-01T00:00:00.000Z",
+              requestedVersionId: "version-1",
+              notification: {
+                externallyNotified: true,
+                sinkName: "restart-alert-webhook",
+                sinkType: "generic_webhook",
+                eventType: "alert_opened",
+                latestDeliveryStatus: "sent",
+                attemptCount: 1,
+                lastAttemptedAt: "2026-01-01T00:00:00.000Z",
+              },
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-01T00:00:00.000Z",
+            },
+          ],
         }),
         {
           status: 200,
@@ -108,6 +144,20 @@ describe("dashboard control proxy", () => {
     expect(forwardControlRequestMock).toHaveBeenCalledTimes(1);
     expect((forwardControlRequestMock.mock.calls[0] as [string])[0]).toBe("/control/restart-alerts");
     expect(getResponse.status).toBe(200);
+    await expect(getResponse.json()).resolves.toMatchObject({
+      success: true,
+      summary: {
+        latestNotificationStatus: "sent",
+      },
+      alerts: [
+        {
+          notification: {
+            externallyNotified: true,
+            latestDeliveryStatus: "sent",
+          },
+        },
+      ],
+    });
 
     forwardControlRequestMock.mockResolvedValueOnce(
       new Response(
