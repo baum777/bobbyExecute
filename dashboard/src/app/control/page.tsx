@@ -502,6 +502,12 @@ export default function ControlPage() {
                       {' · '}
                       Attempts: {alert.notification?.attemptCount ?? 0}
                     </p>
+                    {alert.status === 'resolved' && (
+                      <p>
+                        Recovery notification: {alert.notification?.resolutionNotificationSent ? 'sent' : 'not sent'}
+                        {alert.notification?.resolutionNotificationAt ? ` · ${safeTimestamp(alert.notification.resolutionNotificationAt)}` : ''}
+                      </p>
+                    )}
                     {(alert.notification?.lastFailureReason || alert.notification?.suppressionReason) && (
                       <p>
                         {alert.notification?.lastFailureReason ? `Failure: ${alert.notification.lastFailureReason}` : ''}

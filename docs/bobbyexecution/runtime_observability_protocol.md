@@ -99,6 +99,8 @@ Restart alerts open when convergence stalls or fails. `acknowledge` records that
 
 Critical restart alerts may also emit a server-side notification through the private control plane. The notification bridge is advisory only: alert persistence happens first, delivery is rate-limited, and delivery failures are recorded without changing the canonical restart state. Operators should inspect `/control/restart-alerts` and `/control/status` if an alert remains open after a notification attempt.
 
+The delivery payload is intentionally small and stable. It includes the environment, worker target, severity, reason code, summary, restart request id, requested and applied version ids when known, worker heartbeat age or timestamp when available, the recommended operator action, and a path hint for the control surface. Recovery notifications are emitted only after a previously notified alert resolves, so the bridge stays an escalation path rather than a parallel restart authority.
+
 ## Alert Triggers
 
 Alert when:

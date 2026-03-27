@@ -230,6 +230,8 @@ describe("worker restart notification service", () => {
     expect(notify).toHaveBeenCalledTimes(2);
     expect(resolved.externallyNotified).toBe(true);
     expect(resolved.latestDeliveryStatus).toBe("sent");
+    expect(resolved.resolutionNotificationSent).toBe(true);
+    expect(resolved.resolutionNotificationAt).toBeDefined();
   });
 
   it("fails closed when webhook config is missing", async () => {

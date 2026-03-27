@@ -101,6 +101,8 @@ Restart-required config changes can now open durable restart alerts when worker 
 
 Selected restart alerts can also notify an external server-side webhook through the private control plane. The webhook URL and token live only in Render service env vars on the control service, and notification delivery is rate-limited so repeated alert polling does not spam operators. Canonical alert state remains the Postgres source of truth even when notification delivery fails.
 
+Notification policy is intentionally narrow: critical alert openings, critical escalations, repeated-failure summaries, and recovery notifications after a previously notified alert resolves can leave the control plane. Warning-only alerts stay local by default, acknowledgements remain local-only, and the webhook sink is deduped per alert/event/sink with a cooldown window so retries and poll loops do not spam downstream receivers. The payload is compact and structured: environment, worker target, severity, reason code, summary, restart request id, requested/applied versions, worker heartbeat age, recommended action, and an operator path hint.
+
 ## Repo Layout
 
 ```text

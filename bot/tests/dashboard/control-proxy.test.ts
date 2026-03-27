@@ -116,6 +116,8 @@ describe("dashboard control proxy", () => {
                 latestDeliveryStatus: "sent",
                 attemptCount: 1,
                 lastAttemptedAt: "2026-01-01T00:00:00.000Z",
+                resolutionNotificationSent: true,
+                resolutionNotificationAt: "2026-01-01T00:10:00.000Z",
               },
               createdAt: "2026-01-01T00:00:00.000Z",
               updatedAt: "2026-01-01T00:00:00.000Z",
@@ -154,6 +156,7 @@ describe("dashboard control proxy", () => {
           notification: {
             externallyNotified: true,
             latestDeliveryStatus: "sent",
+            resolutionNotificationSent: true,
           },
         },
       ],

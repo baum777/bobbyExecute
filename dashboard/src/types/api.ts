@@ -85,6 +85,8 @@ export interface WorkerRestartAlertNotificationSummary {
   suppressionReason?: string;
   dedupeKey?: string;
   payloadFingerprint?: string;
+  resolutionNotificationSent?: boolean;
+  resolutionNotificationAt?: string;
 }
 
 export interface WorkerRestartStatus {

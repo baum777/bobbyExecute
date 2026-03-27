@@ -69,6 +69,11 @@ export interface WorkerRestartNotificationServiceOptions {
   logger?: Pick<Console, "info" | "warn" | "error">;
 }
 
+export type NotificationSink = WorkerRestartNotificationSink;
+export type NotificationDeliveryStatus = WorkerRestartAlertNotificationStatus;
+export type NotificationEventType = WorkerRestartAlertNotificationEventType;
+export type NotificationSummary = WorkerRestartAlertNotificationSummary;
+
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -183,6 +188,11 @@ function buildNotificationSummary(events: WorkerRestartAlertEventRecord[]): Work
   const latestExternal = notificationEvents.find((event) => event.notificationScope === "external");
   const latest = latestExternal ?? notificationEvents[0];
   const externallyNotified = notificationEvents.some((event) => event.notificationScope === "external" && event.notificationStatus === "sent");
+  const latestResolution = notificationEvents.find(
+    (event) =>
+      event.notificationScope === "external" &&
+      event.notificationEventType === "alert_resolved"
+  );
 
   return {
     externallyNotified,
@@ -196,6 +206,9 @@ function buildNotificationSummary(events: WorkerRestartAlertEventRecord[]): Work
     suppressionReason: latest?.notificationSuppressionReason,
     dedupeKey: latest?.notificationDedupeKey,
     payloadFingerprint: latest?.notificationPayloadFingerprint,
+    resolutionNotificationSent:
+      latestResolution?.notificationStatus == null ? undefined : latestResolution.notificationStatus === "sent",
+    resolutionNotificationAt: latestResolution?.createdAt,
   };
 }
 

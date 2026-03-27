@@ -87,6 +87,7 @@ npm run live:test
 - `/control/restart-worker` is the private, audited orchestration path for restart-required config promotions.
 - `/control/restart-alerts` exposes durable restart incidents, severity, acknowledgement state, and recommended operator actions.
 - The private control plane can also forward selected restart-alert events to a server-side webhook sink. The browser never receives the webhook URL or token, and notification delivery failures do not change canonical alert state.
+- External notification is an escalation bridge, not the source of truth: critical alert openings and escalations notify, repeated failure summaries can notify after cooldown, and a recovery notification is sent when a previously notified alert resolves. Acknowledgements stay local-only. Operators can inspect notification status, last attempt time, failure reason, suppression reason, and recovery-send status through `/control/restart-alerts` and `/control/status`.
 - If the control token is missing, the protected routes fail closed.
 
 ## Related Docs

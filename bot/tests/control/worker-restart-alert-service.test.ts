@@ -450,6 +450,7 @@ describe("restart alert service", () => {
       resolvedBy: "system",
     });
     expect(alert?.notification?.latestDeliveryStatus).toBe("skipped");
+    expect(alert?.notification?.resolutionNotificationSent).toBe(false);
   });
 
   it("dedupes repeated evaluation of the same active alert", async () => {

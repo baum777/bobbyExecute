@@ -256,6 +256,7 @@ export function mockRestartAlerts(): RestartAlertListResponse {
       lastAttemptedAt: heartbeat,
       dedupeKey: `notification-${requestId}`,
       payloadFingerprint: `payload-${requestId}`,
+      resolutionNotificationSent: false,
     },
     createdAt: ago(120000),
     updatedAt: heartbeat,
