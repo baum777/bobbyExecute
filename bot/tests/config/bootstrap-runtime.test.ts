@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { bootstrap } from "../../src/bootstrap.js";
 import { startRuntimeWorker } from "../../src/worker/runtime-worker.js";
+import type { Config } from "../../src/config/config-schema.js";
 import { createRuntimeVisibilityRepository, type RuntimeVisibilitySnapshot } from "../../src/persistence/runtime-visibility-repository.js";
+import { createRuntimeConfigTestManager } from "../helpers/runtime-config-test-kit.js";
 import { resetConfigCache } from "../../src/config/load-config.js";
 import { resetKillSwitch } from "../../src/governance/kill-switch.js";
 import { resetMicroLiveControlForTests } from "../../src/runtime/live-control.js";
@@ -69,6 +71,29 @@ function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
   };
 }
 
+function buildWorkerConfig(): Config {
+  return {
+    nodeEnv: "test",
+    dryRun: true,
+    tradingEnabled: false,
+    liveTestMode: false,
+    executionMode: "dry",
+    rpcMode: "stub",
+    rpcUrl: "https://api.mainnet-beta.solana.com",
+    dexpaprikaBaseUrl: "https://api.dexpaprika.com",
+    moralisBaseUrl: "https://solana-gateway.moralis.io",
+    walletAddress: "11111111111111111111111111111111",
+    controlToken: "worker-control-token",
+    operatorReadToken: "worker-operator-token",
+    journalPath: "/tmp/bootstrap-runtime-worker-journal.jsonl",
+    dashboardOrigin: "https://dashboard.example.com",
+    circuitBreakerFailureThreshold: 5,
+    circuitBreakerRecoveryMs: 60_000,
+    maxSlippagePercent: 5,
+    reviewPolicyMode: "required",
+  } as Config;
+}
+
 describe("bootstrap and worker split", () => {
   let tempDir: string;
 
@@ -121,10 +146,14 @@ describe("bootstrap and worker split", () => {
         fetch("http://127.0.0.1:3351/kpi/summary"),
         fetch("http://127.0.0.1:3351/control/runtime-config"),
       ]);
+      const restartRes = await fetch("http://127.0.0.1:3351/control/restart-worker", {
+        method: "POST",
+      });
 
       expect(healthRes.status).toBe(200);
       expect(summaryRes.status).toBe(200);
       expect(controlRes.status).toBe(404);
+      expect(restartRes.status).toBe(404);
 
       const health = await healthRes.json();
       const summary = await summaryRes.json();
@@ -141,31 +170,13 @@ describe("bootstrap and worker split", () => {
     } finally {
       await server.close();
     }
-  });
+  }, 15000);
 
   it("starts the dedicated worker and publishes heartbeat visibility", async () => {
     const runtimeVisibilityRepository = await createRuntimeVisibilityRepository();
+    const workerConfig = buildWorkerConfig();
     const worker = await startRuntimeWorker(
-      {
-        nodeEnv: "test",
-        dryRun: true,
-        tradingEnabled: false,
-        liveTestMode: false,
-        executionMode: "dry",
-        rpcMode: "stub",
-        rpcUrl: "https://api.mainnet-beta.solana.com",
-        dexpaprikaBaseUrl: "https://api.dexpaprika.com",
-        moralisBaseUrl: "https://solana-gateway.moralis.io",
-        walletAddress: "11111111111111111111111111111111",
-        controlToken: "worker-control-token",
-        operatorReadToken: "worker-operator-token",
-        journalPath: join(tempDir, "journal.jsonl"),
-        dashboardOrigin: "https://dashboard.example.com",
-        circuitBreakerFailureThreshold: 5,
-        circuitBreakerRecoveryMs: 60_000,
-        maxSlippagePercent: 5,
-        reviewPolicyMode: "required",
-      },
+      { ...workerConfig, journalPath: join(tempDir, "journal.jsonl") },
       {
         runtimeVisibilityRepository,
         runtimeEnvironment: "test",
@@ -174,9 +185,9 @@ describe("bootstrap and worker split", () => {
     );
 
     try {
+      await worker.publishVisibilitySnapshot();
       await new Promise((resolve) => setTimeout(resolve, 100));
-      const runtimeEnvironment = worker.runtimeConfigManager.getRuntimeConfigStatus().environment;
-      const record = await runtimeVisibilityRepository.load(runtimeEnvironment);
+      const record = await runtimeVisibilityRepository.load("test");
       expect(record).not.toBeNull();
       expect(record?.snapshot.worker).toMatchObject({
         workerId: worker.workerId,
@@ -186,6 +197,49 @@ describe("bootstrap and worker split", () => {
       });
       expect(record?.snapshot.runtime.status).toBe("running");
       expect(record?.snapshot.runtime.counters.cycleCount).toBeGreaterThanOrEqual(1);
+    } finally {
+      await worker.stop();
+    }
+  });
+
+  it("promotes restart-required runtime config only after the worker starts", async () => {
+    const { manager } = await createRuntimeConfigTestManager();
+    const restartResult = await manager.setMode("paper", {
+      actor: "operator-restart",
+      reason: "paper restart promotion",
+    });
+
+    expect(restartResult.accepted).toBe(true);
+    expect(manager.getRuntimeConfigStatus().requiresRestart).toBe(true);
+
+    const runtimeVisibilityRepository = await createRuntimeVisibilityRepository();
+    const worker = await startRuntimeWorker(
+      { ...buildWorkerConfig(), journalPath: join(tempDir, "journal-restart.jsonl") },
+      {
+        runtimeConfigManager: manager,
+        runtimeVisibilityRepository,
+        runtimeEnvironment: "test",
+        heartbeatIntervalMs: 25,
+      }
+    );
+
+    try {
+      await worker.publishVisibilitySnapshot();
+      const status = manager.getRuntimeConfigStatus();
+      expect(status.requiresRestart).toBe(false);
+      expect(status.requestedMode).toBe("paper");
+      expect(status.appliedMode).toBe("paper");
+      expect(status.appliedVersionId).toBe(status.requestedVersionId);
+      expect(status.lastValidVersionId).toBe(status.requestedVersionId);
+
+      const record = await runtimeVisibilityRepository.load("test");
+      expect(record).not.toBeNull();
+      expect(record?.snapshot.worker).toMatchObject({
+        workerId: worker.workerId,
+        lastHeartbeatAt: expect.any(String),
+        lastAppliedVersionId: status.appliedVersionId,
+        lastValidVersionId: status.lastValidVersionId,
+      });
     } finally {
       await worker.stop();
     }

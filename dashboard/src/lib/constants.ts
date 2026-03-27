@@ -3,6 +3,7 @@ export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 export const POLLING = {
   HEALTH: 2000,
+  CONTROL_STATUS: 5000,
   SUMMARY: 10000,
   ADAPTERS: 10000,
   DECISIONS: 10000,

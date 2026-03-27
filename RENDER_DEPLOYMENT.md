@@ -88,6 +88,11 @@ The public bot service receives:
 The private control service receives:
 
 - `CONTROL_TOKEN` as its mutation secret
+- `CONTROL_RESTARTS_ENABLED=true` to allow restart orchestration
+- `CONTROL_RESTART_COOLDOWN_MS=300000` to rate-limit repeated restart requests
+- `CONTROL_RESTART_CONVERGENCE_TIMEOUT_MS=600000` to bound restart convergence waiting
+- `WORKER_SERVICE_NAME` for the worker target metadata
+- `WORKER_DEPLOY_HOOK_URL` as a server-side only deploy hook URL
 - `DATABASE_URL` from the same Render Postgres instance
 - `REDIS_URL` from the same Render Key Value instance
 - `RUNTIME_CONFIG_ENV` to keep the runtime namespace aligned with the worker
@@ -123,16 +128,19 @@ The public bot and private control services read the summarized worker visibilit
 1. Deploy staging first.
 2. Verify the public bot read surfaces: `/health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics`.
 3. Verify the control surfaces: `/control/status`, `/control/runtime-config`, `/control/history`, `/control/mode`, `/control/pause`, `/control/resume`, `/control/kill-switch`, `/control/runtime-config`, and `/control/reload`.
-4. Confirm the control status shows worker heartbeat, last applied version, and reload nonce.
-5. Confirm the dashboard proxy routes are using the private control service, not the public bot service.
-6. Promote the same commit to production only after staging is healthy.
-7. Treat `LIVE_TRADING`, `DRY_RUN`, `TRADING_ENABLED`, `LIVE_TEST_MODE`, `MAX_SLIPPAGE_PERCENT`, and the circuit breaker env values as boot-seed defaults only; runtime changes now go through the control API.
+4. Verify restart-required changes through `POST /control/restart-worker` and confirm the control status shows worker heartbeat, last applied version, reload nonce, and restart convergence state.
+5. If convergence stalls or fails, inspect `GET /control/restart-alerts` and acknowledge or resolve the alert from the dashboard or private control service.
+6. Confirm the dashboard proxy routes are using the private control service, not the public bot service.
+7. Promote the same commit to production only after staging is healthy.
+8. Treat `LIVE_TRADING`, `DRY_RUN`, `TRADING_ENABLED`, `LIVE_TEST_MODE`, `MAX_SLIPPAGE_PERCENT`, and the circuit breaker env values as boot-seed defaults only; runtime changes now go through the control API.
 
 ## Current Gap
 
-The repository still needs the later waves from the target plan:
+The remaining operational gap is restart orchestration configuration:
 
-- audit/history tables
-- server-side dashboard proxy for privileged control
+- the control service needs the Render deploy hook URL for the runtime worker
+- the worker service name must match the target metadata used by restart requests
+- restart-required promotions stay pending until a worker restart is requested and the worker converges on the requested version
+- stalled or failed convergence now raises a durable restart alert, so operators do not need to inspect raw tables to notice the failure
 
-Those are not skipped; they are just intentionally not conflated with the first deployment baseline.
+Those inputs are server-side only and should be added before enabling restart promotion in production.

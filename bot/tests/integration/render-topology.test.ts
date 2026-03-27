@@ -19,6 +19,13 @@ describe("render topology", () => {
     expect(renderYaml).toContain("CONTROL_SERVICE_HOSTNAME");
     expect(renderYaml).toContain("CONTROL_SERVICE_PORT");
     expect(renderYaml).toContain("CONTROL_TOKEN");
+    expect(renderYaml).toContain("CONTROL_RESTARTS_ENABLED");
+    expect(renderYaml).toContain("WORKER_DEPLOY_HOOK_URL");
+    expect(renderYaml).toContain("WORKER_SERVICE_NAME");
+    expect(renderYaml).toContain("JOURNAL_PATH");
+    expect(renderYaml).toContain("WORKER_HEARTBEAT_INTERVAL_MS");
+    expect(renderYaml).toContain("bobbyexecute-runtime-staging-data");
+    expect(renderYaml).toContain("bobbyexecute-runtime-production-data");
     expect(renderYaml).not.toContain("bobbyexecute-bot-staging-data");
     expect(renderYaml).not.toContain("bobbyexecute-bot-production-data");
   });

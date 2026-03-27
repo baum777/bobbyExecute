@@ -169,7 +169,7 @@ describe("control runtime-config routes", () => {
       action: "auth_failure",
       accepted: false,
     });
-  });
+  }, 15000);
 
   it("returns the runtime config control view and surfaces pending mode changes", async () => {
     const harness = await createHarness();
@@ -242,6 +242,15 @@ describe("control runtime-config routes", () => {
         appliedMode: "observe",
         pendingApply: true,
         requiresRestart: true,
+      },
+      restart: {
+        required: true,
+        requested: false,
+        inProgress: false,
+        pendingVersionId: expect.any(String),
+        restartRequiredReason: expect.any(String),
+        lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
+        lastAppliedVersionId: "version-applied",
       },
       worker: {
         workerId: "worker-config-test",

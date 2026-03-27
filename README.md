@@ -75,9 +75,11 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 - `GET /kpi/adapters`
 - `GET /kpi/metrics`
 - Public bot surface is read-only for mutations and no longer exposes runtime replay or incident routes.
-- `GET /control/status`
-- `GET /control/runtime-config`
-- `GET /control/runtime-status`
+- Private control service read surfaces:
+  - `GET /control/status`
+  - `GET /control/runtime-config`
+  - `GET /control/runtime-status`
+  - `GET /control/restart-alerts`
 - Privileged mutations now live on the private control service:
   - `POST /emergency-stop`
   - `POST /control/pause`
@@ -88,9 +90,14 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
   - `POST /control/kill-switch`
   - `POST /control/runtime-config`
   - `POST /control/reload`
+  - `POST /control/restart-worker`
+  - `POST /control/restart-alerts/:id/acknowledge`
+  - `POST /control/restart-alerts/:id/resolve`
 - `GET /control/history`
 
 The dashboard now calls the private control service through server-side proxy routes. Control routes require `x-control-token` or `Authorization: Bearer <token>` on the control service. Missing tokens fail closed with `403`.
+
+Restart-required config changes can now open durable restart alerts when worker convergence stalls or fails. Operators acknowledge an alert to record investigation, and resolve it only when the underlying condition has cleared or an explicit governed manual resolution is justified.
 
 ## Repo Layout
 

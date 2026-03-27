@@ -58,9 +58,11 @@ npm run live:test
 - `GET /kpi/adapters`
 - `GET /kpi/metrics`
 - Public bot surface is read-only and does not expose runtime replay or incident routes.
-- `GET /control/status`
-- `GET /control/runtime-config`
-- `GET /control/runtime-status`
+- Private control service read surfaces:
+  - `GET /control/status`
+  - `GET /control/runtime-config`
+  - `GET /control/runtime-status`
+  - `GET /control/restart-alerts`
 - Private control service mutation surfaces:
   - `POST /emergency-stop`
   - `POST /control/pause`
@@ -71,6 +73,9 @@ npm run live:test
   - `POST /control/kill-switch`
   - `POST /control/runtime-config`
   - `POST /control/reload`
+  - `POST /control/restart-worker`
+  - `POST /control/restart-alerts/:id/acknowledge`
+  - `POST /control/restart-alerts/:id/resolve`
 - `GET /control/history`
 
 ## Operational Notes
@@ -79,6 +84,8 @@ npm run live:test
 - `/control/status` and `/control/runtime-status` expose the worker heartbeat and applied config state through the private control service.
 - `POST /emergency-stop` and `POST /control/reset` mutate canonical config state through the private control service.
 - `/control/runtime-config` is the first-class runtime behavior control surface for mode, pause, kill switch, filters, thresholds, and reload state on the private control service.
+- `/control/restart-worker` is the private, audited orchestration path for restart-required config promotions.
+- `/control/restart-alerts` exposes durable restart incidents, severity, acknowledgement state, and recommended operator actions.
 - If the control token is missing, the protected routes fail closed.
 
 ## Related Docs

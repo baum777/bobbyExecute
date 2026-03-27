@@ -67,6 +67,16 @@ environments:
             value: staging
           - key: CONTROL_TOKEN
             sync: false
+          - key: CONTROL_RESTARTS_ENABLED
+            value: "true"
+          - key: CONTROL_RESTART_COOLDOWN_MS
+            value: "300000"
+          - key: CONTROL_RESTART_CONVERGENCE_TIMEOUT_MS
+            value: "600000"
+          - key: WORKER_SERVICE_NAME
+            value: bobbyexecute-runtime-staging
+          - key: WORKER_DEPLOY_HOOK_URL
+            sync: false
           - key: DATABASE_URL
             fromDatabase:
               name: bobbyexecute-postgres-staging
@@ -242,6 +252,16 @@ environments:
           - key: RUNTIME_CONFIG_ENV
             value: production
           - key: CONTROL_TOKEN
+            sync: false
+          - key: CONTROL_RESTARTS_ENABLED
+            value: "true"
+          - key: CONTROL_RESTART_COOLDOWN_MS
+            value: "300000"
+          - key: CONTROL_RESTART_CONVERGENCE_TIMEOUT_MS
+            value: "600000"
+          - key: WORKER_SERVICE_NAME
+            value: bobbyexecute-runtime-production
+          - key: WORKER_DEPLOY_HOOK_URL
             sync: false
           - key: DATABASE_URL
             fromDatabase:

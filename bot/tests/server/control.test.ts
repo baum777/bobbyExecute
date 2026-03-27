@@ -178,7 +178,37 @@ describe("control routes", () => {
       action: "auth_failure",
       accepted: false,
     });
-  });
+
+    const restartResponse = await fetch(`${harness.baseUrl}/control/restart-worker`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ reason: "unauthorized" }),
+    });
+
+    expect(restartResponse.status).toBe(403);
+    await expect(restartResponse.json()).resolves.toMatchObject({
+      success: false,
+      code: "control_auth_invalid",
+    });
+
+    const alertsResponse = await fetch(`${harness.baseUrl}/control/restart-alerts`, {
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+    expect(alertsResponse.status).toBe(403);
+
+    const acknowledgeResponse = await fetch(`${harness.baseUrl}/control/restart-alerts/alert-1/acknowledge`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ note: "unauthorized" }),
+    });
+    expect(acknowledgeResponse.status).toBe(403);
+  }, 15000);
 
   it("exposes worker heartbeat and canonical runtime config through control status", async () => {
     const harness = await createHarness();
@@ -189,11 +219,11 @@ describe("control routes", () => {
     });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toMatchObject({
-      success: true,
-      runtime: {
-        status: "running",
-        mode: "paper",
+      expect(body).toMatchObject({
+        success: true,
+        runtime: {
+          status: "running",
+          mode: "paper",
         runtimeConfig: {
           requestedMode: "observe",
           appliedMode: "observe",
@@ -205,6 +235,21 @@ describe("control routes", () => {
         lastAppliedVersionId: "version-applied-1",
         lastValidVersionId: "version-valid-1",
         degraded: false,
+      },
+      restart: {
+        required: false,
+        requested: false,
+        inProgress: false,
+        lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
+        lastAppliedVersionId: "version-applied-1",
+      },
+      restartAlerts: {
+        openAlertCount: 0,
+        acknowledgedAlertCount: 0,
+        resolvedAlertCount: 0,
+        activeAlertCount: 0,
+        stalledRestartCount: 0,
+        divergenceAlerting: false,
       },
       runtimeConfig: {
         requestedMode: "observe",

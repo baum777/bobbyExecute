@@ -133,6 +133,15 @@ export async function startRuntimeWorker(
 
   try {
     await runtime.start();
+    if (runtimeConfigManager.getRuntimeConfigStatus().requiresRestart) {
+      await runtimeConfigManager.confirmRestartApplied({
+        actor: "worker-bootstrap",
+        reason: "worker startup convergence",
+      }).catch((error) => {
+        // Fail closed: the worker keeps running, but the control plane will continue to show the restart as pending.
+        console.warn("[worker] failed to acknowledge restart convergence", error);
+      });
+    }
     await publishVisibilitySnapshot();
     heartbeatTimer = setInterval(() => {
       void publishVisibilitySnapshot().catch(() => {

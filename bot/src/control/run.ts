@@ -6,6 +6,10 @@ import { loadConfig } from "../config/load-config.js";
 import { createControlServer } from "../server/index.js";
 import { RuntimeConfigManager } from "../runtime/runtime-config-manager.js";
 import { createRuntimeVisibilityRepository } from "../persistence/runtime-visibility-repository.js";
+import { createWorkerRestartRepository } from "../persistence/worker-restart-repository.js";
+import { createWorkerRestartAlertRepository } from "../persistence/worker-restart-alert-repository.js";
+import { createWorkerRestartService } from "./worker-restart-service.js";
+import { WorkerRestartAlertService, createStructuredWorkerRestartAlertSink } from "./worker-restart-alert-service.js";
 
 const entryConfig = loadConfig();
 if (!entryConfig.controlToken) {
@@ -16,6 +20,11 @@ const port = parseInt(process.env.PORT ?? "3334", 10);
 const host = process.env.HOST ?? "0.0.0.0";
 const runtimeEnvironment =
   process.env.RUNTIME_CONFIG_ENV?.trim() ?? process.env.RENDER_SERVICE_NAME?.trim() ?? entryConfig.nodeEnv;
+const workerServiceName = process.env.WORKER_SERVICE_NAME?.trim() ?? "";
+const restartConvergenceTimeoutMs = (() => {
+  const parsed = Number.parseInt(process.env.CONTROL_RESTART_CONVERGENCE_TIMEOUT_MS ?? "600000", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 600000;
+})();
 
 console.log(
   "[control] Starting BobbyExecute control plane",
@@ -39,6 +48,34 @@ console.log(
   const runtimeVisibilityRepository = await createRuntimeVisibilityRepository(process.env.DATABASE_URL);
   await runtimeVisibilityRepository.ensureSchema();
 
+  const restartRepository = await createWorkerRestartRepository(process.env.DATABASE_URL);
+  await restartRepository.ensureSchema();
+
+  const restartAlertRepository = await createWorkerRestartAlertRepository(process.env.DATABASE_URL);
+  await restartAlertRepository.ensureSchema();
+
+  const restartAlertService = new WorkerRestartAlertService({
+    environment: runtimeEnvironment,
+    workerServiceName,
+    restartRepository,
+    alertRepository: restartAlertRepository,
+    convergenceTimeoutMs: restartConvergenceTimeoutMs,
+    alertSink: createStructuredWorkerRestartAlertSink(console),
+    logger: console,
+  });
+
+  const restartService = createWorkerRestartService(entryConfig, {
+    runtimeConfigManager,
+    runtimeVisibilityRepository,
+    restartRepository,
+    alertService: restartAlertService,
+    environment: runtimeEnvironment,
+    workerServiceName,
+    targetWorker: workerServiceName,
+    deployHookUrl: process.env.WORKER_DEPLOY_HOOK_URL,
+    env: process.env,
+  });
+
   const server = await createControlServer({
     port,
     host,
@@ -47,6 +84,7 @@ console.log(
     runtimeVisibilityRepository,
     runtimeEnvironment,
     controlAuthToken: entryConfig.controlToken,
+    restartService,
   });
 
   const address = server.server.address();
@@ -55,7 +93,7 @@ console.log(
       ? `${String(address.address)}:${String(address.port)}`
       : `${host}:${port}`;
   console.log(`[control] Control plane listening on ${bound}`);
-  console.log("Endpoints: GET /health, GET /kpi/summary, GET /control/status, GET /control/runtime-config, GET /control/history");
+  console.log("Endpoints: GET /health, GET /kpi/summary, GET /control/status, GET /control/runtime-config, GET /control/history, GET /control/restart-alerts, POST /control/restart-worker, POST /control/restart-alerts/:id/acknowledge, POST /control/restart-alerts/:id/resolve");
 
   const shutdown = async () => {
     await server.close();

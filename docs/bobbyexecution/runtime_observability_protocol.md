@@ -59,6 +59,10 @@ Every major event should carry:
 - `GET /control/status`
 - `GET /control/runtime-config`
 - `GET /control/history`
+- `POST /control/restart-worker`
+- `GET /control/restart-alerts`
+- `POST /control/restart-alerts/:id/acknowledge`
+- `POST /control/restart-alerts/:id/resolve`
 
 ## What The Dashboard Should See
 
@@ -72,6 +76,8 @@ Every major event should carry:
 - kill-switch status
 - worker heartbeat
 - last applied and requested runtime config versions
+- restart-required state, restart request status, and convergence outcome
+- open restart alerts, severity, acknowledgement state, and recommended action
 
 ## Persistence Expectations
 
@@ -86,6 +92,10 @@ The current runtime writes:
 These records are the bot truth, not in-memory placeholders.
 
 The worker-local runtime files stay on the worker disk. Public and control services consume the summarized worker visibility snapshot from Postgres instead of reading those files directly.
+
+Restart-required config changes are considered pending until the private control plane sees a restart request, the worker restarts, and the worker publishes a converged applied version that matches the requested version. A request being sent is not success on its own.
+
+Restart alerts open when convergence stalls or fails. `acknowledge` records that an operator is investigating the incident, while `resolve` is only accepted when the underlying condition is no longer active or the governing workflow explicitly allows manual closure. Automatic resolution happens when the worker heartbeat and applied version evidence show the restart has converged.
 
 ## Alert Triggers
 

@@ -4,6 +4,12 @@ import type {
   AdaptersResponse,
   DecisionsResponse,
   MetricsResponse,
+  ControlStatusResponse,
+  RestartAlertListResponse,
+  RestartWorkerRequest,
+  RestartWorkerResponse,
+  WorkerRestartAlertRecord,
+  WorkerRestartStatus,
 } from '@/types/api';
 
 const now = () => new Date().toISOString();
@@ -126,5 +132,174 @@ export function mockMetrics(): MetricsResponse {
       rpc: 55 + Math.floor(Math.random() * 25),
       chaos: 40 + Math.floor(Math.random() * 20),
     },
+  };
+}
+
+export function mockControlStatus(): ControlStatusResponse {
+  const heartbeat = now();
+  const runtimeVersion = `runtime-${Math.floor(Math.random() * 10_000)}`;
+  return {
+    success: true,
+    worker: {
+      workerId: 'mock-worker',
+      lastHeartbeatAt: heartbeat,
+      lastCycleAt: ago(3000),
+      lastSeenReloadNonce: 0,
+      lastAppliedVersionId: runtimeVersion,
+      lastValidVersionId: runtimeVersion,
+      degraded: false,
+      observedAt: heartbeat,
+    },
+    runtimeConfig: {
+      requestedMode: 'observe',
+      appliedMode: 'observe',
+      requestedVersionId: runtimeVersion,
+      appliedVersionId: runtimeVersion,
+      lastValidVersionId: runtimeVersion,
+      pendingApply: false,
+      requiresRestart: false,
+      pendingReason: undefined,
+      reloadNonce: 0,
+      paused: false,
+      killSwitch: false,
+      degraded: false,
+    },
+    controlView: {
+      requestedMode: 'observe',
+      appliedMode: 'observe',
+      requestedVersionId: runtimeVersion,
+      appliedVersionId: runtimeVersion,
+      pendingApply: false,
+      requiresRestart: false,
+      paused: false,
+      killSwitch: false,
+      degraded: false,
+    },
+    restart: {
+      required: false,
+      requested: false,
+      inProgress: false,
+      pendingVersionId: undefined,
+      restartRequiredReason: undefined,
+      lastHeartbeatAt: heartbeat,
+      lastAppliedVersionId: runtimeVersion,
+    },
+    restartAlerts: {
+      environment: 'mock',
+      workerService: 'mock-runtime-worker',
+      latestRestartRequestStatus: 'converged',
+      lastSuccessfulRestartConvergenceAt: ago(60000),
+      openAlertCount: 0,
+      acknowledgedAlertCount: 0,
+      resolvedAlertCount: 0,
+      activeAlertCount: 0,
+      stalledRestartCount: 0,
+      highestOpenSeverity: undefined,
+      divergenceAlerting: false,
+      openSourceCategories: [],
+      lastEvaluatedAt: heartbeat,
+    },
+    killSwitch: { halted: false },
+    liveControl: {
+      mode: 'auto',
+      liveTestMode: false,
+      killSwitchActive: false,
+      lastTransitionAt: heartbeat,
+    },
+  };
+}
+
+export function mockRestartAlerts(): RestartAlertListResponse {
+  const heartbeat = now();
+  const requestId = `restart-${Math.floor(Math.random() * 10_000)}`;
+  const alert: WorkerRestartAlertRecord = {
+    id: `alert-${Math.floor(Math.random() * 10_000)}`,
+    environment: 'mock',
+    dedupeKey: `request:${requestId}`,
+    restartRequestId: requestId,
+    workerService: 'mock-runtime-worker',
+    targetWorker: 'mock-runtime-worker',
+    targetVersionId: `runtime-${Math.floor(Math.random() * 10_000)}`,
+    sourceCategory: 'restart_timeout',
+    reasonCode: 'restart_timeout',
+    severity: 'warning',
+    status: 'open',
+    summary: 'Mock restart alert',
+    recommendedAction: 'Inspect worker convergence',
+    metadata: {
+      requestedAt: ago(120000),
+    },
+    conditionSignature: `mock-${requestId}`,
+    occurrenceCount: 1,
+    firstSeenAt: ago(120000),
+    lastSeenAt: heartbeat,
+    lastEvaluatedAt: heartbeat,
+    lastRestartRequestStatus: 'requested',
+    lastRestartRequestUpdatedAt: ago(120000),
+    lastWorkerHeartbeatAt: ago(110000),
+    lastAppliedVersionId: `runtime-${Math.floor(Math.random() * 10_000)}`,
+    requestedVersionId: `runtime-${Math.floor(Math.random() * 10_000)}`,
+    createdAt: ago(120000),
+    updatedAt: heartbeat,
+  };
+
+  return {
+    success: true,
+    summary: {
+      environment: 'mock',
+      workerService: 'mock-runtime-worker',
+      latestRestartRequestStatus: 'requested',
+      lastSuccessfulRestartConvergenceAt: ago(60000),
+      openAlertCount: 1,
+      acknowledgedAlertCount: 0,
+      resolvedAlertCount: 0,
+      activeAlertCount: 1,
+      stalledRestartCount: 1,
+      highestOpenSeverity: 'warning',
+      divergenceAlerting: true,
+      openSourceCategories: ['restart_timeout'],
+      lastEvaluatedAt: heartbeat,
+    },
+    alerts: [alert],
+  };
+}
+
+export function mockRestartWorker(input: RestartWorkerRequest = {}): RestartWorkerResponse {
+  const status = mockControlStatus();
+  const requestId = `restart-${Math.floor(Math.random() * 10_000)}`;
+  const requestedAt = now();
+  const targetVersionId = status.runtimeConfig?.requestedVersionId ?? `runtime-${Math.floor(Math.random() * 10_000)}`;
+  const restart: WorkerRestartStatus = {
+    ...status.restart,
+    required: true,
+    requested: true,
+    inProgress: true,
+    pendingVersionId: targetVersionId,
+    restartRequiredReason: input.reason ?? 'mock restart requested',
+    requestId,
+    requestedAt,
+    requestedBy: 'dashboard',
+    lastOutcome: 'dispatched',
+    lastOutcomeAt: requestedAt,
+    lastOutcomeReason: 'mock deploy hook accepted',
+    method: 'deploy_hook',
+    targetService: 'mock-runtime-worker',
+    targetWorker: 'mock-worker',
+    convergenceObservedAt: undefined,
+    clearedAt: undefined,
+    lastHeartbeatAt: status.worker?.lastHeartbeatAt,
+    lastAppliedVersionId: status.worker?.lastAppliedVersionId,
+    deadlineAt: new Date(Date.parse(requestedAt) + 10 * 60 * 1000).toISOString(),
+  };
+
+  return {
+    ...status,
+    accepted: true,
+    message: 'worker restart request accepted',
+    reason: input.reason,
+    targetService: restart.targetService ?? 'mock-runtime-worker',
+    targetVersionId,
+    orchestrationMethod: 'deploy_hook',
+    restart,
   };
 }

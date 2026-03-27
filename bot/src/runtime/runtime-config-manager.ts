@@ -24,7 +24,7 @@ import { configureKillSwitchBridge, type KillSwitchState } from "../governance/k
 
 export interface RuntimeConfigMutationResult {
   accepted: boolean;
-  action: "mode" | "pause" | "resume" | "kill_switch" | "runtime_config" | "reload" | "auth_failure";
+  action: "mode" | "pause" | "resume" | "kill_switch" | "runtime_config" | "reload" | "restart_ack" | "auth_failure";
   message: string;
   requestedVersionId?: string;
   appliedVersionId?: string;
@@ -770,7 +770,7 @@ export class RuntimeConfigManager {
 
   private async commitState(
     state: ManagedRuntimeConfigState,
-    action: RuntimeConfigMutationResult["action"],
+    action: Exclude<RuntimeConfigMutationResult["action"], "restart_ack">,
     createdAt: string,
     change: Omit<RuntimeConfigChangeLogRecord, "id" | "environment" | "createdAt">
   ): Promise<void> {
@@ -1251,6 +1251,76 @@ export class RuntimeConfigManager {
         await this.persistSnapshot(this.state);
       }
       return this.result("reload", true, undefined, applied.version.id);
+    });
+  }
+
+  async confirmRestartApplied(input: { actor: string; reason?: string } = { actor: "worker" }): Promise<RuntimeConfigMutationResult> {
+    return this.enqueue("restart_ack", async () => {
+      this.assertInitialized();
+      const base = this.state!;
+      if (!base.active.requiresRestart) {
+        return this.result("restart_ack", true, undefined, base.applied.version.id);
+      }
+
+      const createdAt = new Date().toISOString();
+      const requestedOverlay: RuntimeOverlay = {
+        ...base.requested.overlay,
+        pendingRestart: false,
+        pendingReason: undefined,
+      };
+      const applied = makeState(
+        base.requested.version,
+        requestedOverlay,
+        base.requested.requestedAt,
+        createdAt,
+        false,
+        false
+      );
+      const nextState: ManagedRuntimeConfigState = {
+        ...base,
+        requested: {
+          ...base.requested,
+          overlay: requestedOverlay,
+          pendingApply: false,
+          requiresRestart: false,
+        },
+        applied,
+        lastValidVersion: clone(base.requested.version),
+        active: {
+          ...base.active,
+          appliedVersionId: base.requested.version.id,
+          lastValidVersionId: base.requested.version.id,
+          appliedAt: createdAt,
+          updatedAt: createdAt,
+          pendingApply: false,
+          pendingReason: undefined,
+          requiresRestart: false,
+        },
+      };
+
+      this.state = nextState;
+      this.pendingAppliedState = undefined;
+      await this.repository.updateActive({
+        environment: this.environment,
+        activeVersionId: nextState.active.activeVersionId,
+        requestedVersionId: nextState.active.requestedVersionId,
+        appliedVersionId: nextState.active.appliedVersionId,
+        lastValidVersionId: nextState.active.lastValidVersionId,
+        reloadNonce: nextState.active.reloadNonce,
+        paused: nextState.active.paused,
+        pauseScope: nextState.active.pauseScope,
+        pauseReason: nextState.active.pauseReason,
+        killSwitch: nextState.active.killSwitch,
+        killSwitchReason: nextState.active.killSwitchReason,
+        pendingApply: nextState.active.pendingApply,
+        pendingReason: nextState.active.pendingReason,
+        requiresRestart: nextState.active.requiresRestart,
+        requestedAt: nextState.active.requestedAt,
+        appliedAt: nextState.active.appliedAt,
+        updatedAt: createdAt,
+      });
+      await this.persistSnapshot(this.state);
+      return this.result("restart_ack", true, undefined, base.requested.version.id);
     });
   }
 

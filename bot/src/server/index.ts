@@ -13,6 +13,7 @@ import type { HealthRouteDeps } from "./routes/health.js";
 import type { RuntimeSnapshot } from "../runtime/dry-run-runtime.js";
 import type { RuntimeConfigManager } from "../runtime/runtime-config-manager.js";
 import type { RuntimeVisibilityRepository } from "../persistence/runtime-visibility-repository.js";
+import type { WorkerRestartService } from "../control/worker-restart-service.js";
 
 export interface ServerConfig {
   port?: number;
@@ -28,6 +29,7 @@ export interface ServerConfig {
   getRuntimeSnapshot?: () => RuntimeSnapshot;
   runtimeConfigManager?: RuntimeConfigManager;
   runtimeVisibilityRepository?: RuntimeVisibilityRepository;
+  restartService?: WorkerRestartService;
   runtimeEnvironment?: string;
   controlAuthToken?: string;
 }
@@ -122,6 +124,7 @@ async function createVisibilityServer(
         runtimeConfigManager: config.runtimeConfigManager,
         requiredToken: config.controlAuthToken,
         runtimeVisibilityRepository: config.runtimeVisibilityRepository,
+        restartService: config.restartService,
         runtimeEnvironment: config.runtimeEnvironment,
       })
     );
