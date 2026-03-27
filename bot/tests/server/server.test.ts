@@ -8,11 +8,6 @@ import { InMemoryActionLogger } from "../../src/observability/action-log.js";
 import { ADAPTER_IDS } from "../../src/adapters/adapters-with-cb.js";
 
 const PORT = 3342;
-const OPERATOR_TOKEN = "phase10-server-operator-token";
-
-function operatorHeaders(): HeadersInit {
-  return { "x-operator-token": OPERATOR_TOKEN };
-}
 
 describe("Server (Wave 3)", () => {
   let server: Awaited<ReturnType<typeof createServer>>;
@@ -88,7 +83,6 @@ describe("Server (Wave 3)", () => {
       expect(preflight.status).toBe(204);
       expect(preflight.headers.get("access-control-allow-origin")).toBe(dashboardOrigin);
       expect(preflight.headers.get("access-control-allow-methods")).toContain("GET");
-      expect(preflight.headers.get("access-control-allow-headers")).toContain("x-operator-token");
       expect(preflight.headers.get("access-control-allow-headers")).not.toContain("x-control-token");
 
       const health = await fetch(`http://127.0.0.1:${PORT + 9}/health`, {
@@ -270,11 +264,10 @@ describe("Server (Wave 3)", () => {
     }
   });
 
-  it("GET /health, /kpi/summary, and /runtime/status expose live-test control state when provided", async () => {
+  it("GET /health and /kpi/summary expose live-test control state while /runtime/status stays private", async () => {
     const srv = await createServer({
       port: PORT + 8,
       host: "127.0.0.1",
-      operatorReadAuthToken: OPERATOR_TOKEN,
       getBotStatus: () => "running",
       getRuntimeSnapshot: () => ({
         status: "running",
@@ -335,16 +328,15 @@ describe("Server (Wave 3)", () => {
       const [healthRes, summaryRes, statusRes] = await Promise.all([
         fetch(`http://127.0.0.1:${PORT + 8}/health`),
         fetch(`http://127.0.0.1:${PORT + 8}/kpi/summary`),
-        fetch(`http://127.0.0.1:${PORT + 8}/runtime/status`, { headers: operatorHeaders() }),
+        fetch(`http://127.0.0.1:${PORT + 8}/runtime/status`),
       ]);
 
       expect(healthRes.status).toBe(200);
       expect(summaryRes.status).toBe(200);
-      expect(statusRes.status).toBe(200);
+      expect(statusRes.status).toBe(404);
 
       const health = await healthRes.json();
       const summary = await summaryRes.json();
-      const status = await statusRes.json();
 
       expect(health.runtime.liveControl).toMatchObject({
         liveTestMode: true,
@@ -359,11 +351,6 @@ describe("Server (Wave 3)", () => {
         disarmed: false,
         stopped: false,
       });
-      expect(status.liveControl).toMatchObject({
-        liveTestMode: true,
-        roundStatus: "running",
-      });
-      expect(status.runtime.liveControl.roundStatus).toBe("running");
     } finally {
       await srv.close();
     }

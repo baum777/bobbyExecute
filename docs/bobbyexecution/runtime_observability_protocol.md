@@ -52,14 +52,13 @@ Every major event should carry:
 ## Dashboard-Facing Surfaces
 
 - `GET /health`
-- `GET /runtime/status`
-- `GET /runtime/cycles`
-- `GET /runtime/cycles/:traceId/replay`
-- `GET /incidents`
 - `GET /kpi/summary`
 - `GET /kpi/decisions`
 - `GET /kpi/adapters`
 - `GET /kpi/metrics`
+- `GET /control/status`
+- `GET /control/runtime-config`
+- `GET /control/history`
 
 ## What The Dashboard Should See
 
@@ -71,6 +70,8 @@ Every major event should carry:
 - latest execution attempts
 - verification outcomes
 - kill-switch status
+- worker heartbeat
+- last applied and requested runtime config versions
 
 ## Persistence Expectations
 
@@ -83,6 +84,8 @@ The current runtime writes:
 - execution evidence
 
 These records are the bot truth, not in-memory placeholders.
+
+The worker-local runtime files stay on the worker disk. Public and control services consume the summarized worker visibility snapshot from Postgres instead of reading those files directly.
 
 ## Alert Triggers
 

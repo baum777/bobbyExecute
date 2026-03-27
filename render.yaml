@@ -1,10 +1,6 @@
 environments:
   - name: staging
     services:
-      # Transitional baseline:
-      # The bot remains a public web service in this wave because the dashboard
-      # still calls the API directly from the browser. A later wave will move
-      # this behind a private control proxy.
       - type: web
         name: bobbyexecute-bot-staging
         runtime: node
@@ -16,10 +12,6 @@ environments:
         buildCommand: npm ci && npm run build
         startCommand: npm run start:server
         healthCheckPath: /health
-        disk:
-          name: bobbyexecute-bot-staging-data
-          mountPath: /var/data
-          sizeGB: 10
         envVars:
           - key: NODE_ENV
             value: production
@@ -47,12 +39,6 @@ environments:
             value: "5"
           - key: CIRCUIT_BREAKER_RECOVERY_MS
             value: "60000"
-          - key: JOURNAL_PATH
-            value: /var/data/journal.jsonl
-          - key: CONTROL_TOKEN
-            sync: false
-          - key: OPERATOR_READ_TOKEN
-            sync: false
           - key: DASHBOARD_ORIGIN
             fromService:
               type: web
@@ -61,11 +47,6 @@ environments:
           - key: DATABASE_URL
             fromDatabase:
               name: bobbyexecute-postgres-staging
-              property: connectionString
-          - key: REDIS_URL
-            fromService:
-              type: keyvalue
-              name: bobbyexecute-kv-staging
               property: connectionString
 
       - type: pserv
@@ -82,8 +63,6 @@ environments:
         envVars:
           - key: NODE_ENV
             value: production
-          - key: HOST
-            value: 0.0.0.0
           - key: RUNTIME_CONFIG_ENV
             value: staging
           - key: CONTROL_TOKEN
@@ -97,6 +76,59 @@ environments:
               type: keyvalue
               name: bobbyexecute-kv-staging
               property: connectionString
+
+      - type: worker
+        name: bobbyexecute-runtime-staging
+        runtime: node
+        plan: starter
+        region: oregon
+        branch: main
+        autoDeployTrigger: commit
+        rootDir: bot
+        buildCommand: npm ci && npm run build
+        startCommand: npm run start:worker
+        envVars:
+          - key: NODE_ENV
+            value: production
+          - key: RUNTIME_CONFIG_ENV
+            value: staging
+          - key: LIVE_TRADING
+            value: "false"
+          - key: DRY_RUN
+            value: "true"
+          - key: TRADING_ENABLED
+            value: "false"
+          - key: LIVE_TEST_MODE
+            value: "false"
+          - key: RUNTIME_POLICY_AUTHORITY
+            value: ts-env
+          - key: REVIEW_POLICY_MODE
+            value: required
+          - key: RPC_MODE
+            value: stub
+          - key: MAX_SLIPPAGE_PERCENT
+            value: "5"
+          - key: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+            value: "5"
+          - key: CIRCUIT_BREAKER_RECOVERY_MS
+            value: "60000"
+          - key: JOURNAL_PATH
+            value: /var/data/journal.jsonl
+          - key: WORKER_HEARTBEAT_INTERVAL_MS
+            value: "5000"
+          - key: DATABASE_URL
+            fromDatabase:
+              name: bobbyexecute-postgres-staging
+              property: connectionString
+          - key: REDIS_URL
+            fromService:
+              type: keyvalue
+              name: bobbyexecute-kv-staging
+              property: connectionString
+        disk:
+          name: bobbyexecute-runtime-staging-data
+          mountPath: /var/data
+          sizeGB: 10
 
       - type: web
         name: bobbyexecute-dashboard-staging
@@ -156,10 +188,6 @@ environments:
         buildCommand: npm ci && npm run build
         startCommand: npm run start:server
         healthCheckPath: /health
-        disk:
-          name: bobbyexecute-bot-production-data
-          mountPath: /var/data
-          sizeGB: 10
         envVars:
           - key: NODE_ENV
             value: production
@@ -187,12 +215,6 @@ environments:
             value: "5"
           - key: CIRCUIT_BREAKER_RECOVERY_MS
             value: "60000"
-          - key: JOURNAL_PATH
-            value: /var/data/journal.jsonl
-          - key: CONTROL_TOKEN
-            sync: false
-          - key: OPERATOR_READ_TOKEN
-            sync: false
           - key: DASHBOARD_ORIGIN
             fromService:
               type: web
@@ -201,11 +223,6 @@ environments:
           - key: DATABASE_URL
             fromDatabase:
               name: bobbyexecute-postgres-production
-              property: connectionString
-          - key: REDIS_URL
-            fromService:
-              type: keyvalue
-              name: bobbyexecute-kv-production
               property: connectionString
 
       - type: pserv
@@ -222,8 +239,6 @@ environments:
         envVars:
           - key: NODE_ENV
             value: production
-          - key: HOST
-            value: 0.0.0.0
           - key: RUNTIME_CONFIG_ENV
             value: production
           - key: CONTROL_TOKEN
@@ -237,6 +252,59 @@ environments:
               type: keyvalue
               name: bobbyexecute-kv-production
               property: connectionString
+
+      - type: worker
+        name: bobbyexecute-runtime-production
+        runtime: node
+        plan: starter
+        region: oregon
+        branch: main
+        autoDeployTrigger: off
+        rootDir: bot
+        buildCommand: npm ci && npm run build
+        startCommand: npm run start:worker
+        envVars:
+          - key: NODE_ENV
+            value: production
+          - key: RUNTIME_CONFIG_ENV
+            value: production
+          - key: LIVE_TRADING
+            value: "false"
+          - key: DRY_RUN
+            value: "true"
+          - key: TRADING_ENABLED
+            value: "false"
+          - key: LIVE_TEST_MODE
+            value: "false"
+          - key: RUNTIME_POLICY_AUTHORITY
+            value: ts-env
+          - key: REVIEW_POLICY_MODE
+            value: required
+          - key: RPC_MODE
+            value: stub
+          - key: MAX_SLIPPAGE_PERCENT
+            value: "5"
+          - key: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+            value: "5"
+          - key: CIRCUIT_BREAKER_RECOVERY_MS
+            value: "60000"
+          - key: JOURNAL_PATH
+            value: /var/data/journal.jsonl
+          - key: WORKER_HEARTBEAT_INTERVAL_MS
+            value: "5000"
+          - key: DATABASE_URL
+            fromDatabase:
+              name: bobbyexecute-postgres-production
+              property: connectionString
+          - key: REDIS_URL
+            fromService:
+              type: keyvalue
+              name: bobbyexecute-kv-production
+              property: connectionString
+        disk:
+          name: bobbyexecute-runtime-production-data
+          mountPath: /var/data
+          sizeGB: 10
 
       - type: web
         name: bobbyexecute-dashboard-production

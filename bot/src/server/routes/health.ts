@@ -5,9 +5,10 @@ import type { FastifyPluginAsync } from "fastify";
 import type { HealthResponse } from "../contracts/kpi.js";
 import type { CircuitBreaker } from "../../governance/circuit-breaker.js";
 import { checkHealth } from "../../observability/health.js";
-import type { RuntimeController } from "../../runtime/controller.js";
 import type { RuntimeSnapshot } from "../../runtime/dry-run-runtime.js";
 import { buildRuntimeReadiness, buildRuntimeHistory } from "../runtime-truth.js";
+import { loadVisibleRuntimeState } from "../runtime-visibility.js";
+import type { RuntimeVisibilityRepository } from "../../persistence/runtime-visibility-repository.js";
 
 const VERSION = "0.1.0";
 
@@ -16,14 +17,20 @@ export interface HealthRouteDeps {
   startedAt: number;
   getBotStatus?: () => "running" | "paused" | "stopped";
   getRuntimeSnapshot?: () => RuntimeSnapshot;
-  runtime?: RuntimeController;
+  runtimeVisibilityRepository?: RuntimeVisibilityRepository;
+  runtimeEnvironment?: string;
 }
 
 export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
-  const { circuitBreaker, startedAt, getBotStatus, getRuntimeSnapshot, runtime } = deps;
+  const { circuitBreaker, startedAt, getBotStatus, getRuntimeSnapshot, runtimeVisibilityRepository, runtimeEnvironment } = deps;
   return async (fastify) => {
     fastify.get<{ Reply: HealthResponse }>("/health", async (_request, reply) => {
-      const runtimeSnapshot = getRuntimeSnapshot?.() ?? runtime?.getSnapshot();
+      const visible = await loadVisibleRuntimeState(
+        runtimeVisibilityRepository,
+        runtimeEnvironment,
+        getRuntimeSnapshot
+      );
+      const runtimeSnapshot = visible.runtime;
       const report = checkHealth(circuitBreaker, runtimeSnapshot);
       const uptimeMs = Date.now() - startedAt;
       const killState = runtimeSnapshot?.liveControl?.killSwitchActive
@@ -33,7 +40,16 @@ export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
         status: report.status,
         uptimeMs,
         version: VERSION,
-        botStatus: getBotStatus?.(),
+        botStatus:
+          getBotStatus?.() ??
+          (runtimeSnapshot?.status === "running"
+            ? "running"
+            : runtimeSnapshot?.status === "paused"
+              ? "paused"
+              : runtimeSnapshot
+                ? "stopped"
+                : undefined),
+        worker: visible.worker,
         killSwitch: killState,
         runtime: runtimeSnapshot
           ? {

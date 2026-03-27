@@ -5,15 +5,16 @@ The Blueprint is the source of truth for the current deployment baseline.
 
 ## Current Render Topology
 
-The deployed baseline is intentionally transitional:
+The deployed baseline now matches the worker split:
 
-- `bobbyexecute-bot-{staging,production}` runs the existing TypeScript bot runtime
-- `bobbyexecute-control-{staging,production}` runs the private control plane for authenticated mutations
+- `bobbyexecute-bot-{staging,production}` is the public readonly bot service
+- `bobbyexecute-control-{staging,production}` is the private control plane for authenticated mutations and operator status
+- `bobbyexecute-runtime-{staging,production}` is the dedicated runtime background worker
 - `bobbyexecute-dashboard-{staging,production}` runs the Next.js dashboard
-- `bobbyexecute-postgres-{staging,production}` provides durable config/audit storage for the target model
-- `bobbyexecute-kv-{staging,production}` provides the fast override layer for the target model
+- `bobbyexecute-postgres-{staging,production}` provides durable config, audit, and worker visibility storage
+- `bobbyexecute-kv-{staging,production}` provides the fast signal layer for runtime config overlays
 
-The public bot service now exposes read surfaces only. Mutations moved to the private control service, and the dashboard now proxies privileged calls through server-side routes instead of calling the bot directly from the browser.
+The public bot service stays read-only. Mutations live on the private control service, and the dashboard proxies privileged calls through server-side routes instead of calling the control plane directly from the browser.
 
 ## Build And Start
 
@@ -22,7 +23,7 @@ Bot service:
 - Build: `cd bot && npm ci && npm run build`
 - Start: `cd bot && npm run start:server`
 - Listen address: `0.0.0.0:$PORT`
-- Persistent state: mounted at `/var/data`
+- Persistent state: none
 
 Control service:
 
@@ -30,6 +31,13 @@ Control service:
 - Start: `cd bot && npm run start:control`
 - Listen address: `0.0.0.0:$PORT`
 - Persistent state: no disk required; control state persists in Postgres and Key Value
+
+Runtime worker:
+
+- Build: `cd bot && npm ci && npm run build`
+- Start: `cd bot && npm run start:worker`
+- Listen address: none, this is a background worker
+- Persistent state: mounted at `/var/data`
 
 Dashboard service:
 
@@ -65,17 +73,16 @@ These values remain boot-level configuration and are set in Render env vars:
 - `MAX_SLIPPAGE_PERCENT=5`
 - `CIRCUIT_BREAKER_FAILURE_THRESHOLD=5`
 - `CIRCUIT_BREAKER_RECOVERY_MS=60000`
-- `JOURNAL_PATH=/var/data/journal.jsonl`
+- `JOURNAL_PATH=/var/data/journal.jsonl` for the worker only
+- `WORKER_HEARTBEAT_INTERVAL_MS=5000` for the worker only
 
 Secret placeholders are created with `sync: false` and must be filled in the Render dashboard:
 
 - `CONTROL_TOKEN`
-- `OPERATOR_READ_TOKEN`
 
-The bot service also receives canonical datastore URLs from the Blueprint:
+The public bot service receives:
 
 - `DATABASE_URL` from the Render Postgres instance
-- `REDIS_URL` from the Render Key Value instance
 - `DASHBOARD_ORIGIN` from the dashboard service's external URL for browser CORS
 
 The private control service receives:
@@ -83,7 +90,14 @@ The private control service receives:
 - `CONTROL_TOKEN` as its mutation secret
 - `DATABASE_URL` from the same Render Postgres instance
 - `REDIS_URL` from the same Render Key Value instance
-- `RUNTIME_CONFIG_ENV` to keep the runtime namespace aligned with the bot service
+- `RUNTIME_CONFIG_ENV` to keep the runtime namespace aligned with the worker
+
+The runtime worker receives:
+
+- `DATABASE_URL` from the same Render Postgres instance
+- `REDIS_URL` from the same Render Key Value instance
+- `JOURNAL_PATH=/var/data/journal.jsonl`
+- `WORKER_HEARTBEAT_INTERVAL_MS` if you want to tune snapshot cadence
 
 The dashboard server receives:
 
@@ -99,15 +113,17 @@ The bot only emits CORS headers for the dashboard origin injected by the Bluepri
 
 ## Persistent Storage
 
-The bot service owns the persistent disk mount.
-All file-backed runtime state derives from `JOURNAL_PATH`, so mounting the disk at `/var/data` keeps the journal, incidents, cycle summaries, idempotency state, kill switch state, and live-control state together.
+The runtime worker owns the persistent disk mount.
+The worker-local file-backed runtime artifacts stay on that disk and are not assumed to be shared with the public bot or control services. That includes the journal, incident files, cycle summaries, idempotency state, kill switch state, and live-control state.
+
+The public bot and private control services read the summarized worker visibility snapshot from Postgres instead of reaching into worker-local files.
 
 ## Rollout Notes
 
 1. Deploy staging first.
-2. Verify the bot read surfaces: `/health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, `/kpi/metrics`, `/runtime/status`, `/runtime/cycles`, and `/incidents`.
+2. Verify the public bot read surfaces: `/health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics`.
 3. Verify the control surfaces: `/control/status`, `/control/runtime-config`, `/control/history`, `/control/mode`, `/control/pause`, `/control/resume`, `/control/kill-switch`, `/control/runtime-config`, and `/control/reload`.
-4. Fill the Render secrets for `CONTROL_TOKEN` and `OPERATOR_READ_TOKEN`.
+4. Confirm the control status shows worker heartbeat, last applied version, and reload nonce.
 5. Confirm the dashboard proxy routes are using the private control service, not the public bot service.
 6. Promote the same commit to production only after staging is healthy.
 7. Treat `LIVE_TRADING`, `DRY_RUN`, `TRADING_ENABLED`, `LIVE_TEST_MODE`, `MAX_SLIPPAGE_PERCENT`, and the circuit breaker env values as boot-seed defaults only; runtime changes now go through the control API.

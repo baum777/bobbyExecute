@@ -1,0 +1,1 @@
+{"id":"incident-2026-03-27T06-34-38-595Z-1","at":"2026-03-27T06:34:38.595Z","severity":"info","type":"rollout_posture_transition","message":"Rollout posture evaluated at runtime start","details":{"rolloutPosture":"paper_only","rolloutConfigured":true,"rolloutConfigValid":true,"livePosture":"live_unavailable"}}

@@ -1,18 +1,128 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createControlServer } from "../../src/server/index.js";
+import { createRuntimeVisibilityRepository, type RuntimeVisibilitySnapshot } from "../../src/persistence/runtime-visibility-repository.js";
 import { createRuntimeConfigTestManager, controlHeaders, TEST_CONTROL_TOKEN } from "../helpers/runtime-config-test-kit.js";
+
+function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
+  return {
+    environment: "test",
+    worker: {
+      workerId: "worker-config-test",
+      lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
+      lastCycleAt: "2026-03-27T11:59:30.000Z",
+      lastSeenReloadNonce: 0,
+      lastAppliedVersionId: "version-applied",
+      lastValidVersionId: "version-valid",
+      degraded: false,
+      observedAt: "2026-03-27T12:00:00.000Z",
+    },
+    runtime: {
+      status: "running",
+      mode: "dry",
+      paperModeActive: false,
+      cycleInFlight: false,
+      counters: {
+        cycleCount: 3,
+        decisionCount: 3,
+        executionCount: 1,
+        blockedCount: 2,
+        errorCount: 0,
+      },
+      lastCycleAt: "2026-03-27T11:59:30.000Z",
+      lastDecisionAt: "2026-03-27T11:59:30.000Z",
+      lastState: {
+        stage: "risk",
+        traceId: "trace-config",
+        timestamp: "2026-03-27T11:59:30.000Z",
+        blocked: true,
+      },
+      degradedState: {
+        active: false,
+        consecutiveCycles: 0,
+        recoveryCount: 1,
+      },
+      runtimeConfig: {
+        environment: "test",
+        configured: true,
+        seedSource: "boot",
+        requestedMode: "observe",
+        appliedMode: "observe",
+        requestedExecutionMode: "dry",
+        appliedExecutionMode: "dry",
+        rolloutPosture: "paper_only",
+        executionToggles: {
+          tradingEnabled: false,
+          liveTestMode: false,
+          dryRun: true,
+        },
+        filters: {
+          allowlistTokens: [],
+          denylistTokens: [],
+        },
+        adapterToggles: {
+          executionEnabled: true,
+          publishEnabled: true,
+          paperAdaptersEnabled: true,
+        },
+        rateCaps: {
+          requireArm: true,
+          maxNotionalPerTrade: 25,
+          maxTradesPerWindow: 2,
+          windowMs: 60 * 60 * 1000,
+          cooldownMs: 60 * 1000,
+          maxInFlight: 1,
+          failuresToBlock: 3,
+          failureWindowMs: 15 * 60 * 1000,
+          maxDailyNotional: 50,
+        },
+        thresholds: {
+          maxSlippagePercent: 5,
+          circuitBreakerFailureThreshold: 5,
+          circuitBreakerRecoveryMs: 60_000,
+          reviewPolicyMode: "required",
+        },
+        featureFlags: {},
+        pollingIntervalMs: 15_000,
+        requestedVersionId: "version-requested",
+        activeVersionId: "version-active",
+        appliedVersionId: "version-applied",
+        lastValidVersionId: "version-valid",
+        reloadNonce: 0,
+        lastAppliedReloadNonce: 0,
+        paused: false,
+        killSwitch: false,
+        pendingApply: false,
+        requiresRestart: false,
+        degraded: false,
+      },
+    },
+    metrics: {
+      cycleCount: 3,
+      decisionCount: 3,
+      executionCount: 1,
+      blockedCount: 2,
+      errorCount: 0,
+      lastCycleAtEpochMs: Date.parse("2026-03-27T11:59:30.000Z"),
+      lastDecisionAtEpochMs: Date.parse("2026-03-27T11:59:30.000Z"),
+    },
+  };
+}
 
 async function createHarness() {
   const { manager } = await createRuntimeConfigTestManager();
+  const runtimeVisibilityRepository = await createRuntimeVisibilityRepository();
+  await runtimeVisibilityRepository.save(buildVisibilitySnapshot());
   const server = await createControlServer({
     port: 0,
     host: "127.0.0.1",
     runtimeConfigManager: manager,
+    runtimeVisibilityRepository,
+    runtimeEnvironment: "test",
     controlAuthToken: TEST_CONTROL_TOKEN,
   });
   const address = server.server.address();
   if (typeof address !== "object" || address === null || !("port" in address)) {
-    throw new Error("Failed to resolve test server port");
+    throw new Error("Failed to resolve control test server port");
   }
 
   return {
@@ -23,16 +133,16 @@ async function createHarness() {
 }
 
 describe("control runtime-config routes", () => {
-  let servers: Array<Awaited<ReturnType<typeof createHarness>>> = [];
+  const servers: Array<Awaited<ReturnType<typeof createHarness>>> = [];
 
   afterEach(async () => {
     for (const harness of [...servers].reverse()) {
       await harness.server.close();
     }
-    servers = [];
+    servers.length = 0;
   });
 
-  it("rejects mutations without operator auth and logs the denial", async () => {
+  it("rejects mutations without control auth and logs the denial", async () => {
     const harness = await createHarness();
     servers.push(harness);
 
@@ -133,6 +243,10 @@ describe("control runtime-config routes", () => {
         pendingApply: true,
         requiresRestart: true,
       },
+      worker: {
+        workerId: "worker-config-test",
+        lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
+      },
     });
   });
 
@@ -215,7 +329,7 @@ describe("control runtime-config routes", () => {
       },
     });
 
-    const triggerResponse = await fetch(`${harness.baseUrl}/control/kill-switch`, {
+    const triggerResponse = await fetch(`${harness.baseUrl}/emergency-stop`, {
       method: "POST",
       headers: {
         ...controlHeaders(),
@@ -238,7 +352,7 @@ describe("control runtime-config routes", () => {
       },
     });
 
-    const resetResponse = await fetch(`${harness.baseUrl}/control/kill-switch`, {
+    const resetResponse = await fetch(`${harness.baseUrl}/control/reset`, {
       method: "POST",
       headers: {
         ...controlHeaders(),

@@ -4,7 +4,7 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 
 ## Current State
 
-- `bot/` is the active TypeScript runtime.
+- `bot/` contains the public readonly API, private control plane, and dedicated runtime worker entrypoints.
 - Dry and paper are the normal local modes.
 - Live-test support is guarded, bounded, and operator-visible.
 - Runtime behavior is governed by persisted runtime config and a private control service, not by changing env vars.
@@ -64,8 +64,8 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
    npm run start:server
    ```
 
-7. Check `GET /health`, `GET /kpi/summary`, and `GET /runtime/status`.
-8. Use the private control service or the dashboard proxy routes for control-path testing.
+7. Check `GET /health` and `GET /kpi/summary` on the public bot service.
+8. Use the private control service or the dashboard proxy routes for control-path testing, and read worker status through `GET /control/status`.
 
 ## Runtime Surfaces
 
@@ -74,28 +74,23 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 - `GET /kpi/decisions`
 - `GET /kpi/adapters`
 - `GET /kpi/metrics`
-- `GET /runtime/status`
-- `GET /runtime/cycles`
-- `GET /runtime/cycles/:traceId/replay`
-- `GET /incidents`
+- Public bot surface is read-only for mutations and no longer exposes runtime replay or incident routes.
+- `GET /control/status`
 - `GET /control/runtime-config`
 - `GET /control/runtime-status`
-- Public bot surface is read-only for mutations.
 - Privileged mutations now live on the private control service:
   - `POST /emergency-stop`
   - `POST /control/pause`
   - `POST /control/resume`
   - `POST /control/halt`
   - `POST /control/reset`
-  - `POST /control/live/arm`
-  - `POST /control/live/disarm`
   - `POST /control/mode`
   - `POST /control/kill-switch`
   - `POST /control/runtime-config`
   - `POST /control/reload`
 - `GET /control/history`
 
-The dashboard now calls the private control service through server-side proxy routes. Control routes require `x-control-token` or `Authorization: Bearer <token>` on the control service. Operator read surfaces require the operator read token. Missing tokens fail closed with `403`.
+The dashboard now calls the private control service through server-side proxy routes. Control routes require `x-control-token` or `Authorization: Bearer <token>` on the control service. Missing tokens fail closed with `403`.
 
 ## Repo Layout
 

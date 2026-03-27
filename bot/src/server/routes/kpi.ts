@@ -16,6 +16,8 @@ import { getP95 } from "../../observability/metrics.js";
 import { ADAPTER_IDS } from "../../adapters/adapters-with-cb.js";
 import type { RuntimeSnapshot } from "../../runtime/dry-run-runtime.js";
 import { buildRuntimeHistory, buildRuntimeReadiness } from "../runtime-truth.js";
+import { loadVisibleRuntimeState } from "../runtime-visibility.js";
+import type { RuntimeVisibilityRepository } from "../../persistence/runtime-visibility-repository.js";
 
 export interface KpiRouteDeps {
   circuitBreaker?: CircuitBreaker;
@@ -26,6 +28,8 @@ export interface KpiRouteDeps {
   chaosPassRate?: number;
   riskScore?: number;
   getRuntimeSnapshot?: () => RuntimeSnapshot;
+  runtimeVisibilityRepository?: RuntimeVisibilityRepository;
+  runtimeEnvironment?: string;
 }
 
 function mapHealthToStatus(h: AdapterHealth): KpiAdapter["status"] {
@@ -75,11 +79,13 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
     circuitBreaker,
     actionLogger,
     getP95: getP95Fn,
-    botStatus = "running",
+    botStatus = "stopped",
     getBotStatus,
     chaosPassRate = 1,
     riskScore = 0,
     getRuntimeSnapshot,
+    runtimeVisibilityRepository,
+    runtimeEnvironment,
   } = deps;
 
   return async (fastify) => {
@@ -91,7 +97,12 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
 
     fastify.get<{ Reply: KpiSummaryResponse }>("/kpi/summary", async (_request, reply) => {
       const entries = await getEntries();
-      const runtime = getRuntimeSnapshot?.();
+      const visible = await loadVisibleRuntimeState(
+        runtimeVisibilityRepository,
+        runtimeEnvironment,
+        getRuntimeSnapshot
+      );
+      const runtime = visible.runtime;
       const lastEntry = entries[entries.length - 1];
       const lastDecisionAt = lastEntry?.ts ?? runtime?.lastDecisionAt ?? null;
       const tradesToday = entries.filter(isTradeExecutionEntry).length;
@@ -106,12 +117,15 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
             ? runtime.adapterHealth.healthy / runtime.adapterHealth.total
             : 1;
       const body: KpiSummaryResponse = {
-        botStatus: getBotStatus?.() ?? botStatus,
+        botStatus:
+          getBotStatus?.() ??
+          (runtime?.status === "running" ? "running" : runtime?.status === "paused" ? "paused" : botStatus),
         riskScore,
         chaosPassRate,
         dataQuality,
         lastDecisionAt,
         tradesToday,
+        worker: visible.worker,
         runtime: runtime
           ? {
               mode: runtime.mode,
@@ -188,8 +202,13 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
     }
   );
 
-  fastify.get<{ Reply: KpiAdaptersResponse }>("/kpi/adapters", async (_request, reply) => {
-    const runtime = getRuntimeSnapshot?.();
+    fastify.get<{ Reply: KpiAdaptersResponse }>("/kpi/adapters", async (_request, reply) => {
+    const visible = await loadVisibleRuntimeState(
+      runtimeVisibilityRepository,
+      runtimeEnvironment,
+      getRuntimeSnapshot
+    );
+    const runtime = visible.runtime;
     const health = circuitBreaker?.getHealth() ?? [];
     const adapters: KpiAdapter[] =
       health.length > 0

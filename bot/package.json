@@ -24,6 +24,7 @@
     "live:test": "npm run live:preflight && node dist/server/run.js",
     "start:server": "node dist/server/run.js",
     "start:control": "node dist/control/run.js",
+    "start:worker": "node dist/worker/run.js",
     "validate:openapi": "swagger-cli validate openapi.yaml"
   },
   "dependencies": {

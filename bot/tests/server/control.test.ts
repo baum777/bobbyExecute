@@ -1,378 +1,255 @@
 /**
  * Runtime control routes.
  */
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createControlServer } from "../../src/server/index.js";
+import { createRuntimeVisibilityRepository, type RuntimeVisibilitySnapshot } from "../../src/persistence/runtime-visibility-repository.js";
 import { resetKillSwitch } from "../../src/governance/kill-switch.js";
-import type { DryRunRuntime } from "../../src/runtime/dry-run-runtime.js";
-import { resetMicroLiveControlForTests } from "../../src/runtime/live-control.js";
-import { createRuntimeConfigTestManager } from "../helpers/runtime-config-test-kit.js";
+import { createRuntimeConfigTestManager, controlHeaders, TEST_CONTROL_TOKEN } from "../helpers/runtime-config-test-kit.js";
 
-const CONTROL_TOKEN = "phase10-control-token";
-
-async function createBoundServer(config: Parameters<typeof createControlServer>[0]) {
-  const server = await createControlServer({
-    ...config,
-    port: 0,
-    host: "127.0.0.1",
-  });
-  const address = server.server.address();
-  if (typeof address !== "object" || address === null || !("port" in address)) {
-    throw new Error("Failed to determine control test server port");
-  }
-
+function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
   return {
-    server,
-    baseUrl: `http://127.0.0.1:${address.port}`,
+    environment: "test",
+    worker: {
+      workerId: "worker-test-1",
+      lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
+      lastCycleAt: "2026-03-27T11:59:30.000Z",
+      lastSeenReloadNonce: 4,
+      lastAppliedVersionId: "version-applied-1",
+      lastValidVersionId: "version-valid-1",
+      degraded: false,
+      observedAt: "2026-03-27T12:00:00.000Z",
+    },
+    runtime: {
+      status: "running",
+      mode: "paper",
+      paperModeActive: true,
+      cycleInFlight: false,
+      counters: {
+        cycleCount: 12,
+        decisionCount: 12,
+        executionCount: 3,
+        blockedCount: 9,
+        errorCount: 0,
+      },
+      lastCycleAt: "2026-03-27T11:59:30.000Z",
+      lastDecisionAt: "2026-03-27T11:59:30.000Z",
+      lastState: {
+        stage: "monitor",
+        traceId: "trace-worker-1",
+        timestamp: "2026-03-27T11:59:30.000Z",
+        blocked: false,
+      },
+      runtimeConfig: {
+        environment: "test",
+        configured: true,
+        seedSource: "boot",
+        requestedMode: "observe",
+        appliedMode: "observe",
+        requestedExecutionMode: "dry",
+        appliedExecutionMode: "dry",
+        rolloutPosture: "paper_only",
+        executionToggles: {
+          tradingEnabled: false,
+          liveTestMode: false,
+          dryRun: true,
+        },
+        filters: {
+          allowlistTokens: [],
+          denylistTokens: [],
+        },
+        adapterToggles: {
+          executionEnabled: true,
+          publishEnabled: true,
+          paperAdaptersEnabled: true,
+        },
+        rateCaps: {
+          requireArm: true,
+          maxNotionalPerTrade: 25,
+          maxTradesPerWindow: 2,
+          windowMs: 60 * 60 * 1000,
+          cooldownMs: 60 * 1000,
+          maxInFlight: 1,
+          failuresToBlock: 3,
+          failureWindowMs: 15 * 60 * 1000,
+          maxDailyNotional: 50,
+        },
+        thresholds: {
+          maxSlippagePercent: 5,
+          circuitBreakerFailureThreshold: 5,
+          circuitBreakerRecoveryMs: 60_000,
+          reviewPolicyMode: "required",
+        },
+        featureFlags: {},
+        pollingIntervalMs: 15_000,
+        requestedVersionId: "version-requested-1",
+        activeVersionId: "version-active-1",
+        appliedVersionId: "version-applied-1",
+        lastValidVersionId: "version-valid-1",
+        reloadNonce: 4,
+        lastAppliedReloadNonce: 4,
+        paused: false,
+        killSwitch: false,
+        pendingApply: false,
+        requiresRestart: false,
+        degraded: false,
+      },
+      degradedState: {
+        active: false,
+        consecutiveCycles: 0,
+        recoveryCount: 2,
+      },
+    },
+    metrics: {
+      cycleCount: 12,
+      decisionCount: 12,
+      executionCount: 3,
+      blockedCount: 9,
+      errorCount: 0,
+      lastCycleAtEpochMs: Date.parse("2026-03-27T11:59:30.000Z"),
+      lastDecisionAtEpochMs: Date.parse("2026-03-27T11:59:30.000Z"),
+    },
   };
 }
 
-function authHeaders(token = CONTROL_TOKEN): HeadersInit {
-  return { "x-control-token": token };
-}
-
-async function createLiveTestRuntime(tempDirPath: string): Promise<DryRunRuntime> {
-  const { createDryRunRuntime } = await import("../../src/runtime/dry-run-runtime.js");
-  return createDryRunRuntime({
-    nodeEnv: "test",
-    dryRun: false,
-    tradingEnabled: true,
-    liveTestMode: true,
-    executionMode: "live",
-    rpcMode: "real",
-    rpcUrl: "https://api.mainnet-beta.solana.com",
-    dexpaprikaBaseUrl: "https://api.dexpaprika.com",
-    moralisBaseUrl: "https://solana-gateway.moralis.io",
-    walletAddress: "11111111111111111111111111111111",
-    controlToken: CONTROL_TOKEN,
-    operatorReadToken: "phase10-operator-read-token",
-    journalPath: join(tempDirPath, "journal.jsonl"),
-    circuitBreakerFailureThreshold: 5,
-    circuitBreakerRecoveryMs: 60_000,
-    maxSlippagePercent: 5,
-    reviewPolicyMode: "required",
+async function createHarness() {
+  const { manager } = await createRuntimeConfigTestManager();
+  const runtimeVisibilityRepository = await createRuntimeVisibilityRepository();
+  await runtimeVisibilityRepository.save(buildVisibilitySnapshot());
+  const server = await createControlServer({
+    port: 0,
+    host: "127.0.0.1",
+    runtimeConfigManager: manager,
+    runtimeVisibilityRepository,
+    runtimeEnvironment: "test",
+    controlAuthToken: TEST_CONTROL_TOKEN,
   });
+  const address = server.server.address();
+  if (typeof address !== "object" || address === null || !("port" in address)) {
+    throw new Error("Failed to resolve control test server port");
+  }
+
+  return {
+    manager,
+    server,
+    baseUrl: `http://127.0.0.1:${address.port}`,
+    runtimeVisibilityRepository,
+  };
 }
 
-describe("Control routes", () => {
-  let server: Awaited<ReturnType<typeof createServer>>;
-  let baseUrl: string;
-  let runtime: DryRunRuntime;
-  let tempDir: string;
+describe("control routes", () => {
+  let harnesses: Array<Awaited<ReturnType<typeof createHarness>>> = [];
 
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "control-test-"));
+  beforeEach(() => {
     resetKillSwitch();
-    resetMicroLiveControlForTests();
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    const { createDryRunRuntime } = await import("../../src/runtime/dry-run-runtime.js");
-    runtime = createDryRunRuntime({
-      nodeEnv: "test",
-      dryRun: true,
-      tradingEnabled: false,
-      liveTestMode: false,
-      executionMode: "dry",
-      rpcMode: "stub",
-      rpcUrl: "https://api.mainnet-beta.solana.com",
-      dexpaprikaBaseUrl: "https://api.dexpaprika.com",
-      moralisBaseUrl: "https://solana-gateway.moralis.io",
-      walletAddress: "11111111111111111111111111111111",
-      journalPath: join(tempDir, "journal.jsonl"),
-      circuitBreakerFailureThreshold: 5,
-      circuitBreakerRecoveryMs: 60_000,
-      maxSlippagePercent: 5,
-      reviewPolicyMode: "required",
-    });
-    await runtime.start();
-    const started = await createBoundServer({ runtime, getRuntimeSnapshot: () => runtime.getSnapshot(), getBotStatus: () => {
-      const s = runtime.getStatus();
-      return s === "running" ? "running" : s === "paused" ? "paused" : "stopped";
-    }, controlAuthToken: CONTROL_TOKEN });
-    server = started.server;
-    baseUrl = started.baseUrl;
   });
 
   afterEach(async () => {
-    await runtime.stop();
-    await server.close();
-    await rm(tempDir, { recursive: true, force: true });
+    for (const harness of [...harnesses].reverse()) {
+      await harness.server.close();
+    }
+    harnesses = [];
     resetKillSwitch();
-    resetMicroLiveControlForTests();
-    delete process.env.LIVE_TRADING;
-    delete process.env.RPC_MODE;
-    delete process.env.ROLLOUT_POSTURE;
   });
 
-  it("rejects control routes when authorization is missing or invalid", async () => {
-    const missing = await fetch(`${baseUrl}/control/pause`, { method: "POST" });
-    expect(missing.status).toBe(403);
-    await expect(missing.json()).resolves.toMatchObject({
-      success: false,
-      code: "control_auth_invalid",
-    });
+  it("rejects mutations without control auth and logs the denial", async () => {
+    const harness = await createHarness();
+    harnesses.push(harness);
 
-    const invalid = await fetch(`${baseUrl}/control/pause`, {
+    const response = await fetch(`${harness.baseUrl}/control/pause`, {
       method: "POST",
-      headers: authHeaders("wrong-token"),
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ scope: "soft" }),
     });
-    expect(invalid.status).toBe(403);
-    await expect(invalid.json()).resolves.toMatchObject({
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
       success: false,
       code: "control_auth_invalid",
     });
+
+    const history = await harness.manager.getHistory();
+    expect(history.changes[0]).toMatchObject({
+      action: "auth_failure",
+      accepted: false,
+    });
   });
 
-  it("POST /emergency-stop pauses runtime and enables kill-switch", async () => {
-    const res = await fetch(`${baseUrl}/emergency-stop`, { method: "POST", headers: authHeaders() });
+  it("exposes worker heartbeat and canonical runtime config through control status", async () => {
+    const harness = await createHarness();
+    harnesses.push(harness);
+
+    const res = await fetch(`${harness.baseUrl}/control/status`, {
+      headers: controlHeaders(),
+    });
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.success).toBe(true);
-    expect(body.runtimeStatus).toBe("paused");
-    expect(body.killSwitch.halted).toBe(true);
-    expect(body.liveControl.posture).toBe("live_killed");
-    expect(body.readiness).toMatchObject({
-      canArmMicroLive: expect.any(Boolean),
-      blockers: expect.any(Array),
-    });
-
-    const health = await fetch(`${baseUrl}/health`);
-    expect((await health.json()).botStatus).toBe("paused");
-  });
-
-  it("POST /emergency-stop and /control/reset manage live-test round status explicitly", async () => {
-    const liveTempDir = await mkdtemp(join(tmpdir(), "control-live-stop-"));
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
-    process.env.CONTROL_TOKEN = CONTROL_TOKEN;
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-read-token";
-    process.env.ROLLOUT_POSTURE = "micro_live";
-
-    const runtimeLive = await createLiveTestRuntime(liveTempDir);
-    await runtimeLive.start();
-    const liveStarted = await createBoundServer({
-      runtime: runtimeLive,
-      getRuntimeSnapshot: () => runtimeLive.getSnapshot(),
-      getBotStatus: () => {
-        const s = runtimeLive.getStatus();
-        return s === "running" ? "running" : s === "paused" ? "paused" : "stopped";
+    expect(body).toMatchObject({
+      success: true,
+      runtime: {
+        status: "running",
+        mode: "paper",
+        runtimeConfig: {
+          requestedMode: "observe",
+          appliedMode: "observe",
+        },
       },
-      controlAuthToken: CONTROL_TOKEN,
-    });
-    const { server: liveServer, baseUrl: liveBaseUrl } = liveStarted;
-
-    try {
-      const stopRes = await fetch(`${liveBaseUrl}/emergency-stop`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      expect(stopRes.status).toBe(200);
-      const stopBody = await stopRes.json();
-      expect(stopBody.success).toBe(true);
-      expect(stopBody.killSwitch.halted).toBe(true);
-      expect(stopBody.liveControl.liveTestMode).toBe(true);
-      expect(stopBody.liveControl.roundStatus).toBe("stopped");
-      expect(stopBody.liveControl.stopped).toBe(true);
-      expect(stopBody.liveControl.stopReason).toBe("kill_switch_emergency_stop");
-
-      const resetRes = await fetch(`${liveBaseUrl}/control/reset`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      expect(resetRes.status).toBe(200);
-      const resetBody = await resetRes.json();
-      expect(resetBody.success).toBe(true);
-      expect(resetBody.killSwitch.halted).toBe(false);
-      expect(resetBody.runtimeStatus).toBe("paused");
-      expect(resetBody.liveControl.roundStatus).toBe("preflighted");
-      expect(resetBody.liveControl.disarmed).toBe(true);
-      expect(resetBody.liveControl.roundStoppedAt).toBeUndefined();
-    } finally {
-      await runtimeLive.stop();
-      await liveServer.close();
-      await rm(liveTempDir, { recursive: true, force: true });
-    }
-  });
-
-  it("POST /control/reset fails closed while a live-test round is running and can recover after failure", async () => {
-    const liveTempDir = await mkdtemp(join(tmpdir(), "control-live-reset-"));
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
-    process.env.CONTROL_TOKEN = CONTROL_TOKEN;
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-read-token";
-    process.env.ROLLOUT_POSTURE = "micro_live";
-
-    const runtimeLive = await createLiveTestRuntime(liveTempDir);
-    await runtimeLive.start();
-    const liveStarted = await createBoundServer({
-      runtime: runtimeLive,
-      getRuntimeSnapshot: () => runtimeLive.getSnapshot(),
-      getBotStatus: () => {
-        const s = runtimeLive.getStatus();
-        return s === "running" ? "running" : s === "paused" ? "paused" : "stopped";
+      worker: {
+        workerId: "worker-test-1",
+        lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
+        lastAppliedVersionId: "version-applied-1",
+        lastValidVersionId: "version-valid-1",
+        degraded: false,
       },
-      controlAuthToken: CONTROL_TOKEN,
+      runtimeConfig: {
+        requestedMode: "observe",
+        appliedMode: "observe",
+      },
+      controlView: {
+        requestedMode: "observe",
+        appliedMode: "observe",
+      },
     });
-    const { server: liveServer, baseUrl: liveBaseUrl } = liveStarted;
-
-    try {
-      const firstReset = await fetch(`${liveBaseUrl}/control/reset`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      expect(firstReset.status).toBe(409);
-      const firstBody = await firstReset.json();
-      expect(firstBody.success).toBe(false);
-      expect(firstBody.liveControl.roundStatus).toBe("failed");
-      expect(firstBody.runtimeStatus).toBe("paused");
-
-      const secondReset = await fetch(`${liveBaseUrl}/control/reset`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      expect(secondReset.status).toBe(200);
-      const secondBody = await secondReset.json();
-      expect(secondBody.success).toBe(true);
-      expect(secondBody.killSwitch.halted).toBe(false);
-      expect(secondBody.liveControl.roundStatus).toBe("preflighted");
-      expect(secondBody.runtimeStatus).toBe("paused");
-    } finally {
-      await runtimeLive.stop();
-      await liveServer.close();
-      await rm(liveTempDir, { recursive: true, force: true });
-    }
   });
 
-  it("POST /control/resume fails explicitly while kill-switch is active", async () => {
-    await fetch(`${baseUrl}/emergency-stop`, { method: "POST", headers: authHeaders() });
-    const res = await fetch(`${baseUrl}/control/resume`, { method: "POST", headers: authHeaders() });
-    expect(res.status).toBe(409);
-    const body = await res.json();
-    expect(body.success).toBe(false);
-    expect(body.message).toContain("kill switch is active");
-  });
+  it("applies kill-switch and config mutations without a live runtime object", async () => {
+    const harness = await createHarness();
+    harnesses.push(harness);
 
-  it("POST /control/reset clears kill-switch but does not imply resume", async () => {
-    await fetch(`${baseUrl}/emergency-stop`, { method: "POST", headers: authHeaders() });
-    const reset = await fetch(`${baseUrl}/control/reset`, { method: "POST", headers: authHeaders() });
+    const emergency = await fetch(`${harness.baseUrl}/emergency-stop`, {
+      method: "POST",
+      headers: controlHeaders(),
+    });
+    expect(emergency.status).toBe(200);
+    const emergencyBody = await emergency.json();
+    expect(emergencyBody).toMatchObject({
+      success: true,
+      accepted: true,
+      runtimeConfig: {
+        killSwitch: true,
+      },
+      status: {
+        killSwitch: true,
+      },
+    });
+
+    const reset = await fetch(`${harness.baseUrl}/control/reset`, {
+      method: "POST",
+      headers: controlHeaders(),
+    });
     expect(reset.status).toBe(200);
-    const body = await reset.json();
-    expect(body.killSwitch.halted).toBe(false);
-    expect(body.runtimeStatus).toBe("paused");
-    expect(body.liveControl.posture).toBe("live_disarmed");
-    expect(body.readiness).toMatchObject({
-      canArmMicroLive: expect.any(Boolean),
-      blockers: expect.any(Array),
+    const resetBody = await reset.json();
+    expect(resetBody).toMatchObject({
+      success: true,
+      accepted: true,
+      runtimeConfig: {
+        killSwitch: false,
+      },
     });
-
-    const resume = await fetch(`${baseUrl}/control/resume`, { method: "POST", headers: authHeaders() });
-    expect(resume.status).toBe(200);
-    expect((await resume.json()).runtimeStatus).toBe("running");
-  });
-
-  it("POST /control/halt stops runtime", async () => {
-    const res = await fetch(`${baseUrl}/control/halt`, { method: "POST", headers: authHeaders() });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.runtimeStatus).toBe("stopped");
-
-    const pause = await fetch(`${baseUrl}/control/pause`, { method: "POST", headers: authHeaders() });
-    expect(pause.status).toBe(409);
-  });
-
-  it("POST /control/live/arm and /control/live/disarm manage explicit micro-live posture", async () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-
-    const arm = await fetch(`${baseUrl}/control/live/arm`, { method: "POST", headers: authHeaders() });
-    expect(arm.status).toBe(200);
-    const armBody = await arm.json();
-    expect(armBody.success).toBe(true);
-    expect(armBody.liveControl.posture).toBe("live_armed");
-    expect(armBody.liveControl.armed).toBe(true);
-    expect(armBody.readiness).toMatchObject({
-      canArmMicroLive: expect.any(Boolean),
-      blockers: expect.any(Array),
-    });
-
-    const disarm = await fetch(`${baseUrl}/control/live/disarm`, { method: "POST", headers: authHeaders() });
-    expect(disarm.status).toBe(200);
-    const disarmBody = await disarm.json();
-    expect(disarmBody.success).toBe(true);
-    expect(disarmBody.liveControl.posture).toBe("live_disarmed");
-    expect(disarmBody.liveControl.armed).toBe(false);
-    expect(disarmBody.readiness).toMatchObject({
-      canArmMicroLive: expect.any(Boolean),
-      blockers: expect.any(Array),
-    });
-  });
-
-  it("control actions persist canonical incident evidence", async () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-
-    await fetch(`${baseUrl}/control/live/arm`, { method: "POST", headers: authHeaders() });
-    await fetch(`${baseUrl}/control/live/disarm`, { method: "POST", headers: authHeaders() });
-    await fetch(`${baseUrl}/emergency-stop`, { method: "POST", headers: authHeaders() });
-
-    const incidents = await runtime.listRecentIncidents(20);
-    const incidentTypes = incidents.map((incident) => incident.type);
-    expect(incidentTypes).toContain("live_control_armed");
-    expect(incidentTypes).toContain("live_control_disarmed");
-    expect(incidentTypes).toContain("live_control_killed");
-    expect(incidentTypes).toContain("emergency_stop");
-  });
-
-  it("control routes fail closed when no control token is configured", async () => {
-    const { server: unconfiguredServer, baseUrl: unconfiguredBaseUrl } = await createBoundServer({
-      runtime,
-    });
-
-    try {
-      const res = await fetch(`${unconfiguredBaseUrl}/control/pause`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      expect(res.status).toBe(403);
-      await expect(res.json()).resolves.toMatchObject({
-        success: false,
-        code: "control_auth_unconfigured",
-      });
-    } finally {
-      await unconfiguredServer.close();
-    }
-  });
-
-  it("POST /emergency-stop persists kill-switch state even when runtime is not wired", async () => {
-    const { manager } = await createRuntimeConfigTestManager();
-    const { server: runtimeLessServer, baseUrl: runtimeLessBaseUrl } = await createBoundServer({
-      runtimeConfigManager: manager,
-      controlAuthToken: CONTROL_TOKEN,
-    });
-
-    try {
-      const res = await fetch(`${runtimeLessBaseUrl}/emergency-stop`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.success).toBe(true);
-      expect(body.runtimeStatus).toBeUndefined();
-      expect(body.killSwitch.halted).toBe(true);
-      expect(body.controlView.killSwitch).toBe(true);
-    } finally {
-      await runtimeLessServer.close();
-      resetKillSwitch();
-    }
   });
 });

@@ -6,8 +6,8 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 
 - [x] Deterministic ingest -> signal -> risk -> execute -> verify -> journal -> monitor pipeline
 - [x] Persistent action log, journal, runtime cycle summaries, incidents, and execution evidence
-- [x] Runtime truth surfaces: `/health`, `/runtime/status`, `/runtime/cycles`, `/incidents`, `/kpi/*`
-- [x] Live-control round state with arm, disarm, halt, reset, and emergency stop
+- [x] Runtime truth surfaces: `/health`, `/kpi/*`, `/control/status`, `/control/runtime-config`, `/control/history`
+- [x] Live-control and kill-switch state with pause, resume, halt, reset, and emergency stop
 - [x] Adapter circuit breaker, freshness checks, and fail-closed config validation
 - [x] Real quote and live swap path guarded by RPC verification and live prerequisites
 
@@ -22,18 +22,19 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - [ ] `TRADING_ENABLED=true`
 - [ ] `LIVE_TEST_MODE=true`
 - [ ] `WALLET_ADDRESS` is set
-- [ ] `CONTROL_TOKEN` and `OPERATOR_READ_TOKEN` are set and distinct
-- [ ] `JOURNAL_PATH` points to persistent storage
-- [ ] `GET /health`, `/runtime/status`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics` are healthy
+- [ ] `CONTROL_TOKEN` is set
+- [ ] `JOURNAL_PATH` points to worker persistent storage
+- [ ] `GET /health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics` are healthy on the public bot service
+- [ ] `GET /control/status`, `/control/runtime-config`, and `/control/history` are healthy on the private control service
 - [ ] `POST /emergency-stop` and `POST /control/reset` behave as documented
 - [ ] the dashboard reflects the same runtime truth as the bot
-- [ ] dry or paper rehearsal has been reviewed in the journal and replay endpoints
+- [ ] dry or paper rehearsal has been reviewed in the journal and worker visibility snapshot
 
 ## No-Go Conditions
 
 - live config validation fails
 - any live prerequisite is missing
-- control tokens are absent or identical
+- control token is absent
 - runtime status is `error` or adapter health is degraded for live
 - quote or verification handling falls back silently
 - kill switch is active and not reset

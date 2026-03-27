@@ -2,866 +2,205 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createServer } from "../../src/server/index.js";
-import { createDryRunRuntime } from "../../src/runtime/dry-run-runtime.js";
-import { resetKillSwitch } from "../../src/governance/kill-switch.js";
-import {
-  InMemoryRuntimeCycleSummaryWriter,
-  type RuntimeCycleSummary,
-} from "../../src/persistence/runtime-cycle-summary-repository.js";
-import { InMemoryIncidentRepository, type IncidentRecord } from "../../src/persistence/incident-repository.js";
-import { RepositoryIncidentRecorder } from "../../src/observability/incidents.js";
-import { armMicroLive, killMicroLive, resetMicroLiveControlForTests } from "../../src/runtime/live-control.js";
+import { createServer, createControlServer } from "../../src/server/index.js";
+import { createRuntimeVisibilityRepository, type RuntimeVisibilitySnapshot } from "../../src/persistence/runtime-visibility-repository.js";
+import { createRuntimeConfigTestManager, controlHeaders, TEST_CONTROL_TOKEN } from "../helpers/runtime-config-test-kit.js";
 
-const baseConfig = {
-  nodeEnv: "test" as const,
-  dryRun: true,
-  tradingEnabled: false,
-  liveTestMode: false,
-  executionMode: "dry" as const,
-  rpcMode: "stub" as const,
-  rpcUrl: "https://api.mainnet-beta.solana.com",
-  dexpaprikaBaseUrl: "https://api.dexpaprika.com",
-  moralisBaseUrl: "https://solana-gateway.moralis.io",
-  walletAddress: "11111111111111111111111111111111",
-  journalPath: "data/operator-surfaces-journal.jsonl",
-  circuitBreakerFailureThreshold: 5,
-  circuitBreakerRecoveryMs: 60_000,
-  maxSlippagePercent: 5,
-  reviewPolicyMode: "required" as const,
-};
-let config = baseConfig;
-const OPERATOR_READ_TOKEN = "phase10-operator-read-token";
-const PORTS = {
-  cycles: 4565,
-  boundedCycles: 4566,
-  incidents: 4567,
-  replay: 4568,
-  repeated: 4569,
-  boundedIncidents: 4570,
-  status: 4571,
-  runtimeUnavailable: 4572,
-  invalidLimits: 4573,
-  liveControl: 4574,
-  controlHistory: 4575,
-  missingReplay: 4576,
-  authSurfaces: 4577,
-  missingAuth: 4578,
-};
-
-function authHeaders(token = OPERATOR_READ_TOKEN): HeadersInit {
-  return { "x-operator-token": token };
-}
-
-function createMarketSnapshot(traceId: string, freshnessMs = 0) {
+function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
   return {
-    schema_version: "market.v1" as const,
-    traceId,
-    timestamp: new Date().toISOString(),
-    source: "dexpaprika" as const,
-    poolId: `${traceId}-pool`,
-    baseToken: "SOL",
-    quoteToken: "USD",
-    priceUsd: 100,
-    volume24h: 1_000,
-    liquidity: 50_000,
-    freshnessMs,
-    status: "ok" as const,
+    environment: "test",
+    worker: {
+      workerId: "worker-read-surface",
+      lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
+      lastCycleAt: "2026-03-27T11:59:00.000Z",
+      lastSeenReloadNonce: 7,
+      lastAppliedVersionId: "version-applied",
+      lastValidVersionId: "version-valid",
+      degraded: false,
+      observedAt: "2026-03-27T12:00:00.000Z",
+    },
+    runtime: {
+      status: "running",
+      mode: "paper",
+      paperModeActive: true,
+      cycleInFlight: false,
+      counters: {
+        cycleCount: 8,
+        decisionCount: 8,
+        executionCount: 2,
+        blockedCount: 6,
+        errorCount: 0,
+      },
+      lastCycleAt: "2026-03-27T11:59:00.000Z",
+      lastDecisionAt: "2026-03-27T11:59:00.000Z",
+      lastState: {
+        stage: "monitor",
+        traceId: "trace-read-surface",
+        timestamp: "2026-03-27T11:59:00.000Z",
+        blocked: false,
+      },
+      degradedState: {
+        active: false,
+        consecutiveCycles: 0,
+        recoveryCount: 1,
+      },
+      adapterHealth: {
+        total: 2,
+        healthy: 2,
+        unhealthy: 0,
+        degraded: false,
+        adapterIds: ["primary", "secondary"],
+        degradedAdapterIds: [],
+        unhealthyAdapterIds: [],
+      },
+      runtimeConfig: {
+        environment: "test",
+        configured: true,
+        seedSource: "boot",
+        requestedMode: "observe",
+        appliedMode: "observe",
+        requestedExecutionMode: "dry",
+        appliedExecutionMode: "dry",
+        rolloutPosture: "paper_only",
+        executionToggles: {
+          tradingEnabled: false,
+          liveTestMode: false,
+          dryRun: true,
+        },
+        filters: {
+          allowlistTokens: [],
+          denylistTokens: [],
+        },
+        adapterToggles: {
+          executionEnabled: true,
+          publishEnabled: true,
+          paperAdaptersEnabled: true,
+        },
+        rateCaps: {
+          requireArm: true,
+          maxNotionalPerTrade: 25,
+          maxTradesPerWindow: 2,
+          windowMs: 60 * 60 * 1000,
+          cooldownMs: 60 * 1000,
+          maxInFlight: 1,
+          failuresToBlock: 3,
+          failureWindowMs: 15 * 60 * 1000,
+          maxDailyNotional: 50,
+        },
+        thresholds: {
+          maxSlippagePercent: 5,
+          circuitBreakerFailureThreshold: 5,
+          circuitBreakerRecoveryMs: 60_000,
+          reviewPolicyMode: "required",
+        },
+        featureFlags: {},
+        pollingIntervalMs: 15_000,
+        requestedVersionId: "version-requested",
+        activeVersionId: "version-active",
+        appliedVersionId: "version-applied",
+        lastValidVersionId: "version-valid",
+        reloadNonce: 7,
+        lastAppliedReloadNonce: 7,
+        paused: false,
+        killSwitch: false,
+        pendingApply: false,
+        requiresRestart: false,
+        degraded: false,
+      },
+    },
+    metrics: {
+      cycleCount: 8,
+      decisionCount: 8,
+      executionCount: 2,
+      blockedCount: 6,
+      errorCount: 0,
+      lastCycleAtEpochMs: Date.parse("2026-03-27T11:59:00.000Z"),
+      lastDecisionAtEpochMs: Date.parse("2026-03-27T11:59:00.000Z"),
+    },
   };
 }
 
-async function waitForCondition(check: () => boolean | Promise<boolean>, timeoutMs = 2_000): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-
-  while (!(await check())) {
-    if (Date.now() > deadline) {
-      throw new Error("Timed out waiting for server test condition");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-}
-
-describe("Operator read-only surfaces", () => {
-  const servers: Array<Awaited<ReturnType<typeof createServer>>> = [];
-  const runtimes: ReturnType<typeof createDryRunRuntime>[] = [];
+describe("visibility-backed read surfaces", () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "operator-surfaces-"));
-    config = {
-      ...baseConfig,
-      journalPath: join(tempDir, "journal.jsonl"),
-    };
+    tempDir = await mkdtemp(join(tmpdir(), "read-surface-"));
   });
 
   afterEach(async () => {
-    for (const runtime of runtimes) await runtime.stop();
-    for (const server of servers) await server.close();
-    await new Promise((resolve) => setTimeout(resolve, 25));
     await rm(tempDir, { recursive: true, force: true });
-    resetKillSwitch();
-    resetMicroLiveControlForTests();
-    delete process.env.LIVE_TRADING;
-    delete process.env.RPC_MODE;
-    servers.length = 0;
-    runtimes.length = 0;
-    config = baseConfig;
   });
 
-  it("GET /runtime/cycles returns grounded persisted summaries", async () => {
-    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
-    const incidentRecorder = new RepositoryIncidentRecorder(new InMemoryIncidentRepository());
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter,
-      incidentRecorder,
-    });
-    runtimes.push(runtime);
-    await runtime.start();
-    const persistedCycles = await cycleSummaryWriter.list(5);
+  it("serves public health and KPI data from worker visibility and keeps runtime status private", async () => {
+    const visibilityRepository = await createRuntimeVisibilityRepository();
+    await visibilityRepository.save(buildVisibilitySnapshot());
 
     const server = await createServer({
-      port: PORTS.cycles,
+      port: 0,
       host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
+      runtimeVisibilityRepository: visibilityRepository,
+      runtimeEnvironment: "test",
     });
-    servers.push(server);
+    const address = server.addresses()[0];
 
-    const res = await fetch(`http://127.0.0.1:${PORTS.cycles}/runtime/cycles?limit=5`, { headers: authHeaders() });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    expect(Array.isArray(body.cycles)).toBe(true);
-    expect(body.cycles.length).toBeGreaterThanOrEqual(1);
-    expect(body.cycles[0]).toHaveProperty("cycleTimestamp");
-    expect(body.cycles).toEqual(persistedCycles);
+    try {
+      const [healthRes, summaryRes, statusRes] = await Promise.all([
+        fetch(`http://127.0.0.1:${address.port}/health`),
+        fetch(`http://127.0.0.1:${address.port}/kpi/summary`),
+        fetch(`http://127.0.0.1:${address.port}/runtime/status`),
+      ]);
+
+      expect(healthRes.status).toBe(200);
+      expect(summaryRes.status).toBe(200);
+      expect(statusRes.status).toBe(404);
+
+      const health = await healthRes.json();
+      const summary = await summaryRes.json();
+      expect(health.worker).toMatchObject({
+        workerId: "worker-read-surface",
+        lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
+      });
+      expect(health.runtime.status).toBe("running");
+      expect(summary.worker).toMatchObject({
+        lastAppliedVersionId: "version-applied",
+        lastValidVersionId: "version-valid",
+      });
+      expect(summary.runtime.cycleCount).toBe(8);
+    } finally {
+      await server.close();
+    }
   });
 
-  it("GET /runtime/cycles respects bounded limits without fabricating results", async () => {
-    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
-    const seededCycles: RuntimeCycleSummary[] = [
-      {
-        cycleTimestamp: "2026-03-18T00:00:00.000Z",
-        traceId: "cycle-1",
-        mode: "dry",
-        outcome: "blocked",
-        intakeOutcome: "invalid",
-        advanced: false,
-        stage: "risk",
-        blocked: true,
-        blockedReason: "BLOCKED_1",
-        decisionOccurred: false,
-        signalOccurred: false,
-        riskOccurred: true,
-        chaosOccurred: false,
-        executionOccurred: false,
-        verificationOccurred: false,
-        paperExecutionProduced: false,
-        errorOccurred: false,
-        incidentIds: ["incident-1"],
-      },
-      {
-        cycleTimestamp: "2026-03-18T00:01:00.000Z",
-        traceId: "cycle-2",
-        mode: "dry",
-        outcome: "blocked",
-        intakeOutcome: "invalid",
-        advanced: false,
-        stage: "risk",
-        blocked: true,
-        blockedReason: "BLOCKED_2",
-        decisionOccurred: false,
-        signalOccurred: false,
-        riskOccurred: true,
-        chaosOccurred: false,
-        executionOccurred: false,
-        verificationOccurred: false,
-        paperExecutionProduced: false,
-        errorOccurred: false,
-        incidentIds: ["incident-2"],
-      },
-      {
-        cycleTimestamp: "2026-03-18T00:02:00.000Z",
-        traceId: "cycle-3",
-        mode: "dry",
-        outcome: "blocked",
-        intakeOutcome: "invalid",
-        advanced: false,
-        stage: "risk",
-        blocked: true,
-        blockedReason: "BLOCKED_3",
-        decisionOccurred: false,
-        signalOccurred: false,
-        riskOccurred: true,
-        chaosOccurred: false,
-        executionOccurred: false,
-        verificationOccurred: false,
-        paperExecutionProduced: false,
-        errorOccurred: false,
-        incidentIds: ["incident-3"],
-      },
-    ];
-    for (const cycle of seededCycles) {
-      await cycleSummaryWriter.append(cycle);
+  it("serves control status from canonical config plus worker visibility", async () => {
+    const visibilityRepository = await createRuntimeVisibilityRepository();
+    await visibilityRepository.save(buildVisibilitySnapshot());
+    const { manager } = await createRuntimeConfigTestManager();
+    const server = await createControlServer({
+      port: 0,
+      host: "127.0.0.1",
+      runtimeVisibilityRepository: visibilityRepository,
+      runtimeEnvironment: "test",
+      runtimeConfigManager: manager,
+      controlAuthToken: TEST_CONTROL_TOKEN,
+    });
+    const address = server.server.address();
+    if (typeof address !== "object" || address === null || !("port" in address)) {
+      throw new Error("Failed to resolve control test server port");
     }
 
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter,
-      incidentRecorder: new RepositoryIncidentRecorder(new InMemoryIncidentRepository()),
-    });
-    runtimes.push(runtime);
-
-    const server = await createServer({
-      port: PORTS.boundedCycles,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(server);
-
-    const res = await fetch(`http://127.0.0.1:${PORTS.boundedCycles}/runtime/cycles?limit=2`, { headers: authHeaders() });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    expect(body.cycles).toEqual(seededCycles.slice(-2));
-  });
-
-  it("GET /incidents returns grounded persisted incidents including journal_failure", async () => {
-    const incidentRepository = new InMemoryIncidentRepository();
-    const incidentRecorder = new RepositoryIncidentRecorder(incidentRepository);
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
-      incidentRecorder,
-    });
-    runtimes.push(runtime);
-    await incidentRecorder.record({
-      severity: "critical",
-      type: "journal_failure",
-      message: "Journal append failed",
-      at: "2026-03-18T00:03:00.000Z",
-      details: { stage: "chaos_decision", traceId: "trace-journal-failure" },
-    });
-    await incidentRecorder.record({
-      severity: "warning",
-      type: "runtime_paused",
-      message: "Paused for review",
-      at: "2026-03-18T00:04:00.000Z",
-      details: { reason: "operator" },
-    });
-    const persistedIncidents = await incidentRepository.list(10);
-
-    const server = await createServer({
-      port: PORTS.incidents,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(server);
-
-    const res = await fetch(`http://127.0.0.1:${PORTS.incidents}/incidents?limit=10`, { headers: authHeaders() });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    expect(body.incidents).toEqual(persistedIncidents);
-    expect(body.incidents.some((incident: IncidentRecord) => incident.type === "journal_failure")).toBe(true);
-  });
-
-  it("GET /runtime/cycles/:traceId/replay returns persisted summary, linked incidents, and journal evidence", async () => {
-    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
-    const incidentRepository = new InMemoryIncidentRepository();
-    const incidentRecorder = new RepositoryIncidentRecorder(incidentRepository);
-    const runtime = createDryRunRuntime(
-      { ...config, executionMode: "paper", dryRun: false },
-      {
-        loopIntervalMs: 60_000,
-        paperMarketAdapters: [{ id: "dexpaprika", fetch: async () => ({
-          schema_version: "market.v1",
-          traceId: "market-trace",
-          timestamp: "2026-03-18T00:00:00.000Z",
-          source: "dexpaprika",
-          poolId: "paper-pool",
-          baseToken: "SOL",
-          quoteToken: "USD",
-          priceUsd: 100,
-          volume24h: 1000,
-          liquidity: 10000,
-          freshnessMs: 0,
-          status: "ok",
-        }) }],
-        fetchPaperWalletSnapshot: async () => ({
-          traceId: "wallet-trace",
-          timestamp: "2026-03-18T00:00:00.000Z",
-          source: "moralis",
-          walletAddress: config.walletAddress,
-          balances: [],
-          totalUsd: 0,
-        }),
-        cycleSummaryWriter,
-        incidentRecorder,
-      }
-    );
-    runtimes.push(runtime);
-    await runtime.start();
-
-    const summary = (await cycleSummaryWriter.list(5))[0];
-    const server = await createServer({
-      port: PORTS.replay,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(server);
-
-    const res = await fetch(`http://127.0.0.1:${PORTS.replay}/runtime/cycles/${summary.traceId}/replay`, { headers: authHeaders() });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-
-    expect(body.success).toBe(true);
-    expect(body.replay.summary).toEqual(summary);
-    expect(body.replay.summary.outcome).toBe("success");
-    expect(body.replay.summary.execution).toMatchObject({
-      success: true,
-      mode: "paper",
-      paperExecution: true,
-    });
-    expect(body.replay.journal.some((entry: { stage: string }) => entry.stage === "execution_result")).toBe(true);
-    expect(body.replay.journal.some((entry: { stage: string }) => entry.stage === "verification_result")).toBe(true);
-    expect(body.replay.incidents).toEqual([]);
-  });
-
-  it("repeated paper cycles keep health, KPI, operator, and persistence surfaces aligned through degradation and recovery", async () => {
-    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
-    const incidentRepository = new InMemoryIncidentRepository();
-    let adapterCalls = 0;
-
-    const runtime = createDryRunRuntime(
-      { ...config, executionMode: "paper", dryRun: false },
-      {
-        loopIntervalMs: 50,
-        paperMarketAdapters: [
-          {
-            id: "dexpaprika",
-            fetch: async () => {
-              adapterCalls += 1;
-              return createMarketSnapshot(
-                `operator-cycle-${adapterCalls}`,
-                adapterCalls === 2 ? 45_000 : 0
-              );
-            },
-          },
-        ],
-        fetchPaperWalletSnapshot: async () => ({
-          traceId: "operator-wallet-trace",
-          timestamp: new Date().toISOString(),
-          source: "moralis",
-          walletAddress: config.walletAddress,
-          balances: [],
-          totalUsd: 0,
-        }),
-        cycleSummaryWriter,
-        incidentRecorder: new RepositoryIncidentRecorder(incidentRepository),
-      }
-    );
-    runtimes.push(runtime);
-    await runtime.start();
-    await waitForCondition(async () => {
-      const degradedState = runtime.getSnapshot().degradedState;
-      const persistedCycles = await cycleSummaryWriter.list(10);
-      return (
-        persistedCycles.length >= 3 &&
-        degradedState?.active === false &&
-        degradedState?.recoveryCount === 1
-      );
-    });
-    await runtime.pause("operator_parity_pause");
-
-    const server = await createServer({
-      port: PORTS.repeated,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-      getBotStatus: () => {
-        const status = runtime.getStatus();
-        return status === "running" ? "running" : status === "paused" ? "paused" : "stopped";
-      },
-    });
-    servers.push(server);
-
-    const [healthRes, kpiRes, statusRes, cyclesRes, incidentsRes] = await Promise.all([
-      fetch(`http://127.0.0.1:${PORTS.repeated}/health`),
-      fetch(`http://127.0.0.1:${PORTS.repeated}/kpi/summary`),
-      fetch(`http://127.0.0.1:${PORTS.repeated}/runtime/status`, { headers: authHeaders() }),
-      fetch(`http://127.0.0.1:${PORTS.repeated}/runtime/cycles?limit=10`, { headers: authHeaders() }),
-      fetch(`http://127.0.0.1:${PORTS.repeated}/incidents?limit=10`, { headers: authHeaders() }),
-    ]);
-
-    const healthBody = await healthRes.json();
-    const kpiBody = await kpiRes.json();
-    const statusBody = await statusRes.json();
-    const cyclesBody = await cyclesRes.json();
-    const incidentsBody = await incidentsRes.json();
-    const snapshot = runtime.getSnapshot();
-    const persistedCycles = await cycleSummaryWriter.list(10);
-    const persistedIncidents = await incidentRepository.list(10);
-
-    expect(healthRes.status).toBe(200);
-    expect(kpiRes.status).toBe(200);
-    expect(statusRes.status).toBe(200);
-    expect(cyclesRes.status).toBe(200);
-    expect(incidentsRes.status).toBe(200);
-
-    expect(statusBody.success).toBe(true);
-    expect(statusBody.runtime).toEqual(snapshot);
-    expect(statusBody.readiness).toMatchObject({
-      canArmMicroLive: expect.any(Boolean),
-      canUseStagedLiveCandidate: expect.any(Boolean),
-      blockers: expect.any(Array),
-    });
-    expect(snapshot.status).toBe("paused");
-    expect(snapshot.degradedState).toMatchObject({
-      active: false,
-      consecutiveCycles: 0,
-      recoveryCount: 1,
-    });
-    expect(snapshot.recentHistory?.recentCycleCount).toBeGreaterThanOrEqual(3);
-    expect(snapshot.recentHistory?.cycleOutcomes).toMatchObject({
-      success: expect.any(Number),
-      blocked: expect.any(Number),
-      error: expect.any(Number),
-    });
-    expect(Object.keys(snapshot.recentHistory?.refusalCounts ?? {}).some((key) => key.includes("stale"))).toBe(true);
-    expect(snapshot.degradedState?.lastRecoveredAt).toBeDefined();
-    expect(snapshot.degradedState?.lastReason).toContain("stale");
-    expect(snapshot.adapterHealth).toMatchObject({
-      degraded: false,
-      degradedAdapterIds: [],
-      unhealthyAdapterIds: [],
-    });
-
-    expect(healthBody.botStatus).toBe("paused");
-    expect(healthBody.runtime).toMatchObject({
-      status: "paused",
-      lastIntakeOutcome: snapshot.lastCycleSummary?.intakeOutcome,
-      degraded: {
-        active: false,
-        recoveryCount: 1,
-      },
-      adapterHealth: {
-        degraded: false,
-        degradedAdapterIds: [],
-      },
-      readiness: {
-        posture: expect.stringMatching(/^(healthy_for_posture|degraded_but_safe_in_paper|blocked_for_live|manual_review_required)$/),
-        canArmMicroLive: expect.any(Boolean),
-        blockers: expect.any(Array),
-      },
-    });
-    expect(healthBody.runtime.recentHistory.recentCycleCount).toBeGreaterThanOrEqual(3);
-
-    expect(kpiBody.botStatus).toBe("paused");
-    expect(kpiBody.runtime).toMatchObject({
-      status: "paused",
-      cycleCount: snapshot.counters.cycleCount,
-      blockedCount: snapshot.counters.blockedCount,
-      degraded: {
-        active: false,
-        recoveryCount: 1,
-      },
-      adapterHealth: {
-        degraded: false,
-        degradedAdapterIds: [],
-      },
-    });
-    expect(kpiBody.runtime.readiness).toMatchObject({
-      rolloutPosture: expect.any(String),
-      rolloutConfigured: expect.any(Boolean),
-      rolloutConfigValid: expect.any(Boolean),
-      canArmMicroLive: expect.any(Boolean),
-      blockers: expect.any(Array),
-    });
-    expect(kpiBody.runtime.recentHistory.recentIncidents.some((incident: IncidentRecord) => incident.type === "paper_ingest_blocked")).toBe(true);
-
-    expect(cyclesBody.success).toBe(true);
-    expect(cyclesBody.cycles).toEqual(persistedCycles);
-    expect(cyclesBody.cycles.length).toBeGreaterThanOrEqual(3);
-    expect(cyclesBody.cycles[1]).toMatchObject({
-      outcome: "blocked",
-      intakeOutcome: "stale",
-      degradedState: {
-        active: true,
-        recoveryCount: 0,
-        recoveredThisCycle: false,
-      },
-      adapterHealth: {
-        degraded: true,
-        degradedAdapterIds: ["dexpaprika"],
-        unhealthyAdapterIds: [],
-      },
-    });
-    expect(cyclesBody.cycles[2]).toMatchObject({
-      outcome: "success",
-      degradedState: {
-        active: false,
-        recoveryCount: 1,
-        recoveredThisCycle: true,
-      },
-      adapterHealth: {
-        degraded: false,
-        degradedAdapterIds: [],
-      },
-    });
-
-    expect(incidentsBody.success).toBe(true);
-    expect(incidentsBody.incidents).toEqual(persistedIncidents);
-    expect(incidentsBody.incidents.some((incident: IncidentRecord) => incident.type === "paper_ingest_blocked")).toBe(true);
-  });
-
-  it("GET /incidents respects bounded limits", async () => {
-    const incidentRepository = new InMemoryIncidentRepository();
-    const incidentRecorder = new RepositoryIncidentRecorder(incidentRepository);
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
-      incidentRecorder,
-    });
-    runtimes.push(runtime);
-    const seededIncidents: IncidentRecord[] = [
-      {
-        id: "incident-1",
-        at: "2026-03-18T00:00:00.000Z",
-        severity: "warning",
-        type: "runtime_paused",
-        message: "Paused 1",
-      },
-      {
-        id: "incident-2",
-        at: "2026-03-18T00:01:00.000Z",
-        severity: "critical",
-        type: "journal_failure",
-        message: "Journal failure 2",
-      },
-      {
-        id: "incident-3",
-        at: "2026-03-18T00:02:00.000Z",
-        severity: "critical",
-        type: "runtime_cycle_error",
-        message: "Cycle error 3",
-      },
-    ];
-    for (const incident of seededIncidents) {
-      await incidentRepository.append(incident);
+    try {
+      const res = await fetch(`http://127.0.0.1:${address.port}/control/status`, { headers: controlHeaders() });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.worker).toMatchObject({
+        workerId: "worker-read-surface",
+        lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
+      });
+      expect(body.runtime.status).toBe("running");
+      expect(body.runtimeConfig.requestedMode).toBe("observe");
+      expect(body.controlView.appliedMode).toBe("observe");
+    } finally {
+      await server.close();
     }
-
-    const server = await createServer({
-      port: PORTS.boundedIncidents,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(server);
-
-    const res = await fetch(`http://127.0.0.1:${PORTS.boundedIncidents}/incidents?limit=2`, { headers: authHeaders() });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.success).toBe(true);
-    expect(body.incidents).toEqual(seededIncidents.slice(-2));
-  });
-
-  it("GET /runtime/status returns actual runtime status and stays aligned with /health and /kpi/summary", async () => {
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
-      incidentRecorder: new RepositoryIncidentRecorder(new InMemoryIncidentRepository()),
-    });
-    runtimes.push(runtime);
-    await runtime.start();
-    await runtime.pause("operator_read_surface_test");
-
-    const server = await createServer({
-      port: PORTS.status,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-      getBotStatus: () => {
-        const status = runtime.getStatus();
-        return status === "running" ? "running" : status === "paused" ? "paused" : "stopped";
-      },
-    });
-    servers.push(server);
-
-    const [statusRes, healthRes, kpiRes] = await Promise.all([
-      fetch(`http://127.0.0.1:${PORTS.status}/runtime/status`, { headers: authHeaders() }),
-      fetch(`http://127.0.0.1:${PORTS.status}/health`),
-      fetch(`http://127.0.0.1:${PORTS.status}/kpi/summary`),
-    ]);
-
-    expect(statusRes.status).toBe(200);
-    const statusBody = await statusRes.json();
-    const healthBody = await healthRes.json();
-    const kpiBody = await kpiRes.json();
-
-    expect(statusBody.success).toBe(true);
-    expect(statusBody.runtime.status).toBe("paused");
-    expect(statusBody.runtime.status).toBe(runtime.getSnapshot().status);
-    expect(healthBody.botStatus).toBe("paused");
-    expect(healthBody.runtime.status).toBe(statusBody.runtime.status);
-    expect(kpiBody.botStatus).toBe("paused");
-    expect(kpiBody.runtime.status).toBe(statusBody.runtime.status);
-  });
-
-  it("operator read surfaces fail explicitly when runtime wiring is unavailable", async () => {
-    const server = await createServer({
-      port: PORTS.runtimeUnavailable,
-      host: "127.0.0.1",
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(server);
-
-    const [cyclesRes, replayRes, incidentsRes, statusRes] = await Promise.all([
-      fetch(`http://127.0.0.1:${PORTS.runtimeUnavailable}/runtime/cycles`, { headers: authHeaders() }),
-      fetch(`http://127.0.0.1:${PORTS.runtimeUnavailable}/runtime/cycles/missing/replay`, { headers: authHeaders() }),
-      fetch(`http://127.0.0.1:${PORTS.runtimeUnavailable}/incidents`, { headers: authHeaders() }),
-      fetch(`http://127.0.0.1:${PORTS.runtimeUnavailable}/runtime/status`, { headers: authHeaders() }),
-    ]);
-
-    expect(cyclesRes.status).toBe(501);
-    await expect(cyclesRes.json()).resolves.toMatchObject({
-      success: false,
-      code: "runtime_unavailable",
-    });
-
-    expect(incidentsRes.status).toBe(501);
-    await expect(incidentsRes.json()).resolves.toMatchObject({
-      success: false,
-      code: "runtime_unavailable",
-    });
-
-    expect(replayRes.status).toBe(501);
-    await expect(replayRes.json()).resolves.toMatchObject({
-      success: false,
-      code: "runtime_unavailable",
-    });
-
-    expect(statusRes.status).toBe(501);
-    await expect(statusRes.json()).resolves.toMatchObject({
-      success: false,
-      code: "runtime_unavailable",
-    });
-  });
-
-  it("operator read surfaces reject invalid limits explicitly", async () => {
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
-      incidentRecorder: new RepositoryIncidentRecorder(new InMemoryIncidentRepository()),
-    });
-    runtimes.push(runtime);
-
-    const server = await createServer({
-      port: PORTS.invalidLimits,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(server);
-
-    const [nonNumericCycles, oversizedIncidents] = await Promise.all([
-      fetch(`http://127.0.0.1:${PORTS.invalidLimits}/runtime/cycles?limit=abc`, { headers: authHeaders() }),
-      fetch(`http://127.0.0.1:${PORTS.invalidLimits}/incidents?limit=201`, { headers: authHeaders() }),
-    ]);
-
-    expect(nonNumericCycles.status).toBe(400);
-    await expect(nonNumericCycles.json()).resolves.toMatchObject({
-      success: false,
-      code: "invalid_limit",
-    });
-
-    expect(oversizedIncidents.status).toBe(400);
-    await expect(oversizedIncidents.json()).resolves.toMatchObject({
-      success: false,
-      code: "invalid_limit",
-    });
-  });
-
-  it("runtime/status surfaces armed, blocked, and killed live-control truth", async () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
-      incidentRecorder: new RepositoryIncidentRecorder(new InMemoryIncidentRepository()),
-    });
-    runtimes.push(runtime);
-
-    armMicroLive("test-operator");
-    killMicroLive("operator-test-kill");
-
-    const server = await createServer({
-      port: PORTS.liveControl,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(server);
-
-    const statusRes = await fetch(`http://127.0.0.1:${PORTS.liveControl}/runtime/status`, { headers: authHeaders() });
-    expect(statusRes.status).toBe(200);
-    const statusBody = await statusRes.json();
-
-    expect(statusBody.runtime.liveControl).toMatchObject({
-      posture: "live_killed",
-      armed: false,
-      killSwitchActive: true,
-    });
-
-    const healthRes = await fetch(`http://127.0.0.1:${PORTS.liveControl}/health`);
-    const healthBody = await healthRes.json();
-    expect(healthBody.runtime.liveControl).toMatchObject({
-      posture: "live_killed",
-      armed: false,
-      killSwitchActive: true,
-    });
-
-    const kpiRes = await fetch(`http://127.0.0.1:${PORTS.liveControl}/kpi/summary`);
-    const kpiBody = await kpiRes.json();
-    expect(kpiBody.runtime.liveControl).toMatchObject({
-      posture: "live_killed",
-      armed: false,
-      killSwitchActive: true,
-    });
-  });
-
-  it("runtime/status and KPI surfaces summarize recent control actions and posture transitions", async () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-
-    const incidentRepository = new InMemoryIncidentRepository();
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
-      incidentRecorder: new RepositoryIncidentRecorder(incidentRepository),
-    });
-    runtimes.push(runtime);
-    await runtime.start();
-    await runtime.armLive("history_arm");
-    await runtime.disarmLive("history_disarm");
-    await runtime.pause("history_pause");
-
-    const server = await createServer({
-      port: PORTS.controlHistory,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(server);
-
-    const [statusRes, kpiRes, incidentsRes] = await Promise.all([
-      fetch(`http://127.0.0.1:${PORTS.controlHistory}/runtime/status`, { headers: authHeaders() }),
-      fetch(`http://127.0.0.1:${PORTS.controlHistory}/kpi/summary`),
-      fetch(`http://127.0.0.1:${PORTS.controlHistory}/incidents?limit=10`, { headers: authHeaders() }),
-    ]);
-
-    expect(statusRes.status).toBe(200);
-    expect(kpiRes.status).toBe(200);
-    expect(incidentsRes.status).toBe(200);
-
-    const statusBody = await statusRes.json();
-    const kpiBody = await kpiRes.json();
-    const incidentsBody = await incidentsRes.json();
-
-    expect(statusBody.runtime.recentHistory.controlActions.some((entry: { type: string }) => entry.type === "live_control_armed")).toBe(true);
-    expect(statusBody.runtime.recentHistory.controlActions.some((entry: { type: string }) => entry.type === "live_control_disarmed")).toBe(true);
-    expect(statusBody.runtime.recentHistory.controlActions.some((entry: { type: string }) => entry.type === "runtime_paused")).toBe(true);
-    expect(statusBody.runtime.recentHistory.stateTransitions.some((entry: { type: string }) => entry.type === "rollout_posture_transition")).toBe(true);
-    expect(kpiBody.runtime.recentHistory.attemptsByMode).toMatchObject({
-      dry: expect.any(Number),
-      paper: expect.any(Number),
-      live: expect.any(Number),
-    });
-    expect(kpiBody.runtime.recentHistory.verificationHealth).toMatchObject({
-      passed: expect.any(Number),
-      failed: expect.any(Number),
-    });
-    expect(incidentsBody.incidents.some((incident: IncidentRecord) => incident.type === "rollout_posture_transition")).toBe(true);
-  });
-
-  it("GET /runtime/cycles/:traceId/replay returns explicit 404 for missing persisted cycle evidence", async () => {
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
-      incidentRecorder: new RepositoryIncidentRecorder(new InMemoryIncidentRepository()),
-    });
-    runtimes.push(runtime);
-
-    const server = await createServer({
-      port: PORTS.missingReplay,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(server);
-
-    const res = await fetch(`http://127.0.0.1:${PORTS.missingReplay}/runtime/cycles/missing-trace/replay`, { headers: authHeaders() });
-    expect(res.status).toBe(404);
-    await expect(res.json()).resolves.toMatchObject({
-      success: false,
-      code: "cycle_not_found",
-    });
-  });
-
-  it("operator read routes reject missing/invalid auth and fail closed when token is unconfigured", async () => {
-    const runtime = createDryRunRuntime(config, {
-      cycleSummaryWriter: new InMemoryRuntimeCycleSummaryWriter(),
-      incidentRecorder: new RepositoryIncidentRecorder(new InMemoryIncidentRepository()),
-    });
-    runtimes.push(runtime);
-
-    const securedServer = await createServer({
-      port: PORTS.authSurfaces,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-      operatorReadAuthToken: OPERATOR_READ_TOKEN,
-    });
-    servers.push(securedServer);
-
-    const [missing, invalid] = await Promise.all([
-      fetch(`http://127.0.0.1:${PORTS.authSurfaces}/runtime/status`),
-      fetch(`http://127.0.0.1:${PORTS.authSurfaces}/runtime/status`, { headers: authHeaders("wrong-token") }),
-    ]);
-
-    expect(missing.status).toBe(403);
-    await expect(missing.json()).resolves.toMatchObject({
-      success: false,
-      code: "operator_auth_invalid",
-    });
-    expect(invalid.status).toBe(403);
-    await expect(invalid.json()).resolves.toMatchObject({
-      success: false,
-      code: "operator_auth_invalid",
-    });
-
-    const unconfiguredServer = await createServer({
-      port: PORTS.missingAuth,
-      host: "127.0.0.1",
-      runtime,
-      getRuntimeSnapshot: () => runtime.getSnapshot(),
-    });
-    servers.push(unconfiguredServer);
-
-    const unconfigured = await fetch(`http://127.0.0.1:${PORTS.missingAuth}/runtime/status`, {
-      headers: authHeaders(),
-    });
-    expect(unconfigured.status).toBe(403);
-    await expect(unconfigured.json()).resolves.toMatchObject({
-      success: false,
-      code: "operator_auth_unconfigured",
-    });
   });
 });

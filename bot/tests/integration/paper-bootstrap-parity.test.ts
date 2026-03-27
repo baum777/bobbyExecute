@@ -3,22 +3,24 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { bootstrap } from "../../src/bootstrap.js";
-import { resetConfigCache } from "../../src/config/load-config.js";
+import { createControlServer } from "../../src/server/index.js";
+import { createRuntimeVisibilityRepository } from "../../src/persistence/runtime-visibility-repository.js";
+import { FileSystemRuntimeCycleSummaryWriter, type RuntimeCycleSummary } from "../../src/persistence/runtime-cycle-summary-repository.js";
+import { FileSystemIncidentRepository } from "../../src/persistence/incident-repository.js";
+import { RepositoryIncidentRecorder } from "../../src/observability/incidents.js";
+import { startRuntimeWorker } from "../../src/worker/runtime-worker.js";
+import { loadConfig, resetConfigCache } from "../../src/config/load-config.js";
 import { resetKillSwitch } from "../../src/governance/kill-switch.js";
 import type { MarketSnapshot } from "../../src/core/contracts/market.js";
 import type { WalletSnapshot } from "../../src/core/contracts/wallet.js";
-import {
-  FileSystemRuntimeCycleSummaryWriter,
-  type RuntimeCycleSummary,
-} from "../../src/persistence/runtime-cycle-summary-repository.js";
-import { FileSystemIncidentRepository } from "../../src/persistence/incident-repository.js";
-import { RepositoryIncidentRecorder } from "../../src/observability/incidents.js";
-
-type BootstrappedApp = Awaited<ReturnType<typeof bootstrap>>;
+import { InMemoryRuntimeConfigRepository } from "../../src/persistence/runtime-config-repository.js";
+import { InMemoryRuntimeConfigStore } from "../../src/storage/runtime-config-store.js";
+import { RuntimeConfigManager } from "../../src/runtime/runtime-config-manager.js";
+import { controlHeaders, TEST_CONTROL_TOKEN } from "../helpers/runtime-config-test-kit.js";
 
 const ORIG_ENV = process.env;
-const PORT = 3361;
-const OPERATOR_READ_TOKEN = "phase10-operator-read-parity-token";
+const PUBLIC_PORT = 3361;
+const CONTROL_PORT = 3362;
 
 async function waitFor<T>(producer: () => Promise<T> | T, predicate: (value: T) => boolean): Promise<T> {
   const deadline = Date.now() + 2_000;
@@ -37,7 +39,6 @@ async function waitFor<T>(producer: () => Promise<T> | T, predicate: (value: T) 
 
 describe("paper bootstrap integration parity (phase-6)", () => {
   let tempDir: string;
-  let app: BootstrappedApp | undefined;
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), "paper-bootstrap-phase6-"));
@@ -47,31 +48,41 @@ describe("paper bootstrap integration parity (phase-6)", () => {
       ...ORIG_ENV,
       NODE_ENV: "test",
       DRY_RUN: "false",
+      TRADING_ENABLED: "false",
+      LIVE_TEST_MODE: "false",
       WALLET_ADDRESS: "11111111111111111111111111111111",
-      OPERATOR_READ_TOKEN,
+      CONTROL_TOKEN: TEST_CONTROL_TOKEN,
       JOURNAL_PATH: join(tempDir, "paper-runtime-journal.jsonl"),
+      RPC_MODE: "stub",
+      RUNTIME_POLICY_AUTHORITY: "ts-env",
+      REVIEW_POLICY_MODE: "required",
+      RUNTIME_CONFIG_ENV: "test",
     };
     delete process.env.LIVE_TRADING;
-    delete process.env.RPC_MODE;
   });
 
   afterEach(async () => {
-    if (app) {
-      await app.runtime.stop();
-      await app.server.close();
-      app = undefined;
-    }
     resetKillSwitch();
     resetConfigCache();
     process.env = ORIG_ENV;
     await rm(tempDir, { recursive: true, force: true });
   });
 
-  it("proves parity across runtime, API, operator surfaces, and persistence for a bootstrapped paper cycle", async () => {
+  it("proves parity across the worker runtime, public read surface, control status, and persistence", async () => {
     const cycleSummaryPath = join(tempDir, "paper-runtime-cycles.jsonl");
     const incidentPath = join(tempDir, "paper-runtime-incidents.jsonl");
     const cycleSummaryWriter = new FileSystemRuntimeCycleSummaryWriter(cycleSummaryPath);
     const incidentRepository = new FileSystemIncidentRepository(incidentPath);
+    const runtimeVisibilityRepository = await createRuntimeVisibilityRepository();
+    const config = loadConfig();
+    const runtimeConfigManager = new RuntimeConfigManager(config, {
+      repository: new InMemoryRuntimeConfigRepository(),
+      store: new InMemoryRuntimeConfigStore(),
+      environment: "test",
+      bootstrapActor: "paper-bootstrap-test",
+      env: process.env,
+    });
+    await runtimeConfigManager.initialize();
 
     const marketSnapshot: MarketSnapshot = {
       schema_version: "market.v1",
@@ -104,9 +115,7 @@ describe("paper bootstrap integration parity (phase-6)", () => {
       totalUsd: 331.125,
     };
 
-    app = await bootstrap({
-      host: "127.0.0.1",
-      port: PORT,
+    const worker = await startRuntimeWorker(config, {
       runtimeDeps: {
         loopIntervalMs: 60_000,
         paperMarketAdapters: [{ id: "dexpaprika", fetch: async () => marketSnapshot }],
@@ -114,187 +123,223 @@ describe("paper bootstrap integration parity (phase-6)", () => {
         cycleSummaryWriter,
         incidentRecorder: new RepositoryIncidentRecorder(incidentRepository),
       },
+      runtimeConfigManager,
+      runtimeVisibilityRepository,
+      runtimeEnvironment: "test",
+      heartbeatIntervalMs: 25,
     });
 
-    const runtimeSnapshot = await waitFor(
-      () => app!.runtime.getSnapshot(),
-      (snapshot) => snapshot.counters.executionCount === 1 && snapshot.lastCycleSummary?.verificationMode === "paper-simulated"
-    );
+    const publicServer = await bootstrap({
+      host: "127.0.0.1",
+      port: PUBLIC_PORT,
+      runtimeVisibilityRepository,
+    });
 
-    expect(runtimeSnapshot.mode).toBe("paper");
-    expect(runtimeSnapshot.status).toBe("running");
-    expect(runtimeSnapshot.paperModeActive).toBe(true);
-    expect(runtimeSnapshot.counters.cycleCount).toBe(1);
-    expect(runtimeSnapshot.counters.decisionCount).toBe(1);
-    expect(runtimeSnapshot.counters.executionCount).toBe(1);
-    expect(runtimeSnapshot.counters.blockedCount).toBe(0);
-    expect(runtimeSnapshot.counters.errorCount).toBe(0);
-    expect(runtimeSnapshot.lastState?.stage).toBe("monitor");
-    expect(runtimeSnapshot.lastState?.market).toEqual(marketSnapshot);
-    expect(runtimeSnapshot.lastState?.wallet).toEqual(walletSnapshot);
-    expect(runtimeSnapshot.lastState?.executionReport).toMatchObject({
-      success: true,
-      executionMode: "paper",
-      paperExecution: true,
-      actualAmountOut: "0.95",
+    const controlServer = await createControlServer({
+      host: "127.0.0.1",
+      port: CONTROL_PORT,
+      runtimeConfigManager,
+      runtimeVisibilityRepository,
+      runtimeEnvironment: "test",
+      controlAuthToken: TEST_CONTROL_TOKEN,
     });
-    expect(runtimeSnapshot.lastState?.rpcVerification).toMatchObject({
-      passed: true,
-      verificationMode: "paper-simulated",
-      reason: "PAPER_MODE_SIMULATED_VERIFICATION",
-    });
-    expect(runtimeSnapshot.lastCycleSummary).toMatchObject({
-      traceId: runtimeSnapshot.lastState?.traceId,
-      mode: "paper",
-      outcome: "success",
-      intakeOutcome: "ok",
-      advanced: true,
-      stage: "monitor",
-      blocked: false,
-      executionOccurred: true,
-      verificationOccurred: true,
-      paperExecutionProduced: true,
-      verificationMode: "paper-simulated",
-      errorOccurred: false,
-      tradeIntentId: runtimeSnapshot.lastState?.tradeIntent?.idempotencyKey,
-      execution: {
+
+    try {
+      const runtimeSnapshot = await waitFor(
+        () => worker.runtime.getSnapshot(),
+        (snapshot) => snapshot.counters.executionCount === 1 && snapshot.lastCycleSummary?.verificationMode === "paper-simulated"
+      );
+
+      expect(runtimeSnapshot.mode).toBe("paper");
+      expect(runtimeSnapshot.status).toBe("running");
+      expect(runtimeSnapshot.paperModeActive).toBe(true);
+      expect(runtimeSnapshot.counters.cycleCount).toBe(1);
+      expect(runtimeSnapshot.counters.decisionCount).toBe(1);
+      expect(runtimeSnapshot.counters.executionCount).toBe(1);
+      expect(runtimeSnapshot.counters.blockedCount).toBe(0);
+      expect(runtimeSnapshot.counters.errorCount).toBe(0);
+      expect(runtimeSnapshot.lastState?.stage).toBe("monitor");
+      expect(runtimeSnapshot.lastState?.market).toEqual(marketSnapshot);
+      expect(runtimeSnapshot.lastState?.wallet).toEqual(walletSnapshot);
+      expect(runtimeSnapshot.lastState?.executionReport).toMatchObject({
         success: true,
-        mode: "paper",
+        executionMode: "paper",
         paperExecution: true,
         actualAmountOut: "0.95",
-      },
-      verification: {
-        passed: true,
-        mode: "paper-simulated",
-        reason: "PAPER_MODE_SIMULATED_VERIFICATION",
-      },
-      incidentIds: [],
-    });
-
-    const [healthRes, kpiRes, statusRes, cyclesRes, replayRes, incidentsRes] = await Promise.all([
-      fetch(`http://127.0.0.1:${PORT}/health`),
-      fetch(`http://127.0.0.1:${PORT}/kpi/summary`),
-      fetch(`http://127.0.0.1:${PORT}/runtime/status`, { headers: { "x-operator-token": OPERATOR_READ_TOKEN } }),
-      fetch(`http://127.0.0.1:${PORT}/runtime/cycles?limit=5`, { headers: { "x-operator-token": OPERATOR_READ_TOKEN } }),
-      fetch(`http://127.0.0.1:${PORT}/runtime/cycles/${runtimeSnapshot.lastState!.traceId}/replay`, { headers: { "x-operator-token": OPERATOR_READ_TOKEN } }),
-      fetch(`http://127.0.0.1:${PORT}/incidents?limit=5`, { headers: { "x-operator-token": OPERATOR_READ_TOKEN } }),
-    ]);
-
-    expect(healthRes.status).toBe(200);
-    expect(kpiRes.status).toBe(200);
-    expect(statusRes.status).toBe(200);
-    expect(cyclesRes.status).toBe(200);
-    expect(replayRes.status).toBe(200);
-    expect(incidentsRes.status).toBe(200);
-
-    const healthBody = await healthRes.json();
-    const kpiBody = await kpiRes.json();
-    const statusBody = await statusRes.json();
-    const cyclesBody = await cyclesRes.json();
-    const replayBody = await replayRes.json();
-    const incidentsBody = await incidentsRes.json();
-
-    expect(healthBody.botStatus).toBe("running");
-    expect(healthBody.runtime).toMatchObject({
-      status: runtimeSnapshot.status,
-      mode: runtimeSnapshot.mode,
-      paperModeActive: true,
-      cycleInFlight: false,
-      counters: runtimeSnapshot.counters,
-      lastCycleAt: runtimeSnapshot.lastCycleAt,
-      lastDecisionAt: runtimeSnapshot.lastDecisionAt,
-      lastEngineStage: "monitor",
-      lastIntakeOutcome: "ok",
-    });
-    expect(healthBody.runtime.lastBlockedReason).toBeUndefined();
-
-    expect(kpiBody.botStatus).toBe("running");
-    expect(kpiBody.runtime).toMatchObject({
-      mode: runtimeSnapshot.mode,
-      paperModeActive: true,
-      status: runtimeSnapshot.status,
-      cycleCount: runtimeSnapshot.counters.cycleCount,
-      decisionCount: runtimeSnapshot.counters.decisionCount,
-      executionCount: runtimeSnapshot.counters.executionCount,
-      blockedCount: runtimeSnapshot.counters.blockedCount,
-      errorCount: runtimeSnapshot.counters.errorCount,
-      lastDecisionAt: runtimeSnapshot.lastDecisionAt,
-      lastIntakeOutcome: "ok",
-    });
-
-    expect(statusBody.success).toBe(true);
-    expect(statusBody.runtime).toEqual(runtimeSnapshot);
-
-    const persistedCycles = (await cycleSummaryWriter.list(5)) as RuntimeCycleSummary[];
-    expect(cyclesBody.success).toBe(true);
-    expect(cyclesBody.cycles).toEqual(persistedCycles);
-    expect(cyclesBody.cycles).toHaveLength(1);
-    expect(cyclesBody.cycles[0]).toEqual(runtimeSnapshot.lastCycleSummary);
-    expect(replayBody.success).toBe(true);
-    expect(replayBody.replay.summary).toEqual(runtimeSnapshot.lastCycleSummary);
-    expect(replayBody.replay.journal.some((entry: { stage: string }) => entry.stage === "execution_result")).toBe(true);
-    expect(replayBody.replay.journal.some((entry: { stage: string }) => entry.stage === "verification_result")).toBe(true);
-    expect(replayBody.replay.incidents).toEqual([]);
-
-    const persistedIncidents = await incidentRepository.list(5);
-    expect(incidentsBody.success).toBe(true);
-    expect(incidentsBody.incidents).toEqual(persistedIncidents);
-    expect(incidentsBody.incidents).toHaveLength(1);
-    expect(incidentsBody.incidents[0]).toMatchObject({
-      type: "rollout_posture_transition",
-      severity: "info",
-      message: "Rollout posture evaluated at runtime start",
-      details: {
-        rolloutPosture: "paper_only",
-        rolloutConfigured: true,
-        rolloutConfigValid: true,
-      },
-    });
-
-    const cycleSummaryLines = (await readFile(cycleSummaryPath, "utf8"))
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => JSON.parse(line) as RuntimeCycleSummary);
-    expect(cycleSummaryLines).toEqual(persistedCycles);
-    expect(cycleSummaryLines[0]).toMatchObject({
-      mode: "paper",
-      paperExecutionProduced: true,
-      verificationMode: "paper-simulated",
-    });
-
-    const journalEntries = (await readFile(process.env.JOURNAL_PATH!, "utf8"))
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => JSON.parse(line) as { stage: string; output: Record<string, unknown> });
-    const executionEntry = journalEntries.find((entry) => entry.stage === "execution_result");
-    const verificationEntry = journalEntries.find((entry) => entry.stage === "verification_result");
-    const completeEntry = journalEntries.find((entry) => entry.stage === "complete");
-
-    expect(journalEntries.length).toBeGreaterThanOrEqual(5);
-    expect(executionEntry?.output).toMatchObject({
-      execReport: {
-        success: true,
-        executionMode: "paper",
-        paperExecution: true,
-      },
-    });
-    expect(verificationEntry?.output).toMatchObject({
-      rpcVerify: {
+      });
+      expect(runtimeSnapshot.lastState?.rpcVerification).toMatchObject({
         passed: true,
         verificationMode: "paper-simulated",
         reason: "PAPER_MODE_SIMULATED_VERIFICATION",
-      },
-    });
-    expect(completeEntry?.output).toMatchObject({
-      execReport: {
-        executionMode: "paper",
-        paperExecution: true,
-      },
-      rpcVerify: {
+      });
+      expect(runtimeSnapshot.lastCycleSummary).toMatchObject({
+        traceId: runtimeSnapshot.lastState?.traceId,
+        mode: "paper",
+        outcome: "success",
+        intakeOutcome: "ok",
+        advanced: true,
+        stage: "monitor",
+        blocked: false,
+        executionOccurred: true,
+        verificationOccurred: true,
+        paperExecutionProduced: true,
         verificationMode: "paper-simulated",
-      },
-    });
+        errorOccurred: false,
+        tradeIntentId: runtimeSnapshot.lastState?.tradeIntent?.idempotencyKey,
+        execution: {
+          success: true,
+          mode: "paper",
+          paperExecution: true,
+          actualAmountOut: "0.95",
+        },
+        verification: {
+          passed: true,
+          mode: "paper-simulated",
+          reason: "PAPER_MODE_SIMULATED_VERIFICATION",
+        },
+        incidentIds: [],
+      });
+
+      const [healthRes, kpiRes, controlStatusRes, controlHistoryRes] = await Promise.all([
+        fetch(`http://127.0.0.1:${PUBLIC_PORT}/health`),
+        fetch(`http://127.0.0.1:${PUBLIC_PORT}/kpi/summary`),
+        fetch(`http://127.0.0.1:${CONTROL_PORT}/control/status`, { headers: controlHeaders() }),
+        fetch(`http://127.0.0.1:${CONTROL_PORT}/control/history?limit=5`, { headers: controlHeaders() }),
+      ]);
+
+      expect(healthRes.status).toBe(200);
+      expect(kpiRes.status).toBe(200);
+      expect(controlStatusRes.status).toBe(200);
+      expect(controlHistoryRes.status).toBe(200);
+
+      const healthBody = await healthRes.json();
+      const kpiBody = await kpiRes.json();
+      const controlStatusBody = await controlStatusRes.json();
+      const controlHistoryBody = await controlHistoryRes.json();
+
+      expect(healthBody.botStatus).toBe("running");
+      expect(healthBody.worker).toMatchObject({
+        workerId: worker.workerId,
+        lastAppliedVersionId: expect.any(String),
+        lastValidVersionId: expect.any(String),
+      });
+      expect(healthBody.runtime).toMatchObject({
+        status: runtimeSnapshot.status,
+        mode: runtimeSnapshot.mode,
+        paperModeActive: true,
+        cycleInFlight: false,
+        counters: runtimeSnapshot.counters,
+        lastCycleAt: runtimeSnapshot.lastCycleAt,
+        lastDecisionAt: runtimeSnapshot.lastDecisionAt,
+        lastEngineStage: "monitor",
+        lastIntakeOutcome: "ok",
+      });
+
+      expect(kpiBody.botStatus).toBe("running");
+      expect(kpiBody.worker).toMatchObject({
+        workerId: worker.workerId,
+        lastHeartbeatAt: expect.any(String),
+      });
+      expect(kpiBody.runtime).toMatchObject({
+        mode: runtimeSnapshot.mode,
+        paperModeActive: true,
+        status: runtimeSnapshot.status,
+        cycleCount: runtimeSnapshot.counters.cycleCount,
+        decisionCount: runtimeSnapshot.counters.decisionCount,
+        executionCount: runtimeSnapshot.counters.executionCount,
+        blockedCount: runtimeSnapshot.counters.blockedCount,
+        errorCount: runtimeSnapshot.counters.errorCount,
+        lastDecisionAt: runtimeSnapshot.lastDecisionAt,
+        lastIntakeOutcome: "ok",
+      });
+
+      expect(controlStatusBody.success).toBe(true);
+      expect(controlStatusBody.worker).toMatchObject({
+        workerId: worker.workerId,
+        lastHeartbeatAt: expect.any(String),
+      });
+      expect(controlStatusBody.runtime).toMatchObject({
+        status: runtimeSnapshot.status,
+        mode: runtimeSnapshot.mode,
+      });
+      expect(controlStatusBody.runtimeConfig).toMatchObject({
+        requestedMode: "paper",
+        appliedMode: "paper",
+      });
+      expect(controlStatusBody.controlView).toMatchObject({
+        requestedMode: "paper",
+        appliedMode: "paper",
+      });
+
+      expect(controlHistoryBody.success).toBe(true);
+      expect(controlHistoryBody.history.versions.length).toBeGreaterThanOrEqual(1);
+
+      const persistedCycles = (await cycleSummaryWriter.list(5)) as RuntimeCycleSummary[];
+      expect(persistedCycles).toHaveLength(1);
+      expect(persistedCycles[0]).toEqual(runtimeSnapshot.lastCycleSummary);
+
+      const persistedIncidents = await incidentRepository.list(5);
+      expect(persistedIncidents).toHaveLength(1);
+      expect(persistedIncidents[0]).toMatchObject({
+        type: "rollout_posture_transition",
+        severity: "info",
+        message: "Rollout posture evaluated at runtime start",
+        details: {
+          rolloutPosture: "paper_only",
+          rolloutConfigured: true,
+          rolloutConfigValid: true,
+        },
+      });
+
+      const cycleSummaryLines = (await readFile(cycleSummaryPath, "utf8"))
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as RuntimeCycleSummary);
+      expect(cycleSummaryLines).toEqual(persistedCycles);
+      expect(cycleSummaryLines[0]).toMatchObject({
+        mode: "paper",
+        paperExecutionProduced: true,
+        verificationMode: "paper-simulated",
+      });
+
+      const journalEntries = (await readFile(process.env.JOURNAL_PATH!, "utf8"))
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as { stage: string; output: Record<string, unknown> });
+      const executionEntry = journalEntries.find((entry) => entry.stage === "execution_result");
+      const verificationEntry = journalEntries.find((entry) => entry.stage === "verification_result");
+      const completeEntry = journalEntries.find((entry) => entry.stage === "complete");
+
+      expect(journalEntries.length).toBeGreaterThanOrEqual(5);
+      expect(executionEntry?.output).toMatchObject({
+        execReport: {
+          success: true,
+          executionMode: "paper",
+          paperExecution: true,
+        },
+      });
+      expect(verificationEntry?.output).toMatchObject({
+        rpcVerify: {
+          passed: true,
+          verificationMode: "paper-simulated",
+          reason: "PAPER_MODE_SIMULATED_VERIFICATION",
+        },
+      });
+      expect(completeEntry?.output).toMatchObject({
+        execReport: {
+          executionMode: "paper",
+          paperExecution: true,
+        },
+        rpcVerify: {
+          verificationMode: "paper-simulated",
+        },
+      });
+    } finally {
+      await worker.stop();
+      await controlServer.close();
+      await publicServer.server.close();
+    }
   }, 15_000);
 });

@@ -6,14 +6,13 @@ import Fastify from "fastify";
 import { healthRoutes } from "./routes/health.js";
 import { kpiRoutes } from "./routes/kpi.js";
 import { controlRoutes } from "./routes/control.js";
-import { operatorRoutes } from "./routes/operator.js";
 import type { CircuitBreaker } from "../governance/circuit-breaker.js";
 import type { ActionLogger } from "../observability/action-log.js";
 import type { KpiRouteDeps } from "./routes/kpi.js";
 import type { HealthRouteDeps } from "./routes/health.js";
-import type { RuntimeController } from "../runtime/controller.js";
 import type { RuntimeSnapshot } from "../runtime/dry-run-runtime.js";
 import type { RuntimeConfigManager } from "../runtime/runtime-config-manager.js";
+import type { RuntimeVisibilityRepository } from "../persistence/runtime-visibility-repository.js";
 
 export interface ServerConfig {
   port?: number;
@@ -27,10 +26,10 @@ export interface ServerConfig {
   chaosPassRate?: number;
   riskScore?: number;
   getRuntimeSnapshot?: () => RuntimeSnapshot;
-  runtime?: RuntimeController;
   runtimeConfigManager?: RuntimeConfigManager;
+  runtimeVisibilityRepository?: RuntimeVisibilityRepository;
+  runtimeEnvironment?: string;
   controlAuthToken?: string;
-  operatorReadAuthToken?: string;
 }
 
 const DEFAULT_PORT = 3333;
@@ -59,25 +58,16 @@ function isAllowedOrigin(origin: string, dashboardOrigin?: string, allowLocalhos
  * Returns the server instance; call server.close() to stop.
  */
 export async function createServer(config: ServerConfig = {}) {
-  return createVisibilityServer(config, {
-    includeControlRoutes: false,
-    includeOperatorRoutes: true,
-  });
+  return createVisibilityServer(config, { includeControlRoutes: false });
 }
 
 export async function createControlServer(config: ServerConfig = {}) {
-  return createVisibilityServer(config, {
-    includeControlRoutes: true,
-    includeOperatorRoutes: false,
-  });
+  return createVisibilityServer(config, { includeControlRoutes: true });
 }
 
 async function createVisibilityServer(
   config: ServerConfig,
-  options: {
-    includeControlRoutes: boolean;
-    includeOperatorRoutes: boolean;
-  }
+  options: { includeControlRoutes: boolean }
 ) {
   const port = config.port ?? DEFAULT_PORT;
   const host = config.host ?? DEFAULT_HOST;
@@ -86,8 +76,8 @@ async function createVisibilityServer(
 
   const fastify = Fastify({ logger: true });
   const allowedHeaders = options.includeControlRoutes
-    ? "Content-Type, Authorization, x-control-token, x-operator-token, x-idempotency-key, x-request-id"
-    : "Content-Type, Authorization, x-operator-token, x-idempotency-key, x-request-id";
+    ? "Content-Type, Authorization, x-control-token, x-idempotency-key, x-request-id"
+    : "Content-Type, Authorization, x-idempotency-key, x-request-id";
   fastify.addHook("onRequest", async (request, reply) => {
     const origin = request.headers.origin;
     if (origin && isAllowedOrigin(origin, config.dashboardOrigin, allowLocalhostOrigins)) {
@@ -109,6 +99,8 @@ async function createVisibilityServer(
     startedAt,
     getBotStatus: config.getBotStatus,
     getRuntimeSnapshot: config.getRuntimeSnapshot,
+    runtimeVisibilityRepository: config.runtimeVisibilityRepository,
+    runtimeEnvironment: config.runtimeEnvironment,
   }));
 
   const kpiDeps: KpiRouteDeps = {
@@ -120,23 +112,17 @@ async function createVisibilityServer(
     chaosPassRate: config.chaosPassRate,
     riskScore: config.riskScore,
     getRuntimeSnapshot: config.getRuntimeSnapshot,
+    runtimeVisibilityRepository: config.runtimeVisibilityRepository,
+    runtimeEnvironment: config.runtimeEnvironment,
   };
   await fastify.register(kpiRoutes(kpiDeps));
   if (options.includeControlRoutes) {
     await fastify.register(
       controlRoutes({
-        runtime: config.runtime,
         runtimeConfigManager: config.runtimeConfigManager,
         requiredToken: config.controlAuthToken,
-      })
-    );
-  }
-  if (options.includeOperatorRoutes) {
-    await fastify.register(
-      operatorRoutes({
-        runtime: config.runtime,
-        getRuntimeSnapshot: config.getRuntimeSnapshot,
-        requiredToken: config.operatorReadAuthToken,
+        runtimeVisibilityRepository: config.runtimeVisibilityRepository,
+        runtimeEnvironment: config.runtimeEnvironment,
       })
     );
   }

@@ -159,6 +159,7 @@ export interface HealthResponse {
   version: string;
   /** Runtime-reported bot state when available from bootstrap wiring. */
   botStatus?: "running" | "paused" | "stopped";
+  worker?: import("../../persistence/runtime-visibility-repository.js").RuntimeWorkerVisibility;
   killSwitch?: { halted: boolean; reason?: string; triggeredAt?: string };
   runtime?: {
     status: "idle" | "running" | "paused" | "stopped" | "error";
@@ -226,6 +227,7 @@ export interface KpiSummaryResponse {
   dataQuality: number;
   lastDecisionAt: string | null;
   tradesToday: number;
+  worker?: import("../../persistence/runtime-visibility-repository.js").RuntimeWorkerVisibility;
   runtime?: {
     mode: "dry" | "paper" | "live";
     paperModeActive: boolean;

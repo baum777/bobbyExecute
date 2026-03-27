@@ -18,8 +18,8 @@ Trigger an emergency stop when any of these occur:
 
 1. Stop new trade initiation.
 2. Call `POST /emergency-stop`.
-3. Confirm `GET /runtime/status` shows the expected halted or paused posture.
-4. Confirm `GET /incidents` contains the stop event.
+3. Confirm `GET /control/status` shows the expected halted or paused posture and worker heartbeat.
+4. Confirm the control history contains the stop event.
 5. Confirm the kill switch state is persisted and visible.
 
 ## Control Surfaces
@@ -29,23 +29,20 @@ Trigger an emergency stop when any of these occur:
 - `POST /control/resume`
 - `POST /control/halt`
 - `POST /control/reset`
-- `POST /control/live/arm`
-- `POST /control/live/disarm`
 
 Read surfaces:
 
 - `GET /health`
-- `GET /runtime/status`
-- `GET /runtime/cycles`
-- `GET /runtime/cycles/:traceId/replay`
 - `GET /kpi/summary`
 - `GET /kpi/decisions`
 - `GET /kpi/adapters`
-- `GET /incidents`
+- `GET /control/status`
+- `GET /control/runtime-config`
+- `GET /control/history`
 
 ## Recovery Sequence
 
-1. Inspect the latest incident record and replay.
+1. Inspect the latest control history entry and worker visibility snapshot.
 2. Confirm whether the failure was data, adapter, quote, verification, or control related.
 3. Reset only after the cause is understood.
 4. Use `POST /control/reset` to clear the kill switch.
@@ -56,4 +53,4 @@ Read surfaces:
 - Capture timestamp, affected components, operator actions, and stop reason.
 - Record whether the failure was preventable or expected.
 - Note any missing telemetry, stale state, or ambiguous behavior.
-- Keep the incident trail aligned with the journal and runtime replay.
+- Keep the incident trail aligned with the journal, worker visibility snapshot, and control history.
