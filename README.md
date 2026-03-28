@@ -12,6 +12,7 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 - Recovery is documented and testable through `docs/bobbyexecution/recovery_and_upgrade_runbook.md`, including disposable restore rehearsals via `npm run recovery:db-rehearse`.
 - Render-native automatic rehearsal refresh runs from a dedicated cron job and writes the evidence back to the same canonical Postgres store the promotion gate already trusts.
 - Governed live promotion now requires fresh database rehearsal evidence before `live_limited` or `live` promotion.
+- Dashboard operator auth is separately configured with a server-side session secret and operator directory, so privileged dashboard actions fail closed if those env vars are missing.
 - The repository does not claim uncontrolled live trading readiness.
 
 ## Canonical Docs
