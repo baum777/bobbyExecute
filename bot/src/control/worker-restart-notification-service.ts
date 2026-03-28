@@ -734,6 +734,7 @@ export function createGenericWebhookNotificationSink(options: {
   timeoutMs?: number;
   required?: boolean;
   logger?: Pick<Console, "info" | "warn" | "error">;
+  bodyType?: string;
 }): WorkerRestartNotificationSink {
   const headerName = safeString(options.headerName, "authorization");
   return {
@@ -769,7 +770,7 @@ export function createGenericWebhookNotificationSink(options: {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), Math.max(1000, options.timeoutMs ?? 5000));
       const body = JSON.stringify({
-        type: "worker_restart_alert",
+        type: options.bodyType ?? "worker_restart_alert",
         ...payload,
       });
       const headers = new Headers({

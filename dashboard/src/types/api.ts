@@ -340,6 +340,182 @@ export interface WorkerRestartAlertSummary {
   lastEvaluatedAt?: string;
 }
 
+export type ControlRecoveryRehearsalStatus = 'passed' | 'failed';
+export type ControlRecoveryRehearsalContextKind = 'canonical' | 'staging' | 'disposable' | 'unknown';
+export type ControlRecoveryRehearsalExecutionSource = 'manual' | 'automated';
+export type ControlRecoveryRehearsalFreshnessStatus = 'healthy' | 'warning' | 'stale' | 'failed' | 'unknown';
+export type ControlRecoveryRehearsalAlertReasonCode =
+  | 'rehearsal_missing'
+  | 'rehearsal_fresh'
+  | 'rehearsal_warning_threshold'
+  | 'rehearsal_stale'
+  | 'rehearsal_failed'
+  | 'automated_rehearsal_missing'
+  | 'automated_rehearsal_repeated_failure';
+export type ControlRecoveryRehearsalAlertSeverity = 'warning' | 'critical';
+export type ControlRecoveryRehearsalAlertStatus = 'open' | 'acknowledged' | 'resolved';
+export type ControlRecoveryRehearsalAutomationHealth = 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
+export type ControlRecoveryRehearsalNotificationEventType =
+  | 'freshness_stale_opened'
+  | 'freshness_failed_opened'
+  | 'freshness_repeated_failure'
+  | 'freshness_recovered';
+export type ControlRecoveryRehearsalNotificationStatus = 'pending' | 'sent' | 'skipped' | 'suppressed' | 'failed';
+
+export interface ControlRecoveryRehearsalNotificationDestinationSummary {
+  name: string;
+  sinkType?: string;
+  formatterProfile?: string;
+  priority?: number;
+  selected: boolean;
+  latestDeliveryStatus?: ControlRecoveryRehearsalNotificationStatus;
+  attemptCount: number;
+  lastAttemptedAt?: string;
+  lastFailureReason?: string;
+  suppressionReason?: string;
+  routeReason?: string;
+  dedupeKey?: string;
+  payloadFingerprint?: string;
+  recoveryNotificationSent?: boolean;
+  recoveryNotificationAt?: string;
+}
+
+export interface ControlRecoveryRehearsalNotificationSummary {
+  externallyNotified: boolean;
+  sinkName?: string;
+  sinkType?: string;
+  latestDestinationName?: string;
+  latestDestinationType?: string;
+  latestFormatterProfile?: string;
+  eventType?: ControlRecoveryRehearsalNotificationEventType;
+  latestDeliveryStatus?: ControlRecoveryRehearsalNotificationStatus;
+  attemptCount: number;
+  lastAttemptedAt?: string;
+  lastFailureReason?: string;
+  suppressionReason?: string;
+  dedupeKey?: string;
+  payloadFingerprint?: string;
+  recoveryNotificationSent?: boolean;
+  recoveryNotificationAt?: string;
+  selectedDestinationCount: number;
+  selectedDestinationNames: string[];
+  destinations: ControlRecoveryRehearsalNotificationDestinationSummary[];
+}
+
+export interface ControlRecoveryRehearsalExecutionContext {
+  orchestration: 'manual_cli' | 'render_cron' | 'control_path' | 'unknown';
+  provider?: 'render';
+  serviceName?: string;
+  schedule?: string;
+  trigger?: string;
+  runId?: string;
+}
+
+export interface ControlRecoveryRehearsalContext {
+  label: string;
+  kind: ControlRecoveryRehearsalContextKind;
+}
+
+export interface ControlRecoveryRehearsalValidation {
+  matched: boolean;
+  before: { environment: string; capturedAt: string; schemaState: string; counts: Record<string, number>; totalRecords: number };
+  after: { environment: string; capturedAt: string; schemaState: string; counts: Record<string, number>; totalRecords: number };
+}
+
+export interface ControlRecoveryRehearsalEvidenceRecord {
+  id: string;
+  environment: string;
+  rehearsalKind: 'disposable_restore';
+  status: ControlRecoveryRehearsalStatus;
+  executionSource: ControlRecoveryRehearsalExecutionSource;
+  executionContext: ControlRecoveryRehearsalExecutionContext;
+  executedAt: string;
+  recordedAt: string;
+  actorId: string;
+  actorDisplayName: string;
+  actorRole: DashboardOperatorRole;
+  sessionId: string;
+  sourceContext: ControlRecoveryRehearsalContext;
+  targetContext: ControlRecoveryRehearsalContext;
+  sourceDatabaseFingerprint: string;
+  targetDatabaseFingerprint: string;
+  sourceSchemaStatus: Record<string, unknown>;
+  targetSchemaStatusBefore: Record<string, unknown>;
+  targetSchemaStatusAfter?: Record<string, unknown>;
+  restoreValidation: ControlRecoveryRehearsalValidation;
+  summary: string;
+  failureReason?: string;
+}
+
+export interface ControlRecoveryRehearsalAlertRecord {
+  id: string;
+  environment: string;
+  reasonCode: ControlRecoveryRehearsalAlertReasonCode;
+  severity: ControlRecoveryRehearsalAlertSeverity;
+  status: ControlRecoveryRehearsalAlertStatus;
+  summary: string;
+  recommendedAction: string;
+  freshnessStatus: ControlRecoveryRehearsalFreshnessStatus;
+  blockedByFreshness: boolean;
+  freshnessWindowMs: number;
+  warningThresholdMs: number;
+  freshnessAgeMs?: number;
+  lastSuccessfulRehearsalAt?: string;
+  lastFailedRehearsalAt?: string;
+  latestEvidenceId?: string;
+  latestEvidenceExecutedAt?: string;
+  latestEvidenceStatus?: ControlRecoveryRehearsalStatus;
+  latestEvidenceExecutionSource?: ControlRecoveryRehearsalExecutionSource;
+  latestAutomatedRunAt?: string;
+  latestAutomatedRunStatus?: ControlRecoveryRehearsalStatus;
+  latestManualRunAt?: string;
+  latestManualRunStatus?: ControlRecoveryRehearsalStatus;
+  repeatedAutomationFailureCount: number;
+  automationHealth: ControlRecoveryRehearsalAutomationHealth;
+  manualFallbackActive: boolean;
+  notification?: ControlRecoveryRehearsalNotificationSummary;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  lastEvaluatedAt: string;
+  acknowledgedAt?: string;
+  acknowledgedBy?: string;
+  acknowledgmentNote?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  resolutionNote?: string;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ControlRecoveryRehearsalOperationalStatus {
+  environment: string;
+  freshnessStatus: ControlRecoveryRehearsalFreshnessStatus;
+  blockedByFreshness: boolean;
+  freshnessWindowMs: number;
+  warningThresholdMs: number;
+  freshnessAgeMs?: number;
+  lastSuccessfulRehearsalAt?: string;
+  lastFailedRehearsalAt?: string;
+  latestEvidence?: ControlRecoveryRehearsalEvidenceRecord | null;
+  latestEvidenceExecutionSource?: ControlRecoveryRehearsalExecutionSource | 'unknown';
+  latestEvidenceStatus?: ControlRecoveryRehearsalStatus | 'unknown';
+  latestAutomatedRunAt?: string;
+  latestAutomatedRunStatus?: ControlRecoveryRehearsalStatus | 'unknown';
+  latestManualRunAt?: string;
+  latestManualRunStatus?: ControlRecoveryRehearsalStatus | 'unknown';
+  repeatedAutomationFailureCount: number;
+  automationHealth: ControlRecoveryRehearsalAutomationHealth;
+  manualFallbackActive: boolean;
+  notification?: ControlRecoveryRehearsalNotificationSummary;
+  reasonCode: ControlRecoveryRehearsalAlertReasonCode;
+  severity: ControlRecoveryRehearsalAlertSeverity;
+  statusMessage: string;
+  alert: ControlRecoveryRehearsalAlertRecord | null;
+  hasOpenAlert: boolean;
+  lastEvaluatedAt: string;
+}
+
 export interface ControlWorkerStatus {
   workerId: string;
   lastHeartbeatAt?: string;
@@ -381,6 +557,7 @@ export interface ControlStatusResponse {
   restartAlerts?: WorkerRestartAlertSummary;
   killSwitch: KillSwitchState;
   liveControl: Record<string, unknown>;
+  databaseRehearsalStatus?: ControlRecoveryRehearsalOperationalStatus;
 }
 
 export interface DashboardOperatorSession {

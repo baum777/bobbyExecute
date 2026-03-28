@@ -36,6 +36,7 @@ import type {
   ControlOperatorIdentity,
   ControlAction,
   ControlLivePromotionTargetMode,
+  ControlRecoveryRehearsalOperationalStatus,
   ControlRecoveryRehearsalEvidenceRecord,
   ControlRecoveryRehearsalGate,
 } from "../../control/control-governance.js";
@@ -43,12 +44,14 @@ import {
   CONTROL_OPERATOR_ASSERTION_HEADER,
   buildControlAuditActor,
   buildAuditEventId,
+  buildDatabaseRehearsalFreshnessStatus,
   canRolePerformControlAction,
   classifyControlAction,
   evaluateDatabaseRehearsalGate,
   evaluateLivePromotionGate,
   parseControlOperatorAssertion,
   requiredRoleForControlAction,
+  syncDatabaseRehearsalFreshnessState,
 } from "../../control/control-governance.js";
 import type { WorkerRestartRequestRecord } from "../../persistence/worker-restart-repository.js";
 import type {
@@ -110,6 +113,7 @@ export interface RuntimeConfigStatusResponse {
   restart?: WorkerRestartStatus;
   restartAlerts?: WorkerRestartAlertSummary;
   databaseRehearsal?: ControlRecoveryRehearsalGate;
+  databaseRehearsalStatus?: ControlRecoveryRehearsalOperationalStatus;
   readiness?: RuntimeReadiness;
   killSwitch: { halted: boolean; reason?: string; triggeredAt?: string };
   liveControl: import("../../runtime/live-control.js").MicroLiveControlSnapshot;
@@ -419,7 +423,8 @@ function buildMutationResponse(
 function buildRuntimeConfigStatusResponse(
   snapshot: WorkerRestartSnapshot,
   readiness?: RuntimeReadiness,
-  databaseRehearsal?: ControlRecoveryRehearsalGate
+  databaseRehearsal?: ControlRecoveryRehearsalGate,
+  databaseRehearsalStatus?: ControlRecoveryRehearsalOperationalStatus
 ): RuntimeConfigStatusResponse {
   return {
     success: true,
@@ -430,6 +435,7 @@ function buildRuntimeConfigStatusResponse(
     restart: snapshot.restart,
     restartAlerts: snapshot.restartAlerts,
     databaseRehearsal,
+    databaseRehearsalStatus,
     readiness,
     killSwitch: getKillSwitchState(),
     liveControl: getMicroLiveControlSnapshot(),
@@ -456,10 +462,37 @@ async function buildDatabaseRehearsalGateForSnapshot(
     return undefined;
   }
 
-  const latestDatabaseRehearsal = await loadLatestDatabaseRehearsalEvidenceForSnapshot(deps, snapshot);
+  let latestDatabaseRehearsal: ControlRecoveryRehearsalEvidenceRecord | null = null;
+  try {
+    latestDatabaseRehearsal = await loadLatestDatabaseRehearsalEvidenceForSnapshot(deps, snapshot);
+  } catch (error) {
+    console.warn("[control] database rehearsal gate lookup failed; failing closed", error);
+  }
   return evaluateDatabaseRehearsalGate(latestDatabaseRehearsal, {
     targetMode: "live",
   });
+}
+
+async function buildDatabaseRehearsalStatusForSnapshot(
+  deps: ControlRouteDeps,
+  snapshot: WorkerRestartSnapshot
+): Promise<ControlRecoveryRehearsalOperationalStatus | undefined> {
+  if (!deps.governanceRepository) {
+    return undefined;
+  }
+
+  const environment = snapshot.runtimeConfig.environment ?? deps.runtimeEnvironment ?? "development";
+  try {
+    return await syncDatabaseRehearsalFreshnessState(deps.governanceRepository, environment, {
+      nowMs: Date.now(),
+    });
+  } catch (error) {
+    console.warn("[control] database rehearsal freshness sync failed; returning degraded freshness status", error);
+    return buildDatabaseRehearsalFreshnessStatus([], {
+      environment,
+      nowMs: Date.now(),
+    });
+  }
 }
 
 async function evaluateLivePromotionGateWithRehearsalEvidence(
@@ -467,7 +500,12 @@ async function evaluateLivePromotionGateWithRehearsalEvidence(
   snapshot: WorkerRestartSnapshot,
   targetMode: ControlLivePromotionTargetMode
 ): Promise<ControlLivePromotionGate> {
-  const latestDatabaseRehearsal = await loadLatestDatabaseRehearsalEvidenceForSnapshot(deps, snapshot);
+  let latestDatabaseRehearsal: ControlRecoveryRehearsalEvidenceRecord | null = null;
+  try {
+    latestDatabaseRehearsal = await loadLatestDatabaseRehearsalEvidenceForSnapshot(deps, snapshot);
+  } catch (error) {
+    console.warn("[control] live promotion rehearsal lookup failed; failing closed", error);
+  }
 
   return evaluateLivePromotionGate(snapshot, toReadiness(snapshot.runtime), targetMode, {
     latestDatabaseRehearsal,
@@ -1036,7 +1074,10 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
 
       const snapshot = await readControlSnapshot(deps);
       const databaseRehearsal = await buildDatabaseRehearsalGateForSnapshot(deps, snapshot);
-      return reply.status(200).send(buildRuntimeConfigStatusResponse(snapshot, toReadiness(snapshot.runtime), databaseRehearsal));
+      const databaseRehearsalStatus = await buildDatabaseRehearsalStatusForSnapshot(deps, snapshot);
+      return reply
+        .status(200)
+        .send(buildRuntimeConfigStatusResponse(snapshot, toReadiness(snapshot.runtime), databaseRehearsal, databaseRehearsalStatus));
     });
 
     fastify.get<{ Reply: RuntimeConfigStatusResponse | ControlResponse }>("/control/runtime-status", async (_request, reply) => {
@@ -1051,7 +1092,10 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
 
       const snapshot = await readControlSnapshot(deps);
       const databaseRehearsal = await buildDatabaseRehearsalGateForSnapshot(deps, snapshot);
-      return reply.status(200).send(buildRuntimeConfigStatusResponse(snapshot, toReadiness(snapshot.runtime), databaseRehearsal));
+      const databaseRehearsalStatus = await buildDatabaseRehearsalStatusForSnapshot(deps, snapshot);
+      return reply
+        .status(200)
+        .send(buildRuntimeConfigStatusResponse(snapshot, toReadiness(snapshot.runtime), databaseRehearsal, databaseRehearsalStatus));
     });
 
     fastify.get<{ Querystring: { limit?: string }; Reply: RuntimeConfigHistoryResponse | ControlResponse }>(

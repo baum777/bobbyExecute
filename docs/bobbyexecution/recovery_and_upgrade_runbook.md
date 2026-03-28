@@ -64,6 +64,31 @@ If worker disk is lost:
 - evidence files are lost unless they were separately copied off host
 - the worker must fail closed if any boot-critical worker file is missing
 
+## Rehearsal Freshness Guardrails
+
+The canonical freshness signal for database rehearsal readiness comes from durable Postgres evidence, not from cron presence or in-memory state.
+
+Freshness states exposed on `/control/status` and `/control/runtime-status` mean:
+
+- `fresh` - the latest successful rehearsal is within the freshness window and the latest success came from the expected automation path
+- `warning` - the latest successful rehearsal is still usable, but the freshness window is nearing expiry or the latest success came from manual fallback
+- `stale` - the latest successful rehearsal is older than the freshness window and promotion should remain blocked when freshness is required
+- `failed` - the latest rehearsal failed or there is no successful rehearsal evidence to trust
+- `unknown` - no durable evidence has been recorded yet
+
+The control surface also exposes:
+
+- last successful rehearsal timestamp
+- last failed rehearsal timestamp
+- latest evidence source
+- automation health
+- whether an open rehearsal freshness alert exists
+- whether that freshness alert has been externally notified, suppressed, or failed
+- whether promotion is currently blocked by freshness
+
+Manual fallback still counts as real evidence, but it does not mean the Render automation path is healthy. When manual fallback is used, the control surface should make the automation drift obvious until a fresh automated rehearsal lands again.
+Freshness notification policy is advisory: `warning` remains local-only, `stale` and repeated automated failures may notify externally, and a recovery notification is only sent after a previously notified degradation resolves. Notification delivery failure does not alter the canonical freshness state.
+
 ## Backup And Restore Commands
 
 From `bot/`:
@@ -84,6 +109,7 @@ Notes:
 - `recovery:db-validate` performs a restore-and-recapture round trip and reports whether the counts matched.
 - `recovery:db-rehearse` captures or accepts a source snapshot, migrates a disposable target if needed, runs restore validation against the disposable target, and writes durable rehearsal evidence back to the canonical control DB.
 - `recovery:db-rehearse:render` is the Render-native automatic refresh entrypoint. It uses explicit Render-side orchestration config, a canonical source database, and a disposable rehearsal database, then writes the evidence into the same canonical control DB.
+- The automatic refresh path also emits freshness notifications through the existing control-plane notification bridge when policy says the degradation should be externally visible.
 - `recovery:worker-state` reports which worker-disk artifacts are present, which are boot-critical, and which are evidence-only.
 
 ## Restore Validation
@@ -100,6 +126,7 @@ Validation is intentionally layered:
   - restore it into a scratch database
   - run `npm run recovery:db-validate`
   - confirm the Render cron rehearsal refresh has produced a fresh evidence record, or run `npm run recovery:db-rehearse:render` / `npm run recovery:db-rehearse` if the latest record is stale or failed
+  - inspect `/control/status` or `/control/runtime-status` and confirm the freshness status is `fresh`; if it is `warning`, confirm whether the alert is expected manual fallback or a missing automated refresh
   - run `npm run recovery:db-rehearse` against a disposable target before governed promotion
   - inspect `npm run recovery:worker-state`
 - staging rehearsal:
@@ -113,7 +140,7 @@ The restore path is only considered proven when validation is run after the rest
 1. Run `npm run db:status` against the target database.
 2. Run `npm run db:migrate` if migrations are pending.
 3. Run `npm run recovery:db-validate` against a fresh snapshot or staging clone.
-4. Confirm the latest `databaseRehearsal` status on `/control/status` or `/control/runtime-status` is `fresh` and shows an automated or manual run source you expect.
+4. Confirm the latest `databaseRehearsal` status on `/control/status` or `/control/runtime-status` is `fresh`, or understand why it is `warning` before proceeding. Verify the latest successful run source and the open-alert state.
 5. Run `npm run recovery:db-rehearse:render` if the cron evidence is stale or missing, or `npm run recovery:db-rehearse` for a manual fallback rehearsal.
 6. Run `npm run recovery:worker-state` on the worker disk that will boot the new release.
 7. Confirm readiness endpoints are healthy after the migration.
@@ -125,6 +152,7 @@ Rollback notes:
 - Restore the database from the last known good backup before redeploying incompatible code.
 - If worker boot-critical files are missing, restore them explicitly or keep the worker offline.
 - If rehearsal evidence is missing or stale, do not attempt governed promotion until `npm run recovery:db-rehearse` has been run successfully again.
+- If freshness alert delivery failed, treat that as an operator visibility issue, not as recovered freshness.
 
 ## Fail-Closed Rules
 
@@ -133,7 +161,9 @@ Rollback notes:
 - Schema checksum mismatch is unrecoverable until reconciled.
 - Backup absence must be reported as a recovery gap.
 - Missing or stale disposable rehearsal evidence blocks governed promotion and must be reported explicitly.
+- Freshness warnings must be treated as automation drift until a fresh automated rehearsal lands again.
 - Automatic refresh failures do not create fresh evidence. The latest successful rehearsal remains authoritative until a new passed run lands in Postgres.
+- Alert persistence failures do not imply healthy freshness.
 - Worker disk loss must be called out explicitly.
 - Restored Postgres state with stale worker disk is not automatically safe.
 - Restore success claims require validation evidence.

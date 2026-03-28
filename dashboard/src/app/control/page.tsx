@@ -53,6 +53,7 @@ import { describeOperatorRole, requiredRoleForAction } from '@/lib/operator-poli
 import { formatTimestampFull, relativeTime } from '@/lib/utils';
 import type {
   DashboardOperatorRole,
+  ControlRecoveryRehearsalOperationalStatus,
   WorkerRestartAlertRecord,
   WorkerRestartDeliveryHealthHint,
   WorkerRestartDeliveryJournalRow,
@@ -163,6 +164,35 @@ function alertBadgeLabel(alert?: WorkerRestartAlertRecord): string {
   }
 
   return `${alert.status.toUpperCase()} · ${alert.severity.toUpperCase()}`;
+}
+
+function rehearsalFreshnessBadgeVariant(
+  rehearsal?: ControlRecoveryRehearsalOperationalStatus
+): 'default' | 'success' | 'warning' | 'danger' | 'info' {
+  switch (rehearsal?.freshnessStatus) {
+    case 'healthy':
+      return rehearsal?.hasOpenAlert ? 'warning' : 'success';
+    case 'warning':
+      return 'warning';
+    case 'stale':
+    case 'failed':
+      return 'danger';
+    default:
+      return rehearsal?.hasOpenAlert ? 'warning' : 'default';
+  }
+}
+
+function rehearsalFreshnessBadgeLabel(rehearsal?: ControlRecoveryRehearsalOperationalStatus): string {
+  if (!rehearsal) {
+    return 'UNKNOWN';
+  }
+
+  const base = rehearsal.freshnessStatus.replace(/_/g, ' ').toUpperCase();
+  return rehearsal.hasOpenAlert ? `${base} · ALERT` : base;
+}
+
+function rehearsalAutomationLabel(rehearsal?: ControlRecoveryRehearsalOperationalStatus): string {
+  return rehearsal?.automationHealth ? rehearsal.automationHealth.replace(/_/g, ' ').toUpperCase() : 'UNKNOWN';
 }
 
 function deliveryStatusLabel(status?: string): string {
@@ -373,6 +403,8 @@ function ControlPageContent() {
   const killSwitch = status?.killSwitch;
   const restart = status?.restart;
   const restartAlertSummary = restartAlerts?.summary ?? status?.restartAlerts;
+  const databaseRehearsal = status?.databaseRehearsalStatus;
+  const rehearsalNotification = databaseRehearsal?.alert?.notification;
   const restartAlertItems = restartAlerts?.alerts ?? [];
   const worker = status?.worker;
   const runtimeConfig = status?.runtimeConfig;
@@ -1000,6 +1032,140 @@ function ControlPageContent() {
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border-default">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-accent-cyan" />
+            <div>
+              <CardTitle className="text-text-primary font-semibold text-base">Rehearsal Freshness</CardTitle>
+              <p className="text-xs text-text-muted mt-0.5">
+                Durable evidence freshness is derived from Postgres and gates promotion before operators attempt a release.
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={rehearsalFreshnessBadgeVariant(databaseRehearsal)} className="text-sm px-3 py-1">
+              {rehearsalFreshnessBadgeLabel(databaseRehearsal)}
+            </Badge>
+            <span className="text-xs text-text-muted">
+              Promotion blocked: {databaseRehearsal?.blockedByFreshness ? 'yes' : 'no'}
+            </span>
+            <span className="text-xs text-text-muted">
+              Open alert: {databaseRehearsal?.hasOpenAlert ? 'yes' : 'no'}
+            </span>
+          </div>
+
+          <p className="text-sm text-text-secondary">
+            {databaseRehearsal?.statusMessage ?? 'No rehearsal freshness state is available.'}
+          </p>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">Last success</p>
+              <p className="mt-1 text-sm text-text-primary">{safeRelative(databaseRehearsal?.lastSuccessfulRehearsalAt)}</p>
+              <p className="text-xs text-text-muted">{safeTimestamp(databaseRehearsal?.lastSuccessfulRehearsalAt)}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">Last failure</p>
+              <p className="mt-1 text-sm text-text-primary">{safeRelative(databaseRehearsal?.lastFailedRehearsalAt)}</p>
+              <p className="text-xs text-text-muted">{safeTimestamp(databaseRehearsal?.lastFailedRehearsalAt)}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">Latest source</p>
+              <p className="mt-1 text-sm text-text-primary">{compactValue(databaseRehearsal?.latestEvidenceExecutionSource?.toUpperCase())}</p>
+              <p className="text-xs text-text-muted">{compactValue(databaseRehearsal?.latestEvidenceStatus?.toUpperCase())}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">Automation health</p>
+              <p className="mt-1 text-sm text-text-primary">{rehearsalAutomationLabel(databaseRehearsal)}</p>
+              <p className="text-xs text-text-muted">Repeated automated failures: {databaseRehearsal?.repeatedAutomationFailureCount ?? 0}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">Freshness age</p>
+              <p className="mt-1 text-sm text-text-primary">{databaseRehearsal?.freshnessAgeMs != null ? `${Math.round(databaseRehearsal.freshnessAgeMs / 60000)} min` : '—'}</p>
+              <p className="text-xs text-text-muted">Window: {Math.round((databaseRehearsal?.freshnessWindowMs ?? 0) / 3600000)}h</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-3">
+              <p className="text-xs uppercase tracking-wide text-text-muted">Alert reason</p>
+              <p className="mt-1 text-sm text-text-primary">{compactValue(databaseRehearsal?.reasonCode?.replace(/_/g, ' ').toUpperCase())}</p>
+              <p className="text-xs text-text-muted">{compactValue(databaseRehearsal?.alert?.status?.toUpperCase())}</p>
+            </div>
+          </div>
+
+          {databaseRehearsal?.alert && (
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={databaseRehearsal.alert.status === 'resolved' ? 'success' : databaseRehearsal.alert.severity === 'critical' ? 'danger' : 'warning'} className="text-xs px-2 py-0.5">
+                  {databaseRehearsal.alert.status.toUpperCase()} · {databaseRehearsal.alert.severity.toUpperCase()}
+                </Badge>
+                <span className="text-xs text-text-muted">
+                  Source: {compactValue(databaseRehearsal.alert.latestEvidenceExecutionSource?.toUpperCase())}
+                </span>
+              </div>
+              <p className="text-sm font-medium text-text-primary">{databaseRehearsal.alert.summary}</p>
+              <p className="text-xs text-text-muted">{databaseRehearsal.alert.recommendedAction}</p>
+              {rehearsalNotification && (
+                <div className="rounded border border-border-subtle bg-bg-primary/30 p-3 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={deliveryStatusVariant(rehearsalNotification.latestDeliveryStatus)} className="text-xs px-2 py-0.5">
+                      {deliveryStatusLabel(rehearsalNotification.latestDeliveryStatus)}
+                    </Badge>
+                    <span className="text-xs text-text-muted">
+                      {rehearsalNotification.externallyNotified ? 'Externally notified' : 'Local only'}
+                    </span>
+                    {rehearsalNotification.recoveryNotificationSent && (
+                      <span className="text-xs text-text-muted">
+                        Recovery sent {safeRelative(rehearsalNotification.recoveryNotificationAt)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4 text-xs text-text-muted">
+                    <div>
+                      <div>Sink: {compactValue(rehearsalNotification.sinkName)}</div>
+                      <div>
+                        Latest destination: {compactValue(rehearsalNotification.latestDestinationName)}
+                        {rehearsalNotification.latestDestinationType ? ` (${rehearsalNotification.latestDestinationType})` : ''}
+                      </div>
+                    </div>
+                    <div>
+                      <div>Attempts: {rehearsalNotification.attemptCount}</div>
+                      <div>Last attempt: {safeTimestamp(rehearsalNotification.lastAttemptedAt)}</div>
+                    </div>
+                    <div>
+                      <div>Destinations: {rehearsalNotification.selectedDestinationNames.length ? rehearsalNotification.selectedDestinationNames.join(', ') : '—'}</div>
+                      <div>Selected: {rehearsalNotification.selectedDestinationCount}</div>
+                    </div>
+                    <div>
+                      <div>Failure: {rehearsalNotification.lastFailureReason ?? '—'}</div>
+                      <div>Suppression: {rehearsalNotification.suppressionReason ?? '—'}</div>
+                    </div>
+                  </div>
+                  {rehearsalNotification.destinations.length > 0 && (
+                    <div className="space-y-1">
+                      {rehearsalNotification.destinations.map((destination) => (
+                        <p key={destination.name} className="text-xs text-text-muted">
+                          Destination {destination.name}
+                          {destination.sinkType ? ` (${destination.sinkType})` : ''}
+                          {' · '}
+                          {deliveryStatusLabel(destination.latestDeliveryStatus)}
+                          {' · '}
+                          Attempts {destination.attemptCount}
+                          {destination.recoveryNotificationSent ? ' · recovery sent' : ''}
+                          {destination.suppressionReason ? ` · suppressed: ${destination.suppressionReason}` : ''}
+                          {destination.lastFailureReason ? ` · failure: ${destination.lastFailureReason}` : ''}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

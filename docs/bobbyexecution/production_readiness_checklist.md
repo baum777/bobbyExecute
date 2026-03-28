@@ -14,6 +14,7 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - [x] Postgres backup / restore helpers for control-plane state
 - [x] Disposable restore rehearsal runner with durable evidence capture
 - [x] Render-native automatic rehearsal refresh cron with disposable target Postgres
+- [x] Rehearsal freshness status, alert persistence, and operator visibility for fresh / warning / stale / failed states
 - [x] Worker disk classification helper for boot-critical vs evidence-only state
 
 ## Verify Before Controlled Live-Test
@@ -36,7 +37,9 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - [ ] `JOURNAL_PATH` points to worker persistent storage
 - [ ] `GET /health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics` are healthy on the public bot service
 - [ ] `GET /control/status`, `/control/runtime-config`, and `/control/history` are healthy on the private control service
-- [ ] `/control/status` or `/control/runtime-status` shows `databaseRehearsal.status=fresh` and the latest evidence source you expect
+- [ ] `/control/status` or `/control/runtime-status` shows `databaseRehearsal.status=fresh`, `warning`, `stale`, or `failed` as appropriate, plus the latest success/failure timestamps and evidence source you expect
+- [ ] If `databaseRehearsal.status=warning`, check the open freshness alert reason, notification delivery state, and automation health before promotion
+- [ ] If `databaseRehearsal.status=stale` or `failed`, do not promote until the Render rehearsal refresh or manual fallback has written fresh evidence to Postgres and the operator-facing freshness alert has recovered or been understood
 - [ ] `POST /emergency-stop` and `POST /control/reset` behave as documented
 - [ ] the dashboard reflects the same runtime truth as the bot
 - [ ] dry or paper rehearsal has been reviewed in the journal and worker visibility snapshot
@@ -47,6 +50,7 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - schema migration status is `missing_but_migratable`, `migration_required`, or `unrecoverable`
 - rehearsal evidence is missing or stale for the governed promotion target
 - the Render rehearsal cron is failing and no fresh evidence has been written
+- rehearsal freshness is `warning` and the open alert indicates automation has not recovered
 - any live prerequisite is missing
 - control token is absent
 - runtime status is `error` or adapter health is degraded for live

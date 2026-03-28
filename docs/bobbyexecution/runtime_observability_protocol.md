@@ -59,6 +59,7 @@ Every major event should carry:
 - `GET /control/status`
 - `GET /control/runtime-config`
 - `GET /control/history`
+- `GET /control/runtime-status`
 - `POST /control/restart-worker`
 - `GET /control/restart-alerts`
 - `GET /control/restart-alert-deliveries`
@@ -81,6 +82,9 @@ Every major event should carry:
 - restart-required state, restart request status, and convergence outcome
 - open restart alerts, severity, acknowledgement state, and recommended action
 - filtered delivery journal rows and compact per-destination delivery summaries
+- database rehearsal freshness status with last success / failure timestamps
+- open rehearsal freshness alerts, severity, blocked-by-freshness state, and the latest evidence source
+- automation health that distinguishes healthy automation from manual fallback or repeated failed refreshes
 
 ## Persistence Expectations
 
@@ -111,6 +115,9 @@ Restart alerts open when convergence stalls or fails. `acknowledge` records that
 
 Critical restart alerts may also emit a server-side notification through the private control plane. The notification bridge is advisory only: alert persistence happens first, delivery is rate-limited, and delivery failures are recorded without changing the canonical restart state. Operators should inspect `/control/restart-alerts` and `/control/status` if an alert remains open after a notification attempt.
 
+Database rehearsal freshness uses the same pattern: durable Postgres evidence is authoritative, the control surface derives `fresh` / `warning` / `stale` / `failed` / `unknown`, and an open freshness alert is the visible operator signal when the latest automation or evidence cadence is no longer healthy. A manual fallback rehearsal can satisfy freshness temporarily, but the control surface should still show degraded automation health until the Render-native path recovers.
+Freshness notifications are advisory only. `warning` remains local-only, `stale` and repeated automated failures may fan out externally, and recovery notifications are only emitted after a previously notified degradation resolves. Notification delivery state is visible in the same control/status payload so operators can tell whether a freshness alert was sent, suppressed, failed, or recovered.
+
 The delivery payload is intentionally small and stable. It includes the environment, worker target, severity, reason code, summary, restart request id, requested and applied version ids when known, worker heartbeat age or timestamp when available, the recommended operator action, and a path hint for the control surface. Recovery notifications are emitted only after a previously notified alert resolves, so the bridge stays an escalation path rather than a parallel restart authority.
 
 The bridge can fan out by destination. Routing is configured on the private control service, with explicit destination names, cooldown windows, recovery flags, and formatter profiles. Generic JSON is the transport base; Slack-compatible payloads are a presentation profile layered on top of the same webhook transport. Destination-level status, suppression, and failure reasons are visible in the restart alert event history, but no external provider response is treated as restart truth.
@@ -136,3 +143,6 @@ Alert when:
 - RPC verification fails
 - data quality drops below threshold
 - repeated execution errors exceed threshold
+- database rehearsal evidence is missing
+- database rehearsal freshness is warning, stale, or failed
+- repeated automated rehearsal failures exceed threshold

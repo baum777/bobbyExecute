@@ -268,8 +268,9 @@ export function resolveNotificationRoutes(
     const previous = latestDestinationEvent(context.previousSummary, destination.name);
     const latestAttemptAt = previous?.lastAttemptedAt ? Date.parse(previous.lastAttemptedAt) : undefined;
     const cooldownMs = destination.cooldownMs ?? 5 * 60 * 1000;
+    const recoveryEvent = context.eventType === "alert_resolved";
 
-    if (latestAttemptAt != null && Number.isFinite(latestAttemptAt) && nowMs - latestAttemptAt < cooldownMs) {
+    if (!recoveryEvent && latestAttemptAt != null && Number.isFinite(latestAttemptAt) && nowMs - latestAttemptAt < cooldownMs) {
       return {
         destination,
         status: "suppressed" as const,
@@ -293,7 +294,7 @@ export function resolveNotificationRoutes(
       };
     }
 
-    if (context.alert.severity !== "critical" && !destination.allowWarning) {
+    if (!recoveryEvent && context.alert.severity !== "critical" && !destination.allowWarning) {
       return {
         destination,
         status: "skipped" as const,

@@ -6,6 +6,8 @@ import type { DisposableDatabaseRehearsalActor, DisposableDatabaseRehearsalConfi
 import { runDisposableDatabaseRehearsal } from "../recovery/disposable-db-rehearsal.js";
 import { PostgresControlGovernanceRepository } from "../persistence/control-governance-repository.js";
 import type { SchemaMigrationConnection } from "../persistence/schema-migrations.js";
+import { syncDatabaseRehearsalFreshnessState } from "../control/control-governance.js";
+import { DatabaseRehearsalFreshnessNotificationService } from "../control/database-rehearsal-notification-service.js";
 import { closePool, parseCliArgs, readCliString } from "./cli.js";
 
 type RenderRehearsalConnection = SchemaMigrationConnection & { end(): Promise<unknown> };
@@ -197,9 +199,14 @@ export async function runRenderDatabaseRehearsalRefresh(
   const sourceConnection = openConnection(config.sourceDatabaseUrl);
   const targetConnection = openConnection(config.targetDatabaseUrl);
   const evidenceRepository = buildEvidenceRepository(sourceConnection);
+  const freshnessNotificationService = new DatabaseRehearsalFreshnessNotificationService({
+    environment: config.environment,
+    alertRepository: evidenceRepository,
+    logger: console,
+  });
 
   try {
-    return await runRehearsal({
+    const result = await runRehearsal({
       environment: config.environment,
       sourceConnection,
       targetConnection,
@@ -214,6 +221,27 @@ export async function runRenderDatabaseRehearsalRefresh(
       executionSource: config.executionSource,
       executionContext: config.executionContext,
     });
+    if (result.evidenceStored) {
+      const freshnessStatus = await syncDatabaseRehearsalFreshnessState(evidenceRepository, config.environment, {
+        nowMs: Date.parse(result.executedAt) || Date.now(),
+      });
+      if (freshnessStatus?.alert) {
+        await freshnessNotificationService
+          .dispatch({
+            actor: config.actor.actorId,
+            alert: freshnessStatus.alert,
+            status: freshnessStatus,
+            note: result.success ? "freshness refresh completed" : result.failureReason ?? "freshness refresh failed",
+          })
+          .catch((error) => {
+            console.warn(
+              "[render-db-rehearse] freshness notification dispatch failed",
+              error instanceof Error ? error.message : String(error)
+            );
+          });
+      }
+    }
+    return result;
   } finally {
     await closeConnection(targetConnection).catch(() => undefined);
     await closeConnection(sourceConnection).catch(() => undefined);

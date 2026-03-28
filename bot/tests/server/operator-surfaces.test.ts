@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -6,6 +6,13 @@ import { createServer, createControlServer } from "../../src/server/index.js";
 import { InMemoryControlGovernanceRepository } from "../../src/persistence/control-governance-repository.js";
 import { createRuntimeVisibilityRepository, type RuntimeVisibilitySnapshot } from "../../src/persistence/runtime-visibility-repository.js";
 import type { ControlRecoveryRehearsalEvidenceRecord } from "../../src/control/control-governance.js";
+import {
+  syncDatabaseRehearsalFreshnessState,
+} from "../../src/control/control-governance.js";
+import {
+  DatabaseRehearsalFreshnessNotificationService,
+  type DatabaseRehearsalFreshnessNotificationSink,
+} from "../../src/control/database-rehearsal-notification-service.js";
 import { createRuntimeConfigTestManager, controlHeaders, TEST_CONTROL_TOKEN } from "../helpers/runtime-config-test-kit.js";
 
 function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
@@ -212,6 +219,8 @@ describe("visibility-backed read surfaces", () => {
 
   afterEach(async () => {
     await rm(tempDir, { recursive: true, force: true });
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("serves public health and KPI data from worker visibility and keeps runtime status private", async () => {
@@ -323,6 +332,107 @@ describe("visibility-backed read surfaces", () => {
             provider: "render",
             serviceName: "bobbyexecute-rehearsal-staging",
           },
+        },
+      });
+      expect(body.databaseRehearsalStatus).toMatchObject({
+        freshnessStatus: "healthy",
+        blockedByFreshness: false,
+        hasOpenAlert: false,
+        latestEvidenceExecutionSource: "automated",
+        latestEvidenceStatus: "passed",
+      });
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("surfaces rehearsal notification delivery details on control status", async () => {
+    const visibilityRepository = await createRuntimeVisibilityRepository();
+    await visibilityRepository.save(buildVisibilitySnapshot());
+    const governanceRepository = new InMemoryControlGovernanceRepository();
+    const { manager } = await createRuntimeConfigTestManager();
+    const runtimeEnvironment = manager.getRuntimeConfigStatus().environment ?? "test";
+    await governanceRepository.recordDatabaseRehearsalEvidence(
+      buildRehearsalEvidence(runtimeEnvironment, "2026-03-19T12:00:00.000Z")
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("ok", { status: 202 })) as unknown as typeof fetch
+    );
+
+    const notificationService = new DatabaseRehearsalFreshnessNotificationService({
+      environment: runtimeEnvironment,
+      alertRepository: governanceRepository,
+      sinks: [
+        {
+          kind: "structured_log",
+          name: "structured-log",
+          scope: "internal",
+          configured: true,
+          async notify() {
+            return {
+              status: "sent",
+              reason: "structured log recorded",
+            };
+          },
+        } satisfies DatabaseRehearsalFreshnessNotificationSink,
+      ],
+      destinations: [
+        {
+          slot: "primary",
+          name: "primary",
+          enabled: true,
+          priority: 10,
+          formatterProfile: "generic",
+          url: "https://primary.example.test/webhook",
+          required: true,
+          recoveryEnabled: true,
+          repeatedFailureSummaryEnabled: true,
+          allowWarning: true,
+          environmentScope: "all",
+          tags: ["primary"],
+        },
+      ],
+      notificationCooldownMs: 60_000,
+      notificationTimeoutMs: 1_000,
+      logger: console,
+    });
+    const staleStatus = await syncDatabaseRehearsalFreshnessState(governanceRepository, runtimeEnvironment, {
+      nowMs: Date.parse("2026-03-27T12:00:00.000Z"),
+    });
+    await notificationService.dispatch({
+      actor: "system",
+      alert: staleStatus?.alert ?? expect.fail("missing stale freshness alert"),
+      status: staleStatus ?? expect.fail("missing stale freshness status"),
+    });
+    vi.unstubAllGlobals();
+
+    const server = await createControlServer({
+      port: 0,
+      host: "127.0.0.1",
+      runtimeVisibilityRepository: visibilityRepository,
+      runtimeEnvironment,
+      runtimeConfigManager: manager,
+      governanceRepository,
+      controlAuthToken: TEST_CONTROL_TOKEN,
+    });
+    const address = server.server.address();
+    if (typeof address !== "object" || address === null || !("port" in address)) {
+      throw new Error("Failed to resolve control test server port");
+    }
+
+    try {
+      const res = await fetch(`http://127.0.0.1:${address.port}/control/status`, { headers: controlHeaders() });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.databaseRehearsalStatus).toMatchObject({
+        freshnessStatus: "stale",
+        blockedByFreshness: true,
+        hasOpenAlert: true,
+        notification: {
+          externallyNotified: true,
+          latestDeliveryStatus: "sent",
+          eventType: "freshness_stale_opened",
         },
       });
     } finally {

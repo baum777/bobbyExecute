@@ -10,6 +10,9 @@ Use this for a controlled live-test session. The runtime is fail-closed; if prer
 - Run `cd bot && npm run db:migrate` if the database is not ready
 - Run `cd bot && npm run recovery:db-validate -- --input=<known-good-snapshot.json>` when you are changing a target database or rehearsal environment
 - Check `/control/status` or `/control/runtime-status` and confirm the latest `databaseRehearsal` record is fresh before governed live promotion
+- If the status is `warning`, confirm whether the latest passing rehearsal was manual fallback or whether the Render automation path is simply nearing expiry
+- If the status is `stale` or `failed`, stop and refresh evidence before any governed promotion attempt
+- If a freshness alert was sent externally, confirm the delivery status on the control surface before assuming operators already saw the degradation
 - Run `cd bot && npm run recovery:db-rehearse:render` if the automatic Render cron is stale or failed; use `cd bot && npm run recovery:db-rehearse -- --source-database-url=<canonical-db> --target-database-url=<scratch-db> --source-context=production --target-context=disposable-rehearsal` only as a manual fallback
 - Run `cd bot && npm run live:preflight`
 - Set `LIVE_TRADING=true`, `DRY_RUN=false`, `RPC_MODE=real`, `TRADING_ENABLED=true`, `LIVE_TEST_MODE=true`
@@ -25,6 +28,7 @@ Use this for a controlled live-test session. The runtime is fail-closed; if prer
 5. Verify `GET /kpi/adapters` and `GET /kpi/metrics` before any trade attempt.
 6. If the worker disk was recreated, run `npm run recovery:worker-state -- --journal-path=$JOURNAL_PATH` before resuming.
 7. If governed live promotion is blocked because rehearsal evidence is missing or stale, rerun the Render rehearsal refresh or the manual fallback and wait for the evidence record to become fresh again.
+8. If the latest evidence came from manual fallback, treat automation as degraded until the next automated Render refresh lands successfully.
 
 ## What To Watch
 
@@ -65,3 +69,4 @@ Useful read surfaces:
 3. Review `/kpi/decisions` and `/kpi/summary` for blocked or allowed transitions.
 4. Capture any unexpected quote, verification, or adapter behavior before the next run.
 5. If the session changed durable control-plane state, capture a Postgres backup before the next promotion or restart.
+6. Review the rehearsal freshness alert state and confirm whether any warning or stale condition has cleared after the next Render refresh.
