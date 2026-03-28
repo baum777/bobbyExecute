@@ -10,6 +10,7 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 - Runtime behavior is governed by persisted runtime config and a private control service, not by changing env vars.
 - Schema upgrades are explicit and versioned through `bot/migrations/`; operators run `npm run db:migrate` before booting against a fresh or upgraded database.
 - Recovery is documented and testable through `docs/bobbyexecution/recovery_and_upgrade_runbook.md`, including disposable restore rehearsals via `npm run recovery:db-rehearse`.
+- Render-native automatic rehearsal refresh runs from a dedicated cron job and writes the evidence back to the same canonical Postgres store the promotion gate already trusts.
 - Governed live promotion now requires fresh database rehearsal evidence before `live_limited` or `live` promotion.
 - The repository does not claim uncontrolled live trading readiness.
 

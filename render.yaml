@@ -184,9 +184,64 @@ environments:
               name: bobbyexecute-bot-staging
               envVarKey: RENDER_EXTERNAL_URL
 
+      - type: cron
+        name: bobbyexecute-rehearsal-refresh-staging
+        runtime: node
+        plan: starter
+        region: oregon
+        branch: main
+        autoDeployTrigger: commit
+        rootDir: bot
+        schedule: "0 3 * * *"
+        buildCommand: npm ci && npm run build
+        startCommand: npm run recovery:db-rehearse:render
+        envVars:
+          - key: NODE_ENV
+            value: production
+          - key: RUNTIME_CONFIG_ENV
+            value: staging
+          - key: REHEARSAL_EXECUTION_SOURCE
+            value: automated
+          - key: REHEARSAL_ORCHESTRATION_MODE
+            value: render_cron
+          - key: REHEARSAL_AUTOMATION_PROVIDER
+            value: render
+          - key: REHEARSAL_SOURCE_KIND
+            value: canonical
+          - key: REHEARSAL_TARGET_KIND
+            value: disposable
+          - key: REHEARSAL_SOURCE_CONTEXT
+            value: canonical-staging
+          - key: REHEARSAL_TARGET_CONTEXT
+            value: disposable-rehearsal-staging
+          - key: REHEARSAL_RENDER_SERVICE_NAME
+            value: bobbyexecute-rehearsal-refresh-staging
+          - key: REHEARSAL_CRON_SCHEDULE
+            value: "0 3 * * *"
+          - key: REHEARSAL_MIGRATIONS_DIR
+            value: migrations
+          - key: REHEARSAL_ACTOR_ID
+            value: render-rehearsal-refresh-staging
+          - key: REHEARSAL_ACTOR_DISPLAY_NAME
+            value: Render rehearsal refresh
+          - key: REHEARSAL_SESSION_ID
+            value: render-cron-staging
+          - key: SOURCE_DATABASE_URL
+            fromDatabase:
+              name: bobbyexecute-postgres-staging
+              property: connectionString
+          - key: TARGET_DATABASE_URL
+            fromDatabase:
+              name: bobbyexecute-postgres-rehearsal-staging
+              property: connectionString
+
     databases:
       - name: bobbyexecute-postgres-staging
         databaseName: bobbyexecute_staging
+        plan: free
+        region: oregon
+      - name: bobbyexecute-postgres-rehearsal-staging
+        databaseName: bobbyexecute_rehearsal_staging
         plan: free
         region: oregon
 
@@ -380,10 +435,65 @@ environments:
               name: bobbyexecute-bot-production
               envVarKey: RENDER_EXTERNAL_URL
 
+      - type: cron
+        name: bobbyexecute-rehearsal-refresh-production
+        runtime: node
+        plan: starter
+        region: oregon
+        branch: main
+        autoDeployTrigger: off
+        rootDir: bot
+        schedule: "0 3 * * *"
+        buildCommand: npm ci && npm run build
+        startCommand: npm run recovery:db-rehearse:render
+        envVars:
+          - key: NODE_ENV
+            value: production
+          - key: RUNTIME_CONFIG_ENV
+            value: production
+          - key: REHEARSAL_EXECUTION_SOURCE
+            value: automated
+          - key: REHEARSAL_ORCHESTRATION_MODE
+            value: render_cron
+          - key: REHEARSAL_AUTOMATION_PROVIDER
+            value: render
+          - key: REHEARSAL_SOURCE_KIND
+            value: canonical
+          - key: REHEARSAL_TARGET_KIND
+            value: disposable
+          - key: REHEARSAL_SOURCE_CONTEXT
+            value: canonical-production
+          - key: REHEARSAL_TARGET_CONTEXT
+            value: disposable-rehearsal-production
+          - key: REHEARSAL_RENDER_SERVICE_NAME
+            value: bobbyexecute-rehearsal-refresh-production
+          - key: REHEARSAL_CRON_SCHEDULE
+            value: "0 3 * * *"
+          - key: REHEARSAL_MIGRATIONS_DIR
+            value: migrations
+          - key: REHEARSAL_ACTOR_ID
+            value: render-rehearsal-refresh-production
+          - key: REHEARSAL_ACTOR_DISPLAY_NAME
+            value: Render rehearsal refresh
+          - key: REHEARSAL_SESSION_ID
+            value: render-cron-production
+          - key: SOURCE_DATABASE_URL
+            fromDatabase:
+              name: bobbyexecute-postgres-production
+              property: connectionString
+          - key: TARGET_DATABASE_URL
+            fromDatabase:
+              name: bobbyexecute-postgres-rehearsal-production
+              property: connectionString
+
     databases:
       - name: bobbyexecute-postgres-production
         databaseName: bobbyexecute_production
         plan: basic-1gb
+        region: oregon
+      - name: bobbyexecute-postgres-rehearsal-production
+        databaseName: bobbyexecute_rehearsal_production
+        plan: free
         region: oregon
 
     keyValueStores:

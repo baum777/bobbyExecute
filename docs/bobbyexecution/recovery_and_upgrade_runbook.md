@@ -73,6 +73,7 @@ npm run recovery:db-backup -- --environment=production --output=/tmp/control-bac
 npm run recovery:db-restore -- --input=/tmp/control-backup.json
 npm run recovery:db-validate -- --input=/tmp/control-backup.json
 npm run recovery:db-rehearse -- --source-database-url=<canonical-db> --target-database-url=<scratch-db> --source-context=production --target-context=disposable-rehearsal
+npm run recovery:db-rehearse:render
 npm run recovery:worker-state -- --journal-path=/var/data/journal.jsonl
 ```
 
@@ -82,6 +83,7 @@ Notes:
 - `recovery:db-restore` restores that snapshot into a schema-ready database.
 - `recovery:db-validate` performs a restore-and-recapture round trip and reports whether the counts matched.
 - `recovery:db-rehearse` captures or accepts a source snapshot, migrates a disposable target if needed, runs restore validation against the disposable target, and writes durable rehearsal evidence back to the canonical control DB.
+- `recovery:db-rehearse:render` is the Render-native automatic refresh entrypoint. It uses explicit Render-side orchestration config, a canonical source database, and a disposable rehearsal database, then writes the evidence into the same canonical control DB.
 - `recovery:worker-state` reports which worker-disk artifacts are present, which are boot-critical, and which are evidence-only.
 
 ## Restore Validation
@@ -97,6 +99,7 @@ Validation is intentionally layered:
   - capture a Postgres snapshot
   - restore it into a scratch database
   - run `npm run recovery:db-validate`
+  - confirm the Render cron rehearsal refresh has produced a fresh evidence record, or run `npm run recovery:db-rehearse:render` / `npm run recovery:db-rehearse` if the latest record is stale or failed
   - run `npm run recovery:db-rehearse` against a disposable target before governed promotion
   - inspect `npm run recovery:worker-state`
 - staging rehearsal:
@@ -110,10 +113,11 @@ The restore path is only considered proven when validation is run after the rest
 1. Run `npm run db:status` against the target database.
 2. Run `npm run db:migrate` if migrations are pending.
 3. Run `npm run recovery:db-validate` against a fresh snapshot or staging clone.
-4. Run `npm run recovery:db-rehearse` against a disposable target and verify the durable rehearsal evidence before governed live promotion.
-5. Run `npm run recovery:worker-state` on the worker disk that will boot the new release.
-6. Confirm readiness endpoints are healthy after the migration.
-7. Deploy the new release only after schema, rehearsal, and worker-disk prerequisites are satisfied.
+4. Confirm the latest `databaseRehearsal` status on `/control/status` or `/control/runtime-status` is `fresh` and shows an automated or manual run source you expect.
+5. Run `npm run recovery:db-rehearse:render` if the cron evidence is stale or missing, or `npm run recovery:db-rehearse` for a manual fallback rehearsal.
+6. Run `npm run recovery:worker-state` on the worker disk that will boot the new release.
+7. Confirm readiness endpoints are healthy after the migration.
+8. Deploy the new release only after schema, rehearsal, and worker-disk prerequisites are satisfied.
 
 Rollback notes:
 
@@ -129,6 +133,7 @@ Rollback notes:
 - Schema checksum mismatch is unrecoverable until reconciled.
 - Backup absence must be reported as a recovery gap.
 - Missing or stale disposable rehearsal evidence blocks governed promotion and must be reported explicitly.
+- Automatic refresh failures do not create fresh evidence. The latest successful rehearsal remains authoritative until a new passed run lands in Postgres.
 - Worker disk loss must be called out explicitly.
 - Restored Postgres state with stale worker disk is not automatically safe.
 - Restore success claims require validation evidence.

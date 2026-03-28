@@ -22,6 +22,8 @@ The deployed baseline now matches the worker split:
 - `bobbyexecute-runtime-{staging,production}` is the dedicated runtime background worker
 - `bobbyexecute-dashboard-{staging,production}` runs the Next.js dashboard
 - `bobbyexecute-postgres-{staging,production}` provides durable config, audit, and worker visibility storage
+- `bobbyexecute-postgres-rehearsal-{staging,production}` provides the disposable restore target for automated rehearsal refreshes
+- `bobbyexecute-rehearsal-refresh-{staging,production}` runs the Render-native rehearsal refresh cron job
 - `bobbyexecute-kv-{staging,production}` provides the fast signal layer for runtime config overlays
 
 The public bot service stays read-only. Mutations live on the private control service, and the dashboard proxies privileged calls through server-side routes instead of calling the control plane directly from the browser.
@@ -43,6 +45,15 @@ Operator flow:
 If `db:status` reports `unrecoverable`, treat the database as needing restore or reconciliation before the release can start.
 
 The disposable rehearsal writes durable evidence back to the canonical control DB. Governed promotion to `live_limited` or `live` is blocked until that evidence is fresh enough for the configured gate.
+
+Render-native automatic refresh path:
+
+1. The cron job `bobbyexecute-rehearsal-refresh-{staging,production}` runs `cd bot && npm run recovery:db-rehearse:render`.
+2. It reads from the canonical control Postgres via `SOURCE_DATABASE_URL` and restores into the disposable rehearsal Postgres via `TARGET_DATABASE_URL`.
+3. It records evidence back into the canonical control DB using the existing rehearsal evidence model.
+4. The promotion gate keeps reading the newest evidence from Postgres; there is no alternate CI source of truth.
+5. If the cron job fails, operators rerun the manual rehearsal command before attempting governed promotion.
+6. Operators can inspect `/control/status` or `/control/runtime-status` to see the latest evidence status, execution source, and freshness window.
 
 ## Build And Start
 

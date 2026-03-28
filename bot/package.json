@@ -25,6 +25,7 @@
     "recovery:db-restore": "node dist/scripts/control-restore.js",
     "recovery:db-validate": "node dist/scripts/control-restore-validate.js",
     "recovery:db-rehearse": "node dist/scripts/db-rehearse.js",
+    "recovery:db-rehearse:render": "node dist/scripts/render-db-rehearse.js",
     "recovery:worker-state": "node dist/scripts/worker-state-drill.js",
     "premerge": "npm run lint && npm run test:golden && npm run test:chaos && npm run test:integration && npm run test:e2e && npm run test:config",
     "live:preflight": "npm run premerge && npm run build && node dist/scripts/live-test-preflight.js",

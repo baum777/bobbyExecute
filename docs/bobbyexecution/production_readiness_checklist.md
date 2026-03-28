@@ -13,6 +13,7 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - [x] Versioned SQL migration runner with explicit schema readiness checks
 - [x] Postgres backup / restore helpers for control-plane state
 - [x] Disposable restore rehearsal runner with durable evidence capture
+- [x] Render-native automatic rehearsal refresh cron with disposable target Postgres
 - [x] Worker disk classification helper for boot-critical vs evidence-only state
 
 ## Verify Before Controlled Live-Test
@@ -22,7 +23,7 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - [ ] `cd bot && npm run db:status`
 - [ ] `cd bot && npm run db:migrate` if the status is not `ready`
 - [ ] `cd bot && npm run recovery:db-validate -- --input=<known-good-snapshot.json>`
-- [ ] `cd bot && npm run recovery:db-rehearse -- --source-database-url=<canonical-db> --target-database-url=<scratch-db> --source-context=production --target-context=disposable-rehearsal`
+- [ ] `cd bot && npm run recovery:db-rehearse:render` has succeeded recently, or `cd bot && npm run recovery:db-rehearse -- --source-database-url=<canonical-db> --target-database-url=<scratch-db> --source-context=production --target-context=disposable-rehearsal` has been run manually as fallback
 - [ ] `cd bot && npm run recovery:worker-state -- --journal-path=/var/data/journal.jsonl`
 - [ ] `cd bot && npm run live:preflight`
 - [ ] `LIVE_TRADING=true`
@@ -35,6 +36,7 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - [ ] `JOURNAL_PATH` points to worker persistent storage
 - [ ] `GET /health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics` are healthy on the public bot service
 - [ ] `GET /control/status`, `/control/runtime-config`, and `/control/history` are healthy on the private control service
+- [ ] `/control/status` or `/control/runtime-status` shows `databaseRehearsal.status=fresh` and the latest evidence source you expect
 - [ ] `POST /emergency-stop` and `POST /control/reset` behave as documented
 - [ ] the dashboard reflects the same runtime truth as the bot
 - [ ] dry or paper rehearsal has been reviewed in the journal and worker visibility snapshot
@@ -44,6 +46,7 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - live config validation fails
 - schema migration status is `missing_but_migratable`, `migration_required`, or `unrecoverable`
 - rehearsal evidence is missing or stale for the governed promotion target
+- the Render rehearsal cron is failing and no fresh evidence has been written
 - any live prerequisite is missing
 - control token is absent
 - runtime status is `error` or adapter health is degraded for live

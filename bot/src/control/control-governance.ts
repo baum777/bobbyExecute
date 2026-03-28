@@ -101,6 +101,16 @@ export type ControlLivePromotionWorkflowStatus = "pending" | "approved" | "denie
 export type ControlLivePromotionApplicationStatus = "pending_restart" | "applied" | "rolled_back" | "rejected";
 export type ControlRecoveryRehearsalStatus = "passed" | "failed";
 export type ControlRecoveryRehearsalContextKind = "canonical" | "staging" | "disposable" | "unknown";
+export type ControlRecoveryRehearsalExecutionSource = "manual" | "automated";
+
+export interface ControlRecoveryRehearsalExecutionContext {
+  orchestration: "manual_cli" | "render_cron" | "control_path" | "unknown";
+  provider?: "render";
+  serviceName?: string;
+  schedule?: string;
+  trigger?: string;
+  runId?: string;
+}
 
 export interface ControlLivePromotionGateReason {
   code: string;
@@ -132,6 +142,8 @@ export interface ControlRecoveryRehearsalEvidenceRecord {
   environment: string;
   rehearsalKind: "disposable_restore";
   status: ControlRecoveryRehearsalStatus;
+  executionSource: ControlRecoveryRehearsalExecutionSource;
+  executionContext: ControlRecoveryRehearsalExecutionContext;
   executedAt: string;
   recordedAt: string;
   actorId: string;

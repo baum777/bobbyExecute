@@ -8,6 +8,8 @@ import {
 import type {
   ControlGovernanceRepositoryWithAudits,
   ControlRecoveryRehearsalContext,
+  ControlRecoveryRehearsalExecutionContext,
+  ControlRecoveryRehearsalExecutionSource,
   ControlRecoveryRehearsalEvidenceRecord,
   ControlRecoveryRehearsalStatus,
   ControlRecoveryRehearsalValidation,
@@ -41,6 +43,8 @@ export interface DisposableDatabaseRehearsalConfig {
   migrationsDir?: string;
   rehearsalId?: string;
   sourceSnapshot?: ControlPlaneBackupSnapshot;
+  executionSource?: ControlRecoveryRehearsalExecutionSource;
+  executionContext?: ControlRecoveryRehearsalExecutionContext;
 }
 
 export interface DisposableDatabaseRehearsalResult {
@@ -137,6 +141,8 @@ function buildEvidenceRecord(input: {
   targetSchemaStatusAfter?: SchemaMigrationStatus;
   restoreValidation: ControlRecoveryRehearsalValidation;
   status: ControlRecoveryRehearsalStatus;
+  executionSource: ControlRecoveryRehearsalExecutionSource;
+  executionContext: ControlRecoveryRehearsalExecutionContext;
   summary: string;
   failureReason?: string;
 }): ControlRecoveryRehearsalEvidenceRecord {
@@ -145,6 +151,8 @@ function buildEvidenceRecord(input: {
     environment: input.environment,
     rehearsalKind: "disposable_restore",
     status: input.status,
+    executionSource: input.executionSource,
+    executionContext: input.executionContext,
     executedAt: input.executedAt,
     recordedAt: input.executedAt,
     actorId: input.actor.actorId,
@@ -209,6 +217,8 @@ export async function runDisposableDatabaseRehearsal(
   const environment = config.environment.trim();
   const sourceDatabaseFingerprint = fingerprint(config.sourceDatabaseUrl);
   const targetDatabaseFingerprint = fingerprint(config.targetDatabaseUrl);
+  const executionSource = config.executionSource ?? "manual";
+  const executionContext = config.executionContext ?? { orchestration: "manual_cli" as const };
   let sourceSchemaStatus: SchemaMigrationStatus | undefined;
   let targetSchemaStatusBefore: SchemaMigrationStatus | undefined;
   let targetSchemaStatusAfter: SchemaMigrationStatus | undefined;
@@ -286,6 +296,8 @@ export async function runDisposableDatabaseRehearsal(
       targetSchemaStatusAfter,
       restoreValidation,
       status,
+      executionSource,
+      executionContext,
       summary,
       failureReason,
     });
@@ -308,6 +320,8 @@ export async function runDisposableDatabaseRehearsal(
         targetSchemaStatusAfter,
         restoreValidation,
         status,
+        executionSource,
+        executionContext,
         summary: buildSummary(status, sourceSchemaStatus, targetSchemaStatusBefore, targetSchemaStatusAfter, restoreValidation, failureReason),
         failureReason,
       });
@@ -339,6 +353,8 @@ export async function runDisposableDatabaseRehearsal(
         targetSchemaStatusAfter,
         restoreValidation,
         status,
+        executionSource,
+        executionContext,
         summary,
         failureReason,
       });
@@ -360,6 +376,8 @@ export async function runDisposableDatabaseRehearsal(
           targetSchemaStatusAfter,
           restoreValidation,
           status,
+          executionSource,
+          executionContext,
           summary: buildSummary(status, sourceSchemaStatus, targetSchemaStatusBefore, targetSchemaStatusAfter, restoreValidation, failureReason),
           failureReason,
         });

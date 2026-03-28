@@ -3,7 +3,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer, createControlServer } from "../../src/server/index.js";
+import { InMemoryControlGovernanceRepository } from "../../src/persistence/control-governance-repository.js";
 import { createRuntimeVisibilityRepository, type RuntimeVisibilitySnapshot } from "../../src/persistence/runtime-visibility-repository.js";
+import type { ControlRecoveryRehearsalEvidenceRecord } from "../../src/control/control-governance.js";
 import { createRuntimeConfigTestManager, controlHeaders, TEST_CONTROL_TOKEN } from "../helpers/runtime-config-test-kit.js";
 
 function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
@@ -120,6 +122,87 @@ function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
   };
 }
 
+function buildRehearsalEvidence(environment: string, executedAt: string): ControlRecoveryRehearsalEvidenceRecord {
+  return {
+    id: `rehearsal-${environment}-${executedAt}`,
+    environment,
+    rehearsalKind: "disposable_restore",
+    status: "passed",
+    executionSource: "automated",
+    executionContext: {
+      orchestration: "render_cron",
+      provider: "render",
+      serviceName: "bobbyexecute-rehearsal-staging",
+      schedule: "0 3 * * *",
+      trigger: "scheduled_refresh",
+    },
+    executedAt,
+    recordedAt: executedAt,
+    actorId: "render-rehearsal-refresh",
+    actorDisplayName: "Render rehearsal refresh",
+    actorRole: "admin",
+    sessionId: `render:${executedAt}`,
+    sourceContext: { label: "canonical-production", kind: "canonical" },
+    targetContext: { label: "disposable-rehearsal", kind: "disposable" },
+    sourceDatabaseFingerprint: "source-fingerprint",
+    targetDatabaseFingerprint: "target-fingerprint",
+    sourceSchemaStatus: {
+      state: "ready",
+      ready: true,
+      migrationTablePresent: true,
+      message: "Schema is ready.",
+      migrationsDir: "migrations",
+      availableMigrations: [],
+      appliedMigrations: [],
+      pendingMigrations: [],
+      checksumMismatches: [],
+      unknownAppliedVersions: [],
+    },
+    targetSchemaStatusBefore: {
+      state: "ready",
+      ready: true,
+      migrationTablePresent: true,
+      message: "Schema is ready.",
+      migrationsDir: "migrations",
+      availableMigrations: [],
+      appliedMigrations: [],
+      pendingMigrations: [],
+      checksumMismatches: [],
+      unknownAppliedVersions: [],
+    },
+    targetSchemaStatusAfter: {
+      state: "ready",
+      ready: true,
+      migrationTablePresent: true,
+      message: "Schema is ready.",
+      migrationsDir: "migrations",
+      availableMigrations: [],
+      appliedMigrations: [],
+      pendingMigrations: [],
+      checksumMismatches: [],
+      unknownAppliedVersions: [],
+    },
+    restoreValidation: {
+      matched: true,
+      before: {
+        environment,
+        capturedAt: executedAt,
+        schemaState: "ready",
+        counts: {},
+        totalRecords: 0,
+      },
+      after: {
+        environment,
+        capturedAt: executedAt,
+        schemaState: "ready",
+        counts: {},
+        totalRecords: 0,
+      },
+    },
+    summary: "fresh disposable restore rehearsal",
+  };
+}
+
 describe("visibility-backed read surfaces", () => {
   let tempDir: string;
 
@@ -199,6 +282,49 @@ describe("visibility-backed read surfaces", () => {
       expect(body.runtime.status).toBe("running");
       expect(body.runtimeConfig.requestedMode).toBe("observe");
       expect(body.controlView.appliedMode).toBe("observe");
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("surfaces the latest rehearsal freshness and execution source on control status", async () => {
+    const visibilityRepository = await createRuntimeVisibilityRepository();
+    await visibilityRepository.save(buildVisibilitySnapshot());
+    const governanceRepository = new InMemoryControlGovernanceRepository();
+    const { manager } = await createRuntimeConfigTestManager();
+    const runtimeEnvironment = manager.getRuntimeConfigStatus().environment ?? "test";
+    await governanceRepository.recordDatabaseRehearsalEvidence(
+      buildRehearsalEvidence(runtimeEnvironment, "2026-03-27T11:58:00.000Z")
+    );
+    const server = await createControlServer({
+      port: 0,
+      host: "127.0.0.1",
+      runtimeVisibilityRepository: visibilityRepository,
+      runtimeEnvironment,
+      runtimeConfigManager: manager,
+      governanceRepository,
+      controlAuthToken: TEST_CONTROL_TOKEN,
+    });
+    const address = server.server.address();
+    if (typeof address !== "object" || address === null || !("port" in address)) {
+      throw new Error("Failed to resolve control test server port");
+    }
+
+    try {
+      const res = await fetch(`http://127.0.0.1:${address.port}/control/status`, { headers: controlHeaders() });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.databaseRehearsal).toMatchObject({
+        status: "fresh",
+        latestEvidence: {
+          executionSource: "automated",
+          executionContext: {
+            orchestration: "render_cron",
+            provider: "render",
+            serviceName: "bobbyexecute-rehearsal-staging",
+          },
+        },
+      });
     } finally {
       await server.close();
     }

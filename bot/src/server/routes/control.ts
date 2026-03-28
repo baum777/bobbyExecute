@@ -36,6 +36,8 @@ import type {
   ControlOperatorIdentity,
   ControlAction,
   ControlLivePromotionTargetMode,
+  ControlRecoveryRehearsalEvidenceRecord,
+  ControlRecoveryRehearsalGate,
 } from "../../control/control-governance.js";
 import {
   CONTROL_OPERATOR_ASSERTION_HEADER,
@@ -43,6 +45,7 @@ import {
   buildAuditEventId,
   canRolePerformControlAction,
   classifyControlAction,
+  evaluateDatabaseRehearsalGate,
   evaluateLivePromotionGate,
   parseControlOperatorAssertion,
   requiredRoleForControlAction,
@@ -106,6 +109,7 @@ export interface RuntimeConfigStatusResponse {
   controlView?: RuntimeConfigControlView;
   restart?: WorkerRestartStatus;
   restartAlerts?: WorkerRestartAlertSummary;
+  databaseRehearsal?: ControlRecoveryRehearsalGate;
   readiness?: RuntimeReadiness;
   killSwitch: { halted: boolean; reason?: string; triggeredAt?: string };
   liveControl: import("../../runtime/live-control.js").MicroLiveControlSnapshot;
@@ -414,7 +418,8 @@ function buildMutationResponse(
 
 function buildRuntimeConfigStatusResponse(
   snapshot: WorkerRestartSnapshot,
-  readiness?: RuntimeReadiness
+  readiness?: RuntimeReadiness,
+  databaseRehearsal?: ControlRecoveryRehearsalGate
 ): RuntimeConfigStatusResponse {
   return {
     success: true,
@@ -424,6 +429,7 @@ function buildRuntimeConfigStatusResponse(
     controlView: snapshot.controlView,
     restart: snapshot.restart,
     restartAlerts: snapshot.restartAlerts,
+    databaseRehearsal,
     readiness,
     killSwitch: getKillSwitchState(),
     liveControl: getMicroLiveControlSnapshot(),
@@ -434,15 +440,34 @@ function toReadiness(runtime?: RuntimeSnapshot): RuntimeReadiness | undefined {
   return buildRuntimeReadiness(runtime);
 }
 
+async function loadLatestDatabaseRehearsalEvidenceForSnapshot(
+  deps: ControlRouteDeps,
+  snapshot: WorkerRestartSnapshot
+): Promise<ControlRecoveryRehearsalEvidenceRecord | null> {
+  const environment = snapshot.runtimeConfig.environment ?? deps.runtimeEnvironment ?? "development";
+  return deps.governanceRepository ? await deps.governanceRepository.loadLatestDatabaseRehearsalEvidence(environment) : null;
+}
+
+async function buildDatabaseRehearsalGateForSnapshot(
+  deps: ControlRouteDeps,
+  snapshot: WorkerRestartSnapshot
+): Promise<ControlRecoveryRehearsalGate | undefined> {
+  if (!deps.governanceRepository) {
+    return undefined;
+  }
+
+  const latestDatabaseRehearsal = await loadLatestDatabaseRehearsalEvidenceForSnapshot(deps, snapshot);
+  return evaluateDatabaseRehearsalGate(latestDatabaseRehearsal, {
+    targetMode: "live",
+  });
+}
+
 async function evaluateLivePromotionGateWithRehearsalEvidence(
   deps: ControlRouteDeps,
   snapshot: WorkerRestartSnapshot,
   targetMode: ControlLivePromotionTargetMode
 ): Promise<ControlLivePromotionGate> {
-  const environment = snapshot.runtimeConfig.environment ?? deps.runtimeEnvironment ?? "development";
-  const latestDatabaseRehearsal = deps.governanceRepository
-    ? await deps.governanceRepository.loadLatestDatabaseRehearsalEvidence(environment)
-    : null;
+  const latestDatabaseRehearsal = await loadLatestDatabaseRehearsalEvidenceForSnapshot(deps, snapshot);
 
   return evaluateLivePromotionGate(snapshot, toReadiness(snapshot.runtime), targetMode, {
     latestDatabaseRehearsal,
@@ -1010,7 +1035,8 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const snapshot = await readControlSnapshot(deps);
-      return reply.status(200).send(buildRuntimeConfigStatusResponse(snapshot, toReadiness(snapshot.runtime)));
+      const databaseRehearsal = await buildDatabaseRehearsalGateForSnapshot(deps, snapshot);
+      return reply.status(200).send(buildRuntimeConfigStatusResponse(snapshot, toReadiness(snapshot.runtime), databaseRehearsal));
     });
 
     fastify.get<{ Reply: RuntimeConfigStatusResponse | ControlResponse }>("/control/runtime-status", async (_request, reply) => {
@@ -1024,7 +1050,8 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const snapshot = await readControlSnapshot(deps);
-      return reply.status(200).send(buildRuntimeConfigStatusResponse(snapshot, toReadiness(snapshot.runtime)));
+      const databaseRehearsal = await buildDatabaseRehearsalGateForSnapshot(deps, snapshot);
+      return reply.status(200).send(buildRuntimeConfigStatusResponse(snapshot, toReadiness(snapshot.runtime), databaseRehearsal));
     });
 
     fastify.get<{ Querystring: { limit?: string }; Reply: RuntimeConfigHistoryResponse | ControlResponse }>(

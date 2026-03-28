@@ -11,6 +11,7 @@ Public readonly bot API, private control plane, and runtime worker entrypoints f
 - Runtime behavior is now controlled through persisted runtime config plus private control endpoints.
 - Schema migrations are explicit, versioned, and tracked in `bot/migrations/`.
 - Recovery helpers are available for Postgres snapshots, disposable restore rehearsals, and worker-disk classification.
+- Render-native automatic rehearsal refresh uses a dedicated cron entrypoint and writes fresh evidence into the canonical control database.
 
 ## Commands
 
@@ -31,6 +32,7 @@ npm run recovery:db-backup
 npm run recovery:db-restore
 npm run recovery:db-validate
 npm run recovery:db-rehearse
+npm run recovery:db-rehearse:render
 npm run recovery:worker-state
 npm run build
 npm run premerge

@@ -42,6 +42,14 @@ function seedRehearsalEvidence(
     environment,
     rehearsalKind: "disposable_restore",
     status: "passed",
+    executionSource: "automated",
+    executionContext: {
+      orchestration: "render_cron",
+      provider: "render",
+      serviceName: "bobbyexecute-rehearsal-refresh",
+      schedule: "0 3 * * *",
+      trigger: "scheduled_refresh",
+    },
     executedAt,
     recordedAt: executedAt,
     actorId: "rehearsal-runner",
@@ -307,6 +315,7 @@ describe("control live promotion governance", () => {
         requestedByRole: "admin",
       },
     });
+    expect(requestBody.gate.databaseRehearsal.latestEvidence.executionSource).toBe("automated");
     const requestId = requestBody.request.id as string;
 
     const approveResponse = await fetch(`${harness.baseUrl}/control/live-promotion/${requestId}/approve`, {

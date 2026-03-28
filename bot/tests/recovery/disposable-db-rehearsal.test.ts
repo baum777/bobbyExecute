@@ -169,12 +169,29 @@ describe("disposable database rehearsal", () => {
       sourceDatabaseUrl: "postgres://source-db",
       targetDatabaseUrl: "postgres://target-db",
       migrationsDir: "migrations",
+      executionSource: "automated",
+      executionContext: {
+        orchestration: "render_cron",
+        provider: "render",
+        serviceName: "bobbyexecute-rehearsal-test",
+        schedule: "0 3 * * *",
+        trigger: "scheduled_refresh",
+      },
     });
 
     expect(result.success).toBe(true);
     expect(result.status).toBe("passed");
     expect(result.evidenceStored).toBe(true);
     expect(result.summary).toContain("passed");
+    expect(mocks.recordDatabaseRehearsalEvidence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        executionSource: "automated",
+        executionContext: expect.objectContaining({
+          orchestration: "render_cron",
+          provider: "render",
+        }),
+      })
+    );
     expect(order).toEqual([
       "inspect:source",
       "inspect:target:before",
@@ -230,6 +247,14 @@ describe("disposable database rehearsal", () => {
       sourceDatabaseUrl: "postgres://source-db",
       targetDatabaseUrl: "postgres://target-db",
       migrationsDir: "migrations",
+      executionSource: "automated",
+      executionContext: {
+        orchestration: "render_cron",
+        provider: "render",
+        serviceName: "bobbyexecute-rehearsal-test",
+        schedule: "0 3 * * *",
+        trigger: "scheduled_refresh",
+      },
     });
 
     expect(result.success).toBe(false);
@@ -284,6 +309,14 @@ describe("disposable database rehearsal", () => {
       sourceDatabaseUrl: "postgres://source-db",
       targetDatabaseUrl: "postgres://target-db",
       migrationsDir: "migrations",
+      executionSource: "automated",
+      executionContext: {
+        orchestration: "render_cron",
+        provider: "render",
+        serviceName: "bobbyexecute-rehearsal-test",
+        schedule: "0 3 * * *",
+        trigger: "scheduled_refresh",
+      },
     });
 
     expect(result.success).toBe(false);
@@ -320,6 +353,14 @@ describe("disposable database rehearsal", () => {
         sourceDatabaseUrl: "postgres://same-db",
         targetDatabaseUrl: "postgres://same-db",
         migrationsDir: "migrations",
+        executionSource: "automated",
+        executionContext: {
+          orchestration: "render_cron",
+          provider: "render",
+          serviceName: "bobbyexecute-rehearsal-test",
+          schedule: "0 3 * * *",
+          trigger: "scheduled_refresh",
+        },
       })
     ).rejects.toThrow(/identical/);
   });
