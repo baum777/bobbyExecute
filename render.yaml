@@ -166,6 +166,10 @@ environments:
             value: production
           - key: NEXT_PUBLIC_USE_MOCK
             value: "false"
+          - key: DASHBOARD_SESSION_SECRET
+            sync: false
+          - key: DASHBOARD_OPERATOR_DIRECTORY_JSON
+            sync: false
           - key: CONTROL_TOKEN
             sync: false
           - key: CONTROL_SERVICE_HOSTNAME
@@ -417,6 +421,10 @@ environments:
             value: production
           - key: NEXT_PUBLIC_USE_MOCK
             value: "false"
+          - key: DASHBOARD_SESSION_SECRET
+            sync: false
+          - key: DASHBOARD_OPERATOR_DIRECTORY_JSON
+            sync: false
           - key: CONTROL_TOKEN
             sync: false
           - key: CONTROL_SERVICE_HOSTNAME

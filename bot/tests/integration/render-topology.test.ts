@@ -10,6 +10,8 @@ describe("render topology", () => {
 
     expect(renderYaml).toContain("bobbyexecute-control-staging");
     expect(renderYaml).toContain("bobbyexecute-control-production");
+    expect(renderYaml).toContain("DASHBOARD_SESSION_SECRET");
+    expect(renderYaml).toContain("DASHBOARD_OPERATOR_DIRECTORY_JSON");
     expect(renderYaml).toContain("bobbyexecute-runtime-staging");
     expect(renderYaml).toContain("bobbyexecute-runtime-production");
     expect(renderYaml).toContain("type: worker");

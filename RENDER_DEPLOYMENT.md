@@ -85,6 +85,7 @@ Dashboard service:
 - Start: `cd dashboard && npm run start`
 - Public API base: `NEXT_PUBLIC_API_URL` is injected from the bot service's `RENDER_EXTERNAL_URL`
 - Privileged control proxy: `CONTROL_SERVICE_HOSTNAME` and `CONTROL_SERVICE_PORT` are injected from the private control service, and `CONTROL_TOKEN` stays server-side only
+- Operator auth secrets: `DASHBOARD_SESSION_SECRET` signs dashboard sessions and `DASHBOARD_OPERATOR_DIRECTORY_JSON` defines the operator directory; both stay server-side only
 
 ## Required Environment Variables
 
@@ -136,6 +137,8 @@ Runtime worker:
 
 Dashboard service:
 
+- `DASHBOARD_SESSION_SECRET`
+- `DASHBOARD_OPERATOR_DIRECTORY_JSON`
 - `CONTROL_TOKEN`
 - `CONTROL_SERVICE_HOSTNAME`
 - `CONTROL_SERVICE_PORT`
@@ -174,6 +177,8 @@ These values remain boot-level configuration and are set in Render env vars:
 Secret placeholders are created with `sync: false` and must be filled in the Render dashboard:
 
 - `CONTROL_TOKEN`
+- `DASHBOARD_SESSION_SECRET`
+- `DASHBOARD_OPERATOR_DIRECTORY_JSON`
 
 The public bot service receives:
 
@@ -206,6 +211,8 @@ The runtime worker receives:
 
 The dashboard server receives:
 
+- `DASHBOARD_SESSION_SECRET` to sign operator sessions
+- `DASHBOARD_OPERATOR_DIRECTORY_JSON` to define the operator directory
 - `CONTROL_TOKEN` as a server-only secret for the control proxy
 - `CONTROL_SERVICE_HOSTNAME` and `CONTROL_SERVICE_PORT` from the private control service
 - `NEXT_PUBLIC_API_URL` from the bot service's external URL for read-only browser fetches
@@ -238,11 +245,12 @@ The public bot and private control services read the summarized worker visibilit
 
 ## Current Gap
 
-The remaining operational gap is restart orchestration configuration:
+The remaining operational gap is restart orchestration configuration and dashboard operator secret provisioning:
 
 - the control service needs the Render deploy hook URL for the runtime worker
 - the worker service name must match the target metadata used by restart requests
 - restart-required promotions stay pending until a worker restart is requested and the worker converges on the requested version
 - stalled or failed convergence now raises a durable restart alert, so operators do not need to inspect raw tables to notice the failure
+- the dashboard still needs a real session secret and operator directory payload in each Render environment before operator login and privileged control actions are usable
 
 Those inputs are server-side only and should be added before enabling restart promotion in production. The external notification bridge uses the same control-service secret boundary; the browser never sees the webhook URL or token.

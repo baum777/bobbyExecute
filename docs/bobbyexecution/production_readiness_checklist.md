@@ -38,6 +38,8 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - [ ] `GET /health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics` are healthy on the public bot service
 - [ ] `GET /control/status`, `/control/runtime-config`, and `/control/history` are healthy on the private control service
 - [ ] `/control/status` or `/control/runtime-status` shows `databaseRehearsal.status=fresh`, `warning`, `stale`, or `failed` as appropriate, plus the latest success/failure timestamps and evidence source you expect
+- [ ] dashboard operator auth is configured with `DASHBOARD_SESSION_SECRET` and `DASHBOARD_OPERATOR_DIRECTORY_JSON`
+- [ ] dashboard login returns a signed session cookie for at least one admin operator and the control proxy forwards the resulting identity
 - [ ] If `databaseRehearsal.status=warning`, check the open freshness alert reason, notification delivery state, and automation health before promotion
 - [ ] If `databaseRehearsal.status=stale` or `failed`, do not promote until the Render rehearsal refresh or manual fallback has written fresh evidence to Postgres and the operator-facing freshness alert has recovered or been understood
 - [ ] `POST /emergency-stop` and `POST /control/reset` behave as documented
@@ -48,6 +50,7 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 
 - live config validation fails
 - schema migration status is `missing_but_migratable`, `migration_required`, or `unrecoverable`
+- dashboard operator auth is unconfigured
 - rehearsal evidence is missing or stale for the governed promotion target
 - the Render rehearsal cron is failing and no fresh evidence has been written
 - rehearsal freshness is `warning` and the open alert indicates automation has not recovered
