@@ -409,9 +409,12 @@ describe("control delivery reporting routes", () => {
       ],
     });
 
-    const summaryResponse = await fetch(`${harness.baseUrl}/control/restart-alert-deliveries/summary?environment=staging`, {
-      headers: controlHeaders(),
-    });
+    const summaryResponse = await fetch(
+      `${harness.baseUrl}/control/restart-alert-deliveries/summary?environment=staging&from=${encodeURIComponent(WINDOW_START)}&to=${encodeURIComponent(WINDOW_END)}`,
+      {
+        headers: controlHeaders(),
+      }
+    );
     expect(summaryResponse.status).toBe(200);
     await expect(summaryResponse.json()).resolves.toMatchObject({
       success: true,
@@ -449,7 +452,7 @@ describe("control delivery reporting routes", () => {
     harnesses.push(harness);
 
     const trendResponse = await fetch(
-      `${harness.baseUrl}/control/restart-alert-deliveries/trends?environment=production&destinationName=secondary`,
+      `${harness.baseUrl}/control/restart-alert-deliveries/trends?environment=production&destinationName=secondary&referenceEndAt=${encodeURIComponent(WINDOW_END)}`,
       {
         headers: controlHeaders(),
       }
@@ -474,9 +477,12 @@ describe("control delivery reporting routes", () => {
       ],
     });
 
-    const emptyResponse = await fetch(`${harness.baseUrl}/control/restart-alert-deliveries/trends?environment=qa`, {
-      headers: controlHeaders(),
-    });
+    const emptyResponse = await fetch(
+      `${harness.baseUrl}/control/restart-alert-deliveries/trends?environment=qa&referenceEndAt=${encodeURIComponent(WINDOW_END)}`,
+      {
+        headers: controlHeaders(),
+      }
+    );
     expect(emptyResponse.status).toBe(200);
     await expect(emptyResponse.json()).resolves.toMatchObject({
       success: true,

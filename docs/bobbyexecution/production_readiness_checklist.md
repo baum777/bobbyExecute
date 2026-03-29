@@ -19,11 +19,11 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 
 ## Verify Before Controlled Live-Test
 
-- [ ] `cd bot && npm run premerge`
+- [ ] `cd bot && npm run premerge` (lint + full `npm test`)
 - [ ] `cd bot && npm run build`
 - [ ] `cd bot && npm run db:status`
 - [ ] `cd bot && npm run db:migrate` if the status is not `ready`
-- [ ] `cd bot && npm run recovery:db-validate -- --input=<known-good-snapshot.json>`
+- [ ] `cd bot && npm run recovery:db-validate -- --input=<known-good-snapshot.json> --journal-path=/var/data/journal.jsonl` reports `status=ready` with DB `exact_match`
 - [ ] `cd bot && npm run recovery:db-rehearse:render` has succeeded recently, or `cd bot && npm run recovery:db-rehearse -- --source-database-url=<canonical-db> --target-database-url=<scratch-db> --source-context=production --target-context=disposable-rehearsal` has been run manually as fallback
 - [ ] `cd bot && npm run recovery:worker-state -- --journal-path=/var/data/journal.jsonl`
 - [ ] `cd bot && npm run live:preflight`
@@ -52,6 +52,7 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - schema migration status is `missing_but_migratable`, `migration_required`, or `unrecoverable`
 - dashboard operator auth is unconfigured
 - rehearsal evidence is missing or stale for the governed promotion target
+- `recovery:db-validate` is not `ready` (including `content_mismatch` or unverified/invalid worker boot-critical state)
 - the Render rehearsal cron is failing and no fresh evidence has been written
 - rehearsal freshness is `warning` and the open alert indicates automation has not recovered
 - any live prerequisite is missing

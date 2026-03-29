@@ -300,6 +300,12 @@ export interface ControlRecoverySnapshotSummary {
 
 export interface ControlRecoveryRehearsalValidation {
   matched: boolean;
+  countsMatched: boolean;
+  contentMatched: boolean;
+  status: "exact_match" | "content_mismatch" | "count_or_metadata_mismatch";
+  mismatchTables: string[];
+  countMismatchTables: string[];
+  metadataMismatches: string[];
   before: ControlRecoverySnapshotSummary;
   after: ControlRecoverySnapshotSummary;
 }

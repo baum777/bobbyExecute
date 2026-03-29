@@ -12,14 +12,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('clean');
-
-  useEffect(() => {
-    const stored = localStorage.getItem('bobby-theme') as Theme | null;
-    if (stored === 'clean' || stored === 'retro') {
-      setTheme(stored);
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') {
+      return 'clean';
     }
-  }, []);
+
+    const stored = localStorage.getItem('bobby-theme') as Theme | null;
+    return stored === 'clean' || stored === 'retro' ? stored : 'clean';
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);

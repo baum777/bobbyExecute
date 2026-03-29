@@ -8,6 +8,7 @@ import {
   assertLiveTestPrerequisites,
   getLiveTestConfig,
 } from "../config/safety.js";
+import { inspectWorkerDiskRecovery } from "../recovery/worker-state-manifest.js";
 
 export interface LiveTestPreflightReport {
   executionMode: "dry" | "paper" | "live";
@@ -16,6 +17,10 @@ export interface LiveTestPreflightReport {
   maxCapitalUsd: number;
   maxTradesPerDay: number;
   maxDailyLossUsd: number;
+  workerJournalPath: string;
+  workerSafeBoot: boolean;
+  workerBootCriticalMissing: string[];
+  workerBootCriticalInvalid: Array<{ label: string; error?: string }>;
 }
 
 export function runLiveTestPreflight(): LiveTestPreflightReport {
@@ -28,6 +33,17 @@ export function runLiveTestPreflight(): LiveTestPreflightReport {
 
   const liveTestConfig = assertLiveTestPrerequisites(config);
   const normalizedLiveTestConfig = getLiveTestConfig();
+  const workerState = inspectWorkerDiskRecovery({ journalPath: config.journalPath });
+  if (!workerState.safeBoot) {
+    const missing = workerState.bootCriticalMissing.map((artifact) => artifact.label);
+    const invalid = workerState.bootCriticalInvalid.map((artifact) => {
+      const reason = artifact.validationError ? `${artifact.label} (${artifact.validationError})` : artifact.label;
+      return reason;
+    });
+    throw new Error(
+      `Live-test preflight requires valid worker boot state at '${config.journalPath}'. Missing: ${missing.join(", ") || "none"}. Invalid: ${invalid.join(", ") || "none"}.`
+    );
+  }
 
   const report: LiveTestPreflightReport = {
     executionMode: config.executionMode,
@@ -36,6 +52,13 @@ export function runLiveTestPreflight(): LiveTestPreflightReport {
     maxCapitalUsd: normalizedLiveTestConfig.maxCapitalUsd,
     maxTradesPerDay: normalizedLiveTestConfig.maxTradesPerDay,
     maxDailyLossUsd: normalizedLiveTestConfig.maxDailyLossUsd,
+    workerJournalPath: config.journalPath,
+    workerSafeBoot: workerState.safeBoot,
+    workerBootCriticalMissing: workerState.bootCriticalMissing.map((artifact) => artifact.label),
+    workerBootCriticalInvalid: workerState.bootCriticalInvalid.map((artifact) => ({
+      label: artifact.label,
+      error: artifact.validationError,
+    })),
   };
 
   console.log("[live-preflight] Live-test configuration validated", JSON.stringify(report));

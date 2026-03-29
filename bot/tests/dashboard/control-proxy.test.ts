@@ -6,6 +6,7 @@ const { forwardControlRequestMock } = vi.hoisted(() => ({
 
 vi.mock("../../../dashboard/src/lib/control-client.ts", () => ({
   forwardControlRequest: forwardControlRequestMock,
+  resolveControlServiceToken: () => "test-control-token",
 }));
 
 import { GET, POST } from "../../../dashboard/src/app/api/control/[...path]/route.ts";
@@ -32,17 +33,17 @@ describe("dashboard control proxy", () => {
       )
     );
 
-    const request = {
+    const request = new Request("http://localhost/api/control/restart-worker", {
       method: "POST",
-      headers: new Headers({
+      headers: {
         "content-type": "application/json",
         "x-idempotency-key": "restart-123",
         "x-request-id": "request-abc",
-      }),
-      text: async () => JSON.stringify({ reason: "paper promotion" }),
-    } as any;
+      },
+      body: JSON.stringify({ reason: "paper promotion" }),
+    });
 
-    const response = await POST(request, { params: Promise.resolve({ path: ["restart-worker"] }) } as any);
+    const response = await POST(request as any, { params: Promise.resolve({ path: ["restart-worker"] }) } as any);
 
     expect(forwardControlRequestMock).toHaveBeenCalledTimes(1);
     const [forwardPath, forwardInit] = forwardControlRequestMock.mock.calls[0] as [
@@ -177,16 +178,15 @@ describe("dashboard control proxy", () => {
       )
     );
 
-    const getRequest = {
+    const getRequest = new Request("http://localhost/api/control/restart-alerts", {
       method: "GET",
-      headers: new Headers({
+      headers: {
         "content-type": "application/json",
         "x-request-id": "request-read",
-      }),
-      text: async () => "",
-    } as any;
+      },
+    });
 
-    const getResponse = await GET(getRequest, { params: Promise.resolve({ path: ["restart-alerts"] }) } as any);
+    const getResponse = await GET(getRequest as any, { params: Promise.resolve({ path: ["restart-alerts"] }) } as any);
     expect(forwardControlRequestMock).toHaveBeenCalledTimes(1);
     expect((forwardControlRequestMock.mock.calls[0] as [string])[0]).toBe("/control/restart-alerts");
     expect(getResponse.status).toBe(200);
@@ -231,16 +231,16 @@ describe("dashboard control proxy", () => {
       )
     );
 
-    const postRequest = {
+    const postRequest = new Request("http://localhost/api/control/restart-alerts/alert-123/acknowledge", {
       method: "POST",
-      headers: new Headers({
+      headers: {
         "content-type": "application/json",
         "x-request-id": "request-ack",
-      }),
-      text: async () => JSON.stringify({ note: "investigating" }),
-    } as any;
+      },
+      body: JSON.stringify({ note: "investigating" }),
+    });
 
-    const postResponse = await POST(postRequest, { params: Promise.resolve({ path: ["restart-alerts", "alert-123", "acknowledge"] }) } as any);
+    const postResponse = await POST(postRequest as any, { params: Promise.resolve({ path: ["restart-alerts", "alert-123", "acknowledge"] }) } as any);
     expect(forwardControlRequestMock).toHaveBeenCalledTimes(2);
     expect((forwardControlRequestMock.mock.calls[1] as [string])[0]).toBe("/control/restart-alerts/alert-123/acknowledge");
     expect(postResponse.status).toBe(200);
@@ -285,16 +285,15 @@ describe("dashboard control proxy", () => {
       )
     );
 
-    const journalRequest = {
+    const journalRequest = new Request("http://localhost/api/control/restart-alert-deliveries", {
       method: "GET",
-      headers: new Headers({
+      headers: {
         "content-type": "application/json",
         "x-request-id": "request-delivery",
-      }),
-      text: async () => "",
-    } as any;
+      },
+    });
 
-    const journalResponse = await GET(journalRequest, {
+    const journalResponse = await GET(journalRequest as any, {
       params: Promise.resolve({ path: ["restart-alert-deliveries"] }) as any,
     } as any);
 
@@ -347,16 +346,15 @@ describe("dashboard control proxy", () => {
       )
     );
 
-    const summaryRequest = {
+    const summaryRequest = new Request("http://localhost/api/control/restart-alert-deliveries/summary", {
       method: "GET",
-      headers: new Headers({
+      headers: {
         "content-type": "application/json",
         "x-request-id": "request-delivery-summary",
-      }),
-      text: async () => "",
-    } as any;
+      },
+    });
 
-    const summaryResponse = await GET(summaryRequest, {
+    const summaryResponse = await GET(summaryRequest as any, {
       params: Promise.resolve({ path: ["restart-alert-deliveries", "summary"] }) as any,
     } as any);
 

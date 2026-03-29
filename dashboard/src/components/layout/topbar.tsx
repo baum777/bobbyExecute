@@ -6,16 +6,16 @@ import { useTheme } from '@/providers/theme-provider';
 import { KillSwitchBanner } from '@/components/shared/kill-switch-banner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Activity, Sun, Monitor, RefreshCw } from 'lucide-react';
+import { Sun, Monitor, RefreshCw } from 'lucide-react';
 import { formatUptime, relativeTime } from '@/lib/utils';
 import { HEALTH_STATUS_CONFIG, BOT_STATUS_CONFIG, USE_MOCK } from '@/lib/constants';
 
 export function Topbar() {
-  const { data: health, isLoading: hLoading, dataUpdatedAt } = useHealth();
+  const { data: health, isLoading: hLoading, isStale } = useHealth();
   const { data: summary } = useSummary();
   const { theme, toggleTheme } = useTheme();
 
-  const stale = dataUpdatedAt ? Date.now() - dataUpdatedAt > 30000 : false;
+  const stale = Boolean(health && isStale);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border-default bg-bg-surface/95 backdrop-blur-sm">

@@ -10,7 +10,7 @@ Public readonly bot API, private control plane, and runtime worker entrypoints f
 - Guarded live-test round control with worker visibility snapshots for the dashboard
 - Runtime behavior is now controlled through persisted runtime config plus private control endpoints.
 - Schema migrations are explicit, versioned, and tracked in `bot/migrations/`.
-- Recovery helpers are available for Postgres snapshots, disposable restore rehearsals, and worker-disk classification.
+- Recovery helpers are available for Postgres snapshots, semantic restore validation, disposable restore rehearsals, and worker-disk classification.
 - Render-native automatic rehearsal refresh uses a dedicated cron entrypoint and writes fresh evidence into the canonical control database.
 
 ## Commands
@@ -42,6 +42,8 @@ npm run start:worker
 npm run live:preflight
 npm run live:test
 ```
+
+`npm run premerge` is the canonical merge gate and now runs `npm run lint` plus full `npm test`.
 
 ## Config and Authority
 
@@ -78,12 +80,11 @@ npm run live:test
   - `POST /emergency-stop`
   - `POST /control/pause`
   - `POST /control/resume`
-  - `POST /control/halt`
-  - `POST /control/reset`
-  - `POST /control/mode`
-  - `POST /control/kill-switch`
-  - `POST /control/runtime-config`
-  - `POST /control/reload`
+- `POST /control/halt`
+- `POST /control/reset`
+- `POST /control/mode`
+- `POST /control/runtime-config`
+- `POST /control/reload`
   - `POST /control/restart-worker`
   - `POST /control/restart-alerts/:id/acknowledge`
   - `POST /control/restart-alerts/:id/resolve`
@@ -95,7 +96,8 @@ npm run live:test
 - `npm run db:status` reports whether the database is ready, migratable, pending migration, or unrecoverable.
 - `npm run db:migrate` applies ordered SQL files from `bot/migrations/` and records them in `schema_migrations`.
 - `npm run recovery:db-backup`, `npm run recovery:db-restore`, `npm run recovery:db-validate`, and `npm run recovery:db-rehearse` are the supported control-plane backup, restore, and rehearsal entrypoints.
-- `npm run recovery:worker-state` reports which worker-local files are canonical, reconstructible, or evidence-only.
+- `npm run recovery:db-validate` is semantic (not count-only) and only reports ready when DB content matches exactly and worker boot-critical state validates (when `--journal-path`/`JOURNAL_PATH` is provided).
+- `npm run recovery:worker-state` reports which worker-local files are canonical, reconstructible, or evidence-only, and marks boot-critical files invalid when empty, malformed, or structurally incompatible.
 - Governed live promotion into `live_limited` and `live` is blocked if the latest disposable restore rehearsal evidence is missing or stale.
 
 ## Operational Notes

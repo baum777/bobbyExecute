@@ -193,6 +193,28 @@ class MemoryControlPlaneConnection implements SchemaMigrationConnection {
   }
 }
 
+class CorruptingMemoryControlPlaneClient extends MemoryControlPlaneClient {
+  async query<T extends Record<string, unknown> = Record<string, unknown>>(
+    text: string,
+    params: readonly unknown[] = []
+  ): Promise<{ rows: T[] }> {
+    const sql = text.trim();
+    if (sql.startsWith("INSERT INTO runtime_config_versions")) {
+      const corrupted = [...params];
+      const originalHash = typeof corrupted[5] === "string" ? corrupted[5] : "unknown-hash";
+      corrupted[5] = `${originalHash}-corrupted`;
+      return super.query<T>(text, corrupted);
+    }
+    return super.query<T>(text, params);
+  }
+}
+
+class CorruptingMemoryControlPlaneConnection extends MemoryControlPlaneConnection {
+  async connect(): Promise<SchemaMigrationClient> {
+    return new CorruptingMemoryControlPlaneClient(this.state);
+  }
+}
+
 function mapRuntimeConfigVersion(params: readonly unknown[]): DbRow {
   const [id, environment, version_number, schema_version, config_json, config_hash, previous_version_id, status, created_by, reason, created_at, activated_at, activated_by, applied_at, applied_by] =
     params;
@@ -673,6 +695,26 @@ describe("control-plane recovery backup", () => {
 
     const validation = await validateControlPlaneBackupRoundTrip(connection, clone(snapshot));
     expect(validation.matched).toBe(true);
+    expect(validation.status).toBe("exact_match");
+    expect(validation.countsMatched).toBe(true);
+    expect(validation.contentMatched).toBe(true);
+    expect(validation.mismatchTables).toHaveLength(0);
     expect(validation.after.counts.runtimeConfigVersions).toBe(1);
+  });
+
+  it("fails semantic validation when restored content differs despite matching counts", async () => {
+    const environment = "recovery-content-mismatch";
+    const connection = new CorruptingMemoryControlPlaneConnection();
+    await migrateSchema(connection);
+    seedSampleState(connection, environment);
+
+    const snapshot = await captureControlPlaneBackup(connection, environment);
+    const validation = await validateControlPlaneBackupRoundTrip(connection, clone(snapshot));
+
+    expect(validation.matched).toBe(false);
+    expect(validation.countsMatched).toBe(true);
+    expect(validation.contentMatched).toBe(false);
+    expect(validation.status).toBe("content_mismatch");
+    expect(validation.mismatchTables).toContain("runtime_config_versions");
   });
 });

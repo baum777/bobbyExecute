@@ -57,7 +57,6 @@ import type {
   WorkerRestartAlertRecord,
   WorkerRestartDeliveryHealthHint,
   WorkerRestartDeliveryJournalRow,
-  WorkerRestartDeliveryQuery,
   WorkerRestartDeliverySummaryRow,
   WorkerRestartDeliveryTrendHint,
   WorkerRestartDeliveryTrendQuery,
@@ -416,7 +415,6 @@ function ControlPageContent() {
   const deliveryRows = deliveryJournal?.deliveries ?? [];
   const deliveryDestinations = deliverySummary?.destinations ?? [];
   const deliveryTrendRows = deliveryTrends?.destinations ?? [];
-  const livePromotionRows = livePromotions?.requests ?? [];
   const deliveryTotals = deliveryDestinations.reduce(
     (totals, destination) => {
       totals.totalCount += destination.totalCount;
@@ -471,13 +469,11 @@ function ControlPageContent() {
     if (pendingSearchParamsRef.current === searchParamsString) {
       pendingSearchParamsRef.current = null;
       committedSearchParamsRef.current = searchParamsString;
-      setDeliveryDraft(parsedJournalState.draft);
       return;
     }
 
     if (committedSearchParamsRef.current !== searchParamsString) {
       committedSearchParamsRef.current = searchParamsString;
-      setDeliveryDraft(parsedJournalState.draft);
     }
   }, [pathname, parsedJournalState, router, searchParamsString]);
 

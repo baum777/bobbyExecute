@@ -103,12 +103,14 @@ function buildSummary(
   failureReason?: string
 ): string {
   if (status === "passed") {
-    return `Disposable database rehearsal passed. Source ${sourceSchemaStatus ? formatStatusLabel(sourceSchemaStatus) : "unknown"}, target ${targetSchemaStatusAfter ? formatStatusLabel(targetSchemaStatusAfter) : "unknown"}, restore matched=${restoreValidation?.matched ?? false}.`;
+    return `Disposable database rehearsal passed. Source ${sourceSchemaStatus ? formatStatusLabel(sourceSchemaStatus) : "unknown"}, target ${targetSchemaStatusAfter ? formatStatusLabel(targetSchemaStatusAfter) : "unknown"}, restore status=${restoreValidation?.status ?? "count_or_metadata_mismatch"}.`;
   }
 
   const source = sourceSchemaStatus ? formatStatusLabel(sourceSchemaStatus) : "unknown";
   const target = targetSchemaStatusBefore ? formatStatusLabel(targetSchemaStatusBefore) : "unknown";
-  const restore = restoreValidation ? `restore matched=${restoreValidation.matched}` : "restore unavailable";
+  const restore = restoreValidation
+    ? `restore status=${restoreValidation.status}, countsMatched=${restoreValidation.countsMatched}, contentMatched=${restoreValidation.contentMatched}`
+    : "restore unavailable";
   return `Disposable database rehearsal failed. Source ${source}, target ${target}, ${restore}.${failureReason ? ` Reason: ${failureReason}` : ""}`;
 }
 
@@ -267,7 +269,7 @@ export async function runDisposableDatabaseRehearsal(
     restoreValidation = validation;
     status = validation.matched ? "passed" : "failed";
     if (!validation.matched) {
-      failureReason = "restore validation counts did not match after disposable rehearsal";
+      failureReason = `restore validation failed with status '${validation.status}' after disposable rehearsal`;
     }
 
     const sourceSummary = summarizeControlPlaneBackup(sourceSnapshot);
@@ -276,6 +278,12 @@ export async function runDisposableDatabaseRehearsal(
     if (!restoreValidation) {
       restoreValidation = {
         matched: false,
+        countsMatched: false,
+        contentMatched: false,
+        status: "count_or_metadata_mismatch",
+        mismatchTables: [],
+        countMismatchTables: [],
+        metadataMismatches: ["restore_validation_unavailable"],
         before: sourceSummary,
         after: targetSummary,
       };
@@ -333,6 +341,12 @@ export async function runDisposableDatabaseRehearsal(
     const targetSummary = emptySnapshotSummary(environment, targetSchemaState, executedAt);
     restoreValidation = restoreValidation ?? {
       matched: false,
+      countsMatched: false,
+      contentMatched: false,
+      status: "count_or_metadata_mismatch",
+      mismatchTables: [],
+      countMismatchTables: [],
+      metadataMismatches: ["restore_validation_unavailable"],
       before: sourceSummary,
       after: targetSummary,
     };

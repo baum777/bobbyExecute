@@ -96,7 +96,7 @@ From `bot/`:
 ```bash
 npm run recovery:db-backup -- --environment=production --output=/tmp/control-backup.json
 npm run recovery:db-restore -- --input=/tmp/control-backup.json
-npm run recovery:db-validate -- --input=/tmp/control-backup.json
+npm run recovery:db-validate -- --input=/tmp/control-backup.json --journal-path=/var/data/journal.jsonl
 npm run recovery:db-rehearse -- --source-database-url=<canonical-db> --target-database-url=<scratch-db> --source-context=production --target-context=disposable-rehearsal
 npm run recovery:db-rehearse:render
 npm run recovery:worker-state -- --journal-path=/var/data/journal.jsonl
@@ -106,11 +106,12 @@ Notes:
 
 - `recovery:db-backup` captures a control-plane snapshot for one environment.
 - `recovery:db-restore` restores that snapshot into a schema-ready database.
-- `recovery:db-validate` performs a restore-and-recapture round trip and reports whether the counts matched.
+- `recovery:db-validate` performs a restore-and-recapture round trip, compares deterministic table content hashes, and reports `exact_match`, `content_mismatch`, or `count_or_metadata_mismatch`.
+- `recovery:db-validate` only exits ready when the DB comparison is an exact match and worker boot-critical files at the provided journal path are present and structurally valid.
 - `recovery:db-rehearse` captures or accepts a source snapshot, migrates a disposable target if needed, runs restore validation against the disposable target, and writes durable rehearsal evidence back to the canonical control DB.
 - `recovery:db-rehearse:render` is the Render-native automatic refresh entrypoint. It uses explicit Render-side orchestration config, a canonical source database, and a disposable rehearsal database, then writes the evidence into the same canonical control DB.
 - The automatic refresh path also emits freshness notifications through the existing control-plane notification bridge when policy says the degradation should be externally visible.
-- `recovery:worker-state` reports which worker-disk artifacts are present, which are boot-critical, and which are evidence-only.
+- `recovery:worker-state` reports which worker-disk artifacts are present, which are boot-critical, and which are evidence-only; boot-critical files are invalid if empty, malformed, or structurally incompatible.
 
 ## Restore Validation
 
@@ -124,7 +125,7 @@ Validation is intentionally layered:
 - operator drill:
   - capture a Postgres snapshot
   - restore it into a scratch database
-  - run `npm run recovery:db-validate`
+  - run `npm run recovery:db-validate -- --input=<snapshot.json> --journal-path=<worker-journal-path>`
   - confirm the Render cron rehearsal refresh has produced a fresh evidence record, or run `npm run recovery:db-rehearse:render` / `npm run recovery:db-rehearse` if the latest record is stale or failed
   - inspect `/control/status` or `/control/runtime-status` and confirm the freshness status is `fresh`; if it is `warning`, confirm whether the alert is expected manual fallback or a missing automated refresh
   - run `npm run recovery:db-rehearse` against a disposable target before governed promotion
@@ -139,7 +140,7 @@ The restore path is only considered proven when validation is run after the rest
 
 1. Run `npm run db:status` against the target database.
 2. Run `npm run db:migrate` if migrations are pending.
-3. Run `npm run recovery:db-validate` against a fresh snapshot or staging clone.
+3. Run `npm run recovery:db-validate -- --input=<snapshot.json> --journal-path=<worker-journal-path>` against a fresh snapshot or staging clone.
 4. Confirm the latest `databaseRehearsal` status on `/control/status` or `/control/runtime-status` is `fresh`, or understand why it is `warning` before proceeding. Verify the latest successful run source and the open-alert state.
 5. Run `npm run recovery:db-rehearse:render` if the cron evidence is stale or missing, or `npm run recovery:db-rehearse` for a manual fallback rehearsal.
 6. Run `npm run recovery:worker-state` on the worker disk that will boot the new release.
@@ -166,4 +167,4 @@ Rollback notes:
 - Alert persistence failures do not imply healthy freshness.
 - Worker disk loss must be called out explicitly.
 - Restored Postgres state with stale worker disk is not automatically safe.
-- Restore success claims require validation evidence.
+- Restore success claims require semantic DB validation and boot-critical worker-state validation.

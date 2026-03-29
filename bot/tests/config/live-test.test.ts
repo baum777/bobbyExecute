@@ -2,6 +2,9 @@
  * Wave 8: Live-test config, daily loss tracker.
  */
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { assertLiveTestPrerequisites, getLiveTestConfig } from "../../src/config/safety.js";
 import { parseConfig } from "../../src/config/config-schema.js";
 import { resetConfigCache } from "../../src/config/load-config.js";
@@ -19,6 +22,34 @@ import type { WalletSnapshot } from "../../src/core/contracts/wallet.js";
 
 describe("Live test config (Wave 8)", () => {
   const orig = process.env;
+  const workerStateDirs: string[] = [];
+
+  function createValidWorkerStateFixture(): string {
+    const dir = mkdtempSync(join(tmpdir(), "bobbyexecute-live-preflight-"));
+    workerStateDirs.push(dir);
+    const journalPath = join(dir, "journal.jsonl");
+    writeFileSync(journalPath, "{\"event\":\"startup\"}\n", "utf8");
+    writeFileSync(join(dir, "journal.kill-switch.json"), JSON.stringify({ halted: false }), "utf8");
+    writeFileSync(
+      join(dir, "journal.live-control.json"),
+      JSON.stringify({
+        armed: false,
+        blocked: false,
+        degraded: false,
+        manualRearmRequired: false,
+        roundStatus: "idle",
+        inFlight: 0,
+        recentTradeAtMs: [],
+        recentFailureAtMs: [],
+        dailyNotional: 0,
+        dailyKey: "2026-03-08",
+      }),
+      "utf8"
+    );
+    writeFileSync(join(dir, "journal.daily-loss.json"), JSON.stringify({ dateKey: "", tradesCount: 0, lossUsd: 0 }), "utf8");
+    writeFileSync(join(dir, "journal.idempotency.json"), JSON.stringify([]), "utf8");
+    return journalPath;
+  }
 
   beforeEach(() => {
     process.env = { ...orig };
@@ -28,6 +59,9 @@ describe("Live test config (Wave 8)", () => {
   afterEach(() => {
     process.env = orig;
     resetConfigCache();
+    for (const dir of workerStateDirs.splice(0, workerStateDirs.length)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("getLiveTestConfig returns defaults when LIVE_TEST_MODE unset", () => {
@@ -89,6 +123,7 @@ describe("Live test config (Wave 8)", () => {
     process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
     process.env.CONTROL_TOKEN = "phase10-live-control-token";
     process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
+    process.env.JOURNAL_PATH = createValidWorkerStateFixture();
 
     const report = runLiveTestPreflight();
 
@@ -99,7 +134,27 @@ describe("Live test config (Wave 8)", () => {
       maxCapitalUsd: 80,
       maxTradesPerDay: 2,
       maxDailyLossUsd: 25,
+      workerSafeBoot: true,
     });
+  });
+
+  it("runLiveTestPreflight fails closed when worker boot-critical state is missing", () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+    process.env.TRADING_ENABLED = "true";
+    process.env.LIVE_TEST_MODE = "true";
+    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    process.env.CONTROL_TOKEN = "phase10-live-control-token";
+    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
+
+    const dir = mkdtempSync(join(tmpdir(), "bobbyexecute-live-preflight-missing-"));
+    workerStateDirs.push(dir);
+    const journalPath = join(dir, "journal.jsonl");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(journalPath, "{\"event\":\"startup\"}\n", "utf8");
+    process.env.JOURNAL_PATH = journalPath;
+
+    expect(() => runLiveTestPreflight()).toThrow(/valid worker boot state/);
   });
 });
 

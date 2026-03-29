@@ -197,13 +197,14 @@ describe("dashboard control proxy", () => {
     vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
     const { POST } = await import("../../../dashboard/src/app/api/control/[...path]/route.ts");
+    const nowMs = Date.now();
     const session: DashboardOperatorSession = {
       sessionId: "session-123",
       actorId: "alice",
       displayName: "Alice Example",
       role: "admin",
-      issuedAt: "2026-03-27T12:00:00.000Z",
-      expiresAt: "2026-03-28T20:00:00.000Z",
+      issuedAt: new Date(nowMs - 5 * 60 * 1000).toISOString(),
+      expiresAt: new Date(nowMs + 60 * 60 * 1000).toISOString(),
     };
     const sessionCookie = buildDashboardSessionCookie(session, {
       DASHBOARD_SESSION_SECRET,

@@ -158,6 +158,12 @@ describe("Render-side rehearsal refresh", () => {
           },
           restoreValidation: {
             matched: true,
+            countsMatched: true,
+            contentMatched: true,
+            status: "exact_match",
+            mismatchTables: [],
+            countMismatchTables: [],
+            metadataMismatches: [],
             before: {
               environment: "production",
               capturedAt: "2026-03-28T00:00:00.000Z",
@@ -315,7 +321,7 @@ describe("Render-side rehearsal refresh", () => {
         success: false,
         status: "failed",
         evidenceStored: true,
-        failureReason: "restore validation counts did not match after disposable rehearsal",
+        failureReason: "restore validation failed with status 'content_mismatch' after disposable rehearsal",
         summary: "Disposable database rehearsal failed. Source ready:ready, target ready:ready, restore matched=false.",
       })
     );
@@ -343,7 +349,7 @@ describe("Render-side rehearsal refresh", () => {
 
     expect(result.success).toBe(false);
     expect(result.status).toBe("failed");
-    expect(result.failureReason).toContain("restore validation counts did not match");
+    expect(result.failureReason).toContain("restore validation failed");
     expect(runRehearsal).toHaveBeenCalledTimes(1);
   });
 });

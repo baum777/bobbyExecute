@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { ControlLivePromotionRecord, ControlAuditEvent } from "../control/control-governance.js";
 import type {
   RuntimeConfigActiveRecord,
@@ -62,6 +63,61 @@ export interface ControlPlaneBackupSummary {
   totalRecords: number;
 }
 
+type ControlPlaneBackupCanonicalTableName =
+  | "runtime_config_versions"
+  | "runtime_config_active"
+  | "config_change_log"
+  | "runtime_visibility_snapshots"
+  | "worker_restart_requests"
+  | "worker_restart_alerts"
+  | "worker_restart_alert_events"
+  | "control_operator_audit_log"
+  | "control_live_promotions";
+
+const CANONICAL_TABLE_NAMES: ControlPlaneBackupCanonicalTableName[] = [
+  "runtime_config_versions",
+  "runtime_config_active",
+  "config_change_log",
+  "runtime_visibility_snapshots",
+  "worker_restart_requests",
+  "worker_restart_alerts",
+  "worker_restart_alert_events",
+  "control_operator_audit_log",
+  "control_live_promotions",
+];
+
+const SUMMARY_COUNT_KEY_BY_TABLE: Record<
+  ControlPlaneBackupCanonicalTableName,
+  keyof ControlPlaneBackupSummary["counts"]
+> = {
+  runtime_config_versions: "runtimeConfigVersions",
+  runtime_config_active: "runtimeConfigActive",
+  config_change_log: "runtimeConfigChangeLog",
+  runtime_visibility_snapshots: "runtimeVisibility",
+  worker_restart_requests: "workerRestarts",
+  worker_restart_alerts: "restartAlerts",
+  worker_restart_alert_events: "restartAlertEvents",
+  control_operator_audit_log: "governanceAudits",
+  control_live_promotions: "livePromotions",
+};
+
+export type ControlPlaneBackupValidationStatus =
+  | "exact_match"
+  | "content_mismatch"
+  | "count_or_metadata_mismatch";
+
+export interface ControlPlaneBackupRoundTripValidationResult {
+  before: ControlPlaneBackupSummary;
+  after: ControlPlaneBackupSummary;
+  matched: boolean;
+  countsMatched: boolean;
+  contentMatched: boolean;
+  status: ControlPlaneBackupValidationStatus;
+  mismatchTables: ControlPlaneBackupCanonicalTableName[];
+  countMismatchTables: ControlPlaneBackupCanonicalTableName[];
+  metadataMismatches: string[];
+}
+
 export function summarizeControlPlaneBackup(snapshot: ControlPlaneBackupSnapshot): ControlPlaneBackupSummary {
   const counts = {
     runtimeConfigVersions: snapshot.runtimeConfig.versions.length,
@@ -86,6 +142,53 @@ export function summarizeControlPlaneBackup(snapshot: ControlPlaneBackupSnapshot
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function canonicalizeForStableJson(value: unknown): unknown {
+  if (value == null) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => canonicalizeForStableJson(entry));
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const sortedKeys = Object.keys(record).sort((left, right) => left.localeCompare(right));
+    const normalized: Record<string, unknown> = {};
+    for (const key of sortedKeys) {
+      normalized[key] = canonicalizeForStableJson(record[key]);
+    }
+    return normalized;
+  }
+
+  return value;
+}
+
+function stableSerialize(value: unknown): string {
+  return JSON.stringify(canonicalizeForStableJson(value));
+}
+
+function hashRows(rows: DbRow[]): string {
+  const serializedRows = rows.map((row) => stableSerialize(row)).sort((left, right) => left.localeCompare(right));
+  return createHash("sha256").update(serializedRows.join("\n"), "utf8").digest("hex");
+}
+
+function extractCanonicalRows(
+  snapshot: ControlPlaneBackupSnapshot
+): Record<ControlPlaneBackupCanonicalTableName, DbRow[]> {
+  return {
+    runtime_config_versions: snapshot.runtimeConfig.versions,
+    runtime_config_active: snapshot.runtimeConfig.active ? [snapshot.runtimeConfig.active] : [],
+    config_change_log: snapshot.runtimeConfig.changeLog,
+    runtime_visibility_snapshots: snapshot.runtimeVisibility ? [snapshot.runtimeVisibility] : [],
+    worker_restart_requests: snapshot.workerRestarts,
+    worker_restart_alerts: snapshot.restartAlerts.alerts,
+    worker_restart_alert_events: snapshot.restartAlerts.events,
+    control_operator_audit_log: snapshot.governance.audits,
+    control_live_promotions: snapshot.governance.livePromotions,
+  };
 }
 
 async function withClient<T>(
@@ -594,30 +697,52 @@ export async function restoreControlPlaneBackup(
 export async function validateControlPlaneBackupRoundTrip(
   connection: SchemaMigrationConnection,
   snapshot: ControlPlaneBackupSnapshot
-): Promise<{
-  before: ControlPlaneBackupSummary;
-  after: ControlPlaneBackupSummary;
-  matched: boolean;
-}> {
+): Promise<ControlPlaneBackupRoundTripValidationResult> {
   const before = summarizeControlPlaneBackup(snapshot);
   await restoreControlPlaneBackup(connection, snapshot);
   const restored = await captureControlPlaneBackup(connection, snapshot.environment, {
     migrationsDir: snapshot.schemaStatus.migrationsDir,
   });
   const after = summarizeControlPlaneBackup(restored);
-  const matched =
-    before.totalRecords === after.totalRecords &&
-    before.environment === after.environment &&
-    before.schemaState === after.schemaState &&
-    before.counts.runtimeConfigVersions === after.counts.runtimeConfigVersions &&
-    before.counts.runtimeConfigChangeLog === after.counts.runtimeConfigChangeLog &&
-    before.counts.runtimeVisibility === after.counts.runtimeVisibility &&
-    before.counts.workerRestarts === after.counts.workerRestarts &&
-    before.counts.restartAlerts === after.counts.restartAlerts &&
-    before.counts.restartAlertEvents === after.counts.restartAlertEvents &&
-    before.counts.governanceAudits === after.counts.governanceAudits &&
-    before.counts.livePromotions === after.counts.livePromotions;
 
-  return { before, after, matched };
+  const metadataMismatches: string[] = [];
+  if (before.environment !== after.environment) {
+    metadataMismatches.push("environment");
+  }
+  if (before.schemaState !== after.schemaState) {
+    metadataMismatches.push("schema_state");
+  }
+
+  const countMismatchTables = CANONICAL_TABLE_NAMES.filter((tableName) => {
+    const countKey = SUMMARY_COUNT_KEY_BY_TABLE[tableName];
+    return before.counts[countKey] !== after.counts[countKey];
+  });
+  if (before.totalRecords !== after.totalRecords) {
+    metadataMismatches.push("total_records");
+  }
+  const countsMatched = countMismatchTables.length === 0 && before.totalRecords === after.totalRecords;
+
+  const beforeRows = extractCanonicalRows(snapshot);
+  const afterRows = extractCanonicalRows(restored);
+  const mismatchTables = CANONICAL_TABLE_NAMES.filter((tableName) => hashRows(beforeRows[tableName]) !== hashRows(afterRows[tableName]));
+  const contentMatched = mismatchTables.length === 0;
+
+  const status: ControlPlaneBackupValidationStatus =
+    countsMatched && metadataMismatches.length === 0 && contentMatched
+      ? "exact_match"
+      : countsMatched && metadataMismatches.length === 0
+        ? "content_mismatch"
+        : "count_or_metadata_mismatch";
+
+  return {
+    before,
+    after,
+    matched: status === "exact_match",
+    countsMatched,
+    contentMatched,
+    status,
+    mismatchTables,
+    countMismatchTables,
+    metadataMismatches,
+  };
 }
-

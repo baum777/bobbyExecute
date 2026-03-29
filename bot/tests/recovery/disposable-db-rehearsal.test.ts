@@ -137,6 +137,12 @@ describe("disposable database rehearsal", () => {
         before: sourceSummary,
         after: targetSummary,
         matched: true,
+        countsMatched: true,
+        contentMatched: true,
+        status: "exact_match",
+        mismatchTables: [],
+        countMismatchTables: [],
+        metadataMismatches: [],
       };
     });
     mocks.recordDatabaseRehearsalEvidence.mockImplementation(async (evidence: ControlRecoveryRehearsalEvidenceRecord) => {
@@ -219,6 +225,12 @@ describe("disposable database rehearsal", () => {
       before: sourceSummary,
       after: targetSummary,
       matched: false,
+      countsMatched: true,
+      contentMatched: false,
+      status: "content_mismatch",
+      mismatchTables: ["runtime_config_versions"],
+      countMismatchTables: [],
+      metadataMismatches: [],
     });
 
     const { runDisposableDatabaseRehearsal } = await import("../../src/recovery/disposable-db-rehearsal.js");
@@ -260,11 +272,11 @@ describe("disposable database rehearsal", () => {
     expect(result.success).toBe(false);
     expect(result.status).toBe("failed");
     expect(result.evidenceStored).toBe(true);
-    expect(result.failureReason).toContain("restore validation counts did not match");
+    expect(result.failureReason).toContain("restore validation failed");
     expect(mocks.recordDatabaseRehearsalEvidence).toHaveBeenCalledWith(
       expect.objectContaining({
         status: "failed",
-        failureReason: expect.stringContaining("restore validation counts did not match"),
+        failureReason: expect.stringContaining("restore validation failed"),
       })
     );
   });
@@ -280,6 +292,12 @@ describe("disposable database rehearsal", () => {
       before: buildSummary("test", sourceSnapshot.capturedAt, "ready"),
       after: buildSummary("test", "2026-03-28T00:01:00.000Z", "ready"),
       matched: true,
+      countsMatched: true,
+      contentMatched: true,
+      status: "exact_match",
+      mismatchTables: [],
+      countMismatchTables: [],
+      metadataMismatches: [],
     });
     mocks.recordDatabaseRehearsalEvidence.mockRejectedValue(new Error("write failed"));
 

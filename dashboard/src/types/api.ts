@@ -418,6 +418,12 @@ export interface ControlRecoveryRehearsalContext {
 
 export interface ControlRecoveryRehearsalValidation {
   matched: boolean;
+  countsMatched: boolean;
+  contentMatched: boolean;
+  status: 'exact_match' | 'content_mismatch' | 'count_or_metadata_mismatch';
+  mismatchTables: string[];
+  countMismatchTables: string[];
+  metadataMismatches: string[];
   before: { environment: string; capturedAt: string; schemaState: string; counts: Record<string, number>; totalRecords: number };
   after: { environment: string; capturedAt: string; schemaState: string; counts: Record<string, number>; totalRecords: number };
 }
@@ -582,7 +588,7 @@ export interface DashboardLoginRequest {
   password: string;
 }
 
-export interface DashboardLoginResponse extends DashboardOperatorAuthState {}
+export type DashboardLoginResponse = DashboardOperatorAuthState;
 
 export interface DashboardLogoutResponse {
   success: true;

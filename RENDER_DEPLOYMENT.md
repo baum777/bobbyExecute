@@ -40,9 +40,9 @@ Operator flow:
 2. Run `cd bot && npm run db:status`.
 3. If the status is `missing_but_migratable` or `migration_required`, run `cd bot && npm run db:migrate`.
 4. Run `cd bot && npm run recovery:db-rehearse -- --source-database-url=<canonical-db> --target-database-url=<scratch-db> --source-context=production --target-context=disposable-rehearsal` against a disposable target before governed live promotion.
-5. Run `cd bot && npm run recovery:db-validate -- --input=<snapshot.json>` against a known-good snapshot or staging clone.
+5. Run `cd bot && npm run recovery:db-validate -- --input=<snapshot.json> --journal-path=/var/data/journal.jsonl` against a known-good snapshot or staging clone.
 6. Run `cd bot && npm run recovery:worker-state -- --journal-path=/var/data/journal.jsonl` on the worker disk that will boot the release.
-7. Deploy the services only after schema, rehearsal evidence, and worker-disk prerequisites are satisfied.
+7. Deploy the services only after schema, rehearsal evidence, and worker-disk prerequisites are satisfied. Validation is launch-safe only when DB status is `exact_match` and worker `safeBoot=true`.
 
 If `db:status` reports `unrecoverable`, treat the database as needing restore or reconciliation before the release can start.
 
@@ -238,7 +238,7 @@ The public bot and private control services read the summarized worker visibilit
 2. For the bot web service, Render runs the build phase with `npm ci && npm run build`, then starts the server with `npm run start:server`.
 3. For the worker, Render runs the same build phase, then starts the background process with `npm run start:worker` and does not expect an HTTP port.
 4. Verify the public bot read surfaces: `/health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics`.
-5. Verify the control surfaces: `/control/status`, `/control/runtime-config`, `/control/history`, `/control/mode`, `/control/pause`, `/control/resume`, `/control/kill-switch`, `/control/runtime-config`, and `/control/reload`.
+5. Verify the control surfaces: `/control/status`, `/control/runtime-config`, `/control/history`, `/control/mode`, `/control/pause`, `/control/resume`, `/control/halt`, `/control/reset`, and `/control/reload`.
 6. Verify restart-required changes through `POST /control/restart-worker` and confirm the control status shows worker heartbeat, last applied version, reload nonce, and restart convergence state.
 7. If convergence stalls or fails, inspect `GET /control/restart-alerts` and acknowledge or resolve the alert from the dashboard or private control service.
 8. Confirm the dashboard proxy routes are using the private control service, not the public bot service.

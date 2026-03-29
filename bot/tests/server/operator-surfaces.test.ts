@@ -191,6 +191,12 @@ function buildRehearsalEvidence(environment: string, executedAt: string): Contro
     },
     restoreValidation: {
       matched: true,
+      countsMatched: true,
+      contentMatched: true,
+      status: "exact_match",
+      mismatchTables: [],
+      countMismatchTables: [],
+      metadataMismatches: [],
       before: {
         environment,
         capturedAt: executedAt,

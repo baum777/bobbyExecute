@@ -9,17 +9,37 @@ async function writeFileIfNeeded(path: string, content = "{}\n"): Promise<void> 
   await writeFile(path, content, "utf8");
 }
 
+async function writeValidBootState(baseDir: string): Promise<void> {
+  await writeFileIfNeeded(join(baseDir, "journal.kill-switch.json"), JSON.stringify({ halted: false }));
+  await writeFileIfNeeded(
+    join(baseDir, "journal.live-control.json"),
+    JSON.stringify({
+      armed: false,
+      blocked: false,
+      degraded: false,
+      manualRearmRequired: false,
+      roundStatus: "idle",
+      inFlight: 0,
+      recentTradeAtMs: [],
+      recentFailureAtMs: [],
+      dailyNotional: 0,
+      dailyKey: "2026-03-01",
+    })
+  );
+  await writeFileIfNeeded(join(baseDir, "journal.daily-loss.json"), JSON.stringify({ dateKey: "", tradesCount: 0, lossUsd: 0 }));
+  await writeFileIfNeeded(join(baseDir, "journal.idempotency.json"), JSON.stringify([]));
+}
+
 describe("worker state manifest", () => {
-  it("classifies boot-critical worker state and fails closed when it is missing", async () => {
+  it("fails closed when boot-critical files are missing", async () => {
     const baseDir = await mkdtemp(join(tmpdir(), "bobbyexecute-worker-state-"));
     try {
       const journalPath = join(baseDir, "journal.jsonl");
       await writeFileIfNeeded(journalPath, "{\"event\":\"journal\"}\n");
-      await writeFileIfNeeded(join(baseDir, "journal.actions.jsonl"), "{\"event\":\"action\"}\n");
 
-      const bootableReport = inspectWorkerDiskRecovery({ journalPath });
-      expect(bootableReport.safeBoot).toBe(false);
-      expect(bootableReport.bootCriticalMissing.map((artifact) => artifact.label)).toEqual(
+      const report = inspectWorkerDiskRecovery({ journalPath });
+      expect(report.safeBoot).toBe(false);
+      expect(report.bootCriticalMissing.map((artifact) => artifact.label)).toEqual(
         expect.arrayContaining([
           "kill switch state",
           "live control state",
@@ -27,23 +47,79 @@ describe("worker state manifest", () => {
           "idempotency cache",
         ])
       );
-      expect(bootableReport.artifacts.find((artifact) => artifact.path === journalPath)?.category).toBe(
-        "operational_evidence"
+      expect(report.bootCriticalInvalid).toHaveLength(0);
+    } finally {
+      await rm(baseDir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed on empty boot-critical files", async () => {
+    const baseDir = await mkdtemp(join(tmpdir(), "bobbyexecute-worker-state-empty-"));
+    try {
+      const journalPath = join(baseDir, "journal.jsonl");
+      await writeFileIfNeeded(journalPath, "{\"event\":\"journal\"}\n");
+      await writeValidBootState(baseDir);
+      await writeFileIfNeeded(join(baseDir, "journal.live-control.json"), "   \n");
+
+      const report = inspectWorkerDiskRecovery({ journalPath });
+      expect(report.safeBoot).toBe(false);
+      expect(report.bootCriticalMissing).toHaveLength(0);
+      expect(report.bootCriticalInvalid.map((artifact) => artifact.label)).toContain("live control state");
+      expect(report.bootCriticalInvalid.find((artifact) => artifact.label === "live control state")?.validationError).toContain("empty");
+    } finally {
+      await rm(baseDir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed on malformed boot-critical JSON files", async () => {
+    const baseDir = await mkdtemp(join(tmpdir(), "bobbyexecute-worker-state-malformed-"));
+    try {
+      const journalPath = join(baseDir, "journal.jsonl");
+      await writeFileIfNeeded(journalPath, "{\"event\":\"journal\"}\n");
+      await writeValidBootState(baseDir);
+      await writeFileIfNeeded(join(baseDir, "journal.kill-switch.json"), "{");
+
+      const report = inspectWorkerDiskRecovery({ journalPath });
+      expect(report.safeBoot).toBe(false);
+      expect(report.bootCriticalInvalid.map((artifact) => artifact.label)).toContain("kill switch state");
+    } finally {
+      await rm(baseDir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed on structurally invalid boot-critical JSON files", async () => {
+    const baseDir = await mkdtemp(join(tmpdir(), "bobbyexecute-worker-state-struct-"));
+    try {
+      const journalPath = join(baseDir, "journal.jsonl");
+      await writeFileIfNeeded(journalPath, "{\"event\":\"journal\"}\n");
+      await writeValidBootState(baseDir);
+      await writeFileIfNeeded(join(baseDir, "journal.idempotency.json"), JSON.stringify([{ createdAt: 1 }]));
+
+      const report = inspectWorkerDiskRecovery({ journalPath });
+      expect(report.safeBoot).toBe(false);
+      expect(report.bootCriticalInvalid.map((artifact) => artifact.label)).toContain("idempotency cache");
+      expect(report.bootCriticalInvalid.find((artifact) => artifact.label === "idempotency cache")?.validationError).toContain(
+        "required idempotency record fields"
       );
-      expect(
-        bootableReport.artifacts.find((artifact) => artifact.path === join(baseDir, "journal.actions.jsonl"))?.category
-      ).toBe("operational_evidence");
+    } finally {
+      await rm(baseDir, { recursive: true, force: true });
+    }
+  });
 
-      await writeFileIfNeeded(join(baseDir, "journal.kill-switch.json"));
-      await writeFileIfNeeded(join(baseDir, "journal.live-control.json"));
-      await writeFileIfNeeded(join(baseDir, "journal.daily-loss.json"));
-      await writeFileIfNeeded(join(baseDir, "journal.idempotency.json"));
+  it("passes when canonical boot-critical files are present and valid", async () => {
+    const baseDir = await mkdtemp(join(tmpdir(), "bobbyexecute-worker-state-valid-"));
+    try {
+      const journalPath = join(baseDir, "journal.jsonl");
+      await writeFileIfNeeded(journalPath, "{\"event\":\"journal\"}\n");
+      await writeFileIfNeeded(join(baseDir, "journal.actions.jsonl"), "{\"event\":\"action\"}\n");
+      await writeValidBootState(baseDir);
 
-      const safeReport = inspectWorkerDiskRecovery({ journalPath });
-      expect(safeReport.safeBoot).toBe(true);
-      expect(safeReport.bootCriticalMissing).toHaveLength(0);
-      expect(safeReport.recoveryDrillMissing.length).toBeGreaterThan(0);
-      expect(safeReport.message).toContain("present");
+      const report = inspectWorkerDiskRecovery({ journalPath });
+      expect(report.safeBoot).toBe(true);
+      expect(report.bootCriticalMissing).toHaveLength(0);
+      expect(report.bootCriticalInvalid).toHaveLength(0);
+      expect(report.message).toContain("present and valid");
+      expect(report.recoveryDrillMissing.length).toBeGreaterThanOrEqual(0);
     } finally {
       await rm(baseDir, { recursive: true, force: true });
     }

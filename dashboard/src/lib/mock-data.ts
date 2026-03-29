@@ -287,6 +287,12 @@ export function mockControlStatus(): ControlStatusResponse {
         targetSchemaStatusAfter: {},
         restoreValidation: {
           matched: true,
+          countsMatched: true,
+          contentMatched: true,
+          status: 'exact_match',
+          mismatchTables: [],
+          countMismatchTables: [],
+          metadataMismatches: [],
           before: {
             environment: 'mock',
             capturedAt: ago(2 * 60 * 60 * 1000),

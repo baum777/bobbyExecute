@@ -27,7 +27,7 @@
     "recovery:db-rehearse": "node dist/scripts/db-rehearse.js",
     "recovery:db-rehearse:render": "node dist/scripts/render-db-rehearse.js",
     "recovery:worker-state": "node dist/scripts/worker-state-drill.js",
-    "premerge": "npm run lint && npm run test:golden && npm run test:chaos && npm run test:integration && npm run test:e2e && npm run test:config",
+    "premerge": "npm run lint && npm test",
     "live:preflight": "npm run premerge && npm run build && node dist/scripts/live-test-preflight.js",
     "live:test": "npm run live:preflight && node dist/server/run.js",
     "start:server": "node dist/server/run.js",

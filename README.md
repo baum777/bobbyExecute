@@ -9,7 +9,7 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 - Live-test support is guarded, bounded, and operator-visible.
 - Runtime behavior is governed by persisted runtime config and a private control service, not by changing env vars.
 - Schema upgrades are explicit and versioned through `bot/migrations/`; operators run `npm run db:migrate` before booting against a fresh or upgraded database.
-- Recovery is documented and testable through `docs/bobbyexecution/recovery_and_upgrade_runbook.md`, including disposable restore rehearsals via `npm run recovery:db-rehearse`.
+- Recovery is documented and testable through `docs/bobbyexecution/recovery_and_upgrade_runbook.md`, including semantic restore validation and disposable restore rehearsals via `npm run recovery:db-rehearse`.
 - Render-native automatic rehearsal refresh runs from a dedicated cron job and writes the evidence back to the same canonical Postgres store the promotion gate already trusts.
 - Governed live promotion now requires fresh database rehearsal evidence before `live_limited` or `live` promotion.
 - Dashboard operator auth is separately configured with a server-side session secret and operator directory, so privileged dashboard actions fail closed if those env vars are missing.
@@ -67,7 +67,7 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
    npm run db:migrate
    ```
 
-6. Run the offline gate:
+6. Run the offline gate (lint + full test suite):
 
    ```bash
    npm run premerge
@@ -108,7 +108,6 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
   - `POST /control/halt`
   - `POST /control/reset`
   - `POST /control/mode`
-  - `POST /control/kill-switch`
   - `POST /control/runtime-config`
   - `POST /control/reload`
   - `POST /control/restart-worker`

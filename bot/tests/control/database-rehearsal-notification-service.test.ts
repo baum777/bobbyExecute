@@ -64,6 +64,12 @@ function buildEvidence(
     targetSchemaStatusAfter: buildReadySchemaStatus(),
     restoreValidation: {
       matched: status === "passed",
+      countsMatched: status === "passed",
+      contentMatched: status === "passed",
+      status: status === "passed" ? "exact_match" : "content_mismatch",
+      mismatchTables: status === "passed" ? [] : ["runtime_config_versions"],
+      countMismatchTables: [],
+      metadataMismatches: [],
       before: {
         environment,
         capturedAt: executedAt,
