@@ -10,6 +10,7 @@ import type {
   WorkerRestartOrchestrator,
   WorkerRestartOrchestrationRequest,
 } from "../../src/control/restart-orchestrator.js";
+import type { WorkerRestartMethod } from "../../src/persistence/worker-restart-repository.js";
 
 function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
   return {
@@ -119,7 +120,7 @@ function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
 function createOrchestrator(options: {
   configured?: boolean;
   accepted?: boolean;
-  method?: "deploy_hook" | "render_api";
+  method?: WorkerRestartMethod;
   requestImpl?: (input: WorkerRestartOrchestrationRequest) => Promise<any>;
 } = {}): WorkerRestartOrchestrator & { calls: Array<Parameters<WorkerRestartOrchestrator["requestRestart"]>[0]> } {
   const calls: Array<Parameters<WorkerRestartOrchestrator["requestRestart"]>[0]> = [];

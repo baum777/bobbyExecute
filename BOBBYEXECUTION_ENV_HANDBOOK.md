@@ -32,10 +32,11 @@ Diese Werte erzeugst du **nicht** extern. Du setzt sie selbst:
 Diese Werte kommen **nicht** von einem externen API-Anbieter. Sie sollten von euch intern erzeugt und geheim gehalten werden:
 
 - `CONTROL_TOKEN`
-- `OPERATOR_READ_TOKEN`
+- `OPERATOR_READ_TOKEN` (kein aktueller Read-Route-HTTP-Auth-Token; live muss er nur getrennt von `CONTROL_TOKEN` bleiben)
 - `DASHBOARD_SESSION_SECRET`
 - `NOTIFY_WEBHOOK_*_TOKEN`
 - `CONTROL_RESTART_ALERT_WEBHOOK_TOKEN`
+- `RENDER_API_KEY` (nur für lokale Render-CLI-/Tooling-Workflows; kein Runtime-Secret)
 
 Empfehlung: zufällige, lange Secrets verwenden (mindestens 32 zufällige Bytes / 64 Hex-Zeichen oder 43+ Base64-Zeichen).
 
@@ -45,8 +46,10 @@ Diese Werte bekommst du von Plattformen oder stecken in einer Provider-URL:
 - `RPC_URL` → oft Helius oder Alchemy, API-Key meist **in der URL**
 - `XAI_API_KEY`
 - `OPENAI_API_KEY`
-- Moralis-Zugriff → **voraussichtlich zusätzlich API-Key nötig**
-- Jupiter-Zugriff → **heute typischerweise API-Key nötig**
+- `MORALIS_API_KEY`
+- `JUPITER_API_KEY`
+
+Für Live-Execution gilt inzwischen zusätzlich: Wenn `LIVE_TRADING=true`, schlägt der Bootvorgang fehl, sobald `MORALIS_API_KEY` oder `JUPITER_API_KEY` fehlt. Die Adapter bleiben trotzdem request-time abgesichert, falls sie direkt aufgerufen werden.
 
 ### D. Manuell aus bestehenden Systemen übernehmen
 Diese Werte erzeugt BobbyExecution nicht selbst:
@@ -158,6 +161,37 @@ Zusätzlich:
 - Notification-Webhooks
 - Dashboard-Session-Secret
 
+## 3.4 Lokales Laden von `.env`
+
+Die Bot-Entrypoints lesen `process.env` direkt. Sie laden `.env` nicht automatisch.
+
+### macOS / Linux
+
+```bash
+set -a
+. ./.env
+set +a
+cd bot && npm run premerge
+```
+
+### Windows PowerShell
+
+```powershell
+Get-Content .env | ForEach-Object {
+  if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
+    $name = $matches[1]
+    $value = $matches[2].Trim().Trim('"')
+    if ($name -notmatch '^#') {
+      [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+    }
+  }
+}
+cd bot
+npm run premerge
+```
+
+Für Codex App Sessions gilt das Gleiche: Starte die Session aus derselben Shell, nachdem die Variablen geladen wurden, damit die Session sie erbt.
+
 ---
 
 ## 4. Parameter-Referenz
@@ -206,7 +240,7 @@ Zusätzlich:
 | Variable | Bedeutung | Wer setzt das? | Pflicht? | Hinweis |
 |---|---|---:|---:|---|
 | `CONTROL_TOKEN` | Auth für mutierende Control-Routen | ihr intern | ja für Betrieb | langes zufälliges Secret |
-| `OPERATOR_READ_TOKEN` | Auth für Read-only Operator-Routen | ihr intern | ja für Betrieb | getrennt von `CONTROL_TOKEN` halten |
+| `OPERATOR_READ_TOKEN` | Reserviertes Read-Secret; kein aktueller Read-Route-HTTP-Auth-Token | ihr intern | live-boot-relevant | getrennt von `CONTROL_TOKEN` halten |
 | `CONTROL_RESTART_ALERT_NOTIFICATION_COOLDOWN_MS` | Rate-Limit für Restart-Alerts | du selbst | optional | ms-Wert |
 | `NOTIFY_ROUTING_POLICY_MODE` | Routing-Logik für Alerts | du selbst | optional | `default` oder repo-spezifische Modi |
 
@@ -280,9 +314,13 @@ Das bedeutet: Die Passwörter selbst speicherst du **nicht** im Klartext, sonder
 | Variable | Bedeutung | Wer setzt das? | Pflicht? | Woher? |
 |---|---|---:|---:|---|
 | `DEXPAPRIKA_BASE_URL` | Basis-URL für DexPaprika | meist fix | optional | Standard-API-URL |
-| `MORALIS_BASE_URL` | Basis-URL für Moralis | meist fix | optional | Standard-URL, **plus API-Key prüfen** |
+| `MORALIS_BASE_URL` | Basis-URL für Moralis | meist fix | optional | Standard-URL |
+| `MORALIS_API_KEY` | Moralis-Auth für Live-Execution | ihr intern / Moralis-Dashboard | live erforderlich | fehlt der Key, stoppt der Live-Boot |
 | `JUPITER_QUOTE_URL` | Quote-Endpoint für Jupiter | meist fix / repo-spezifisch | optional | aktuelle Jupiter-Doku prüfen |
 | `JUPITER_SWAP_URL` | Swap-Endpoint für Jupiter | meist fix / repo-spezifisch | optional | aktuelle Jupiter-Doku prüfen |
+| `JUPITER_API_KEY` | Jupiter-Auth für Live-Execution | ihr intern / Jupiter-Portal | live erforderlich | fehlt der Key, stoppt der Live-Boot |
+
+`MORALIS_API_KEY` und `JUPITER_API_KEY` werden in Live-Modus schon beim Booten geprüft. Wenn du die Adapter direkt aufrufst, bleiben ihre Request-Checks zusätzlich fail-closed.
 
 ## 4.10 Resilience
 
@@ -486,4 +524,3 @@ Verwende solche Werte für:
 - xAI Release Notes: https://docs.x.ai/developers/release-notes
 - OpenAI API Quickstart / Auth: https://developers.openai.com/api/docs/quickstart/
 - OpenAI API Overview / Auth: https://developers.openai.com/api/reference/overview/
-

@@ -53,7 +53,7 @@ import {
   requiredRoleForControlAction,
   syncDatabaseRehearsalFreshnessState,
 } from "../../control/control-governance.js";
-import type { WorkerRestartRequestRecord } from "../../persistence/worker-restart-repository.js";
+import type { WorkerRestartMethod, WorkerRestartRequestRecord } from "../../persistence/worker-restart-repository.js";
 import type {
   WorkerRestartAlertNotificationEventType,
   WorkerRestartAlertNotificationStatus,
@@ -151,7 +151,7 @@ export interface RestartWorkerResponse {
   reason?: string;
   targetService: string;
   targetVersionId?: string;
-  orchestrationMethod: "deploy_hook" | "render_api";
+  orchestrationMethod: WorkerRestartMethod;
   restart: WorkerRestartStatus;
   runtimeConfig?: RuntimeConfigStatus;
   controlView?: RuntimeConfigControlView;

@@ -3,10 +3,10 @@
 ## 1. Purpose
 - This runbook is the single short path for controlled staging-to-production rollout of BobbyExecute.
 - It supports a tightly controlled launch, not unconstrained broad production.
-- Use this alongside `render.yaml` as the deployment source of truth.
+- Use this alongside `RENDER_DEPLOYMENT.md` and `render.yaml` as the deployment source of truth.
 
 ## 2. Preconditions
-- Required secrets are set in Render: `CONTROL_TOKEN`, `DASHBOARD_SESSION_SECRET`, `DASHBOARD_OPERATOR_DIRECTORY_JSON`, `WORKER_DEPLOY_HOOK_URL`, `CONTROL_RESTART_ALERT_WEBHOOK_URL`, `CONTROL_RESTART_ALERT_WEBHOOK_TOKEN`, `DATABASE_URL`, and `REDIS_URL`.
+- Required secrets are set in Render: `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, `DASHBOARD_SESSION_SECRET`, `DASHBOARD_OPERATOR_DIRECTORY_JSON`, `MORALIS_API_KEY`, `JUPITER_API_KEY`, `WORKER_DEPLOY_HOOK_URL`, `CONTROL_RESTART_ALERT_WEBHOOK_URL`, `CONTROL_RESTART_ALERT_WEBHOOK_TOKEN`, `DATABASE_URL`, and `REDIS_URL`.
 - At least one active dashboard operator exists in `DASHBOARD_OPERATOR_DIRECTORY_JSON`, and that operator has admin access for privileged launch actions.
 - Required Render services exist for both staging and production: bot, control, runtime worker, dashboard, rehearsal refresh cron, primary Postgres, rehearsal Postgres, and Key Value.
 - Database prerequisites are satisfied: `cd bot && npm run db:status` is `ready`, any required migrations have been applied, and the latest rehearsal evidence is available or can be refreshed.
@@ -37,7 +37,7 @@
 ## 6. Production Promotion Steps
 1. Freeze further changes for the launch window.
 2. Re-check the go/no-go checklist and confirm the dashboard session plus control proxy still work.
-3. Promote the same commit from staging to production in Render.
+3. Promote the same commit from staging to production manually in the Render UI.
 4. If a governed live promotion is part of the launch, get the required operator approval in the dashboard or control flow before applying it.
 5. Watch `GET /control/status`, `GET /control/runtime-status`, and `GET /control/restart-alerts` until the worker heartbeat, freshness gate, and restart state are stable.
 

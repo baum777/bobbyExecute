@@ -83,6 +83,14 @@ export function assertLiveTradingPrerequisites(config: Config): void {
     throw new Error("LIVE_TRADING=true requires OPERATOR_READ_TOKEN.");
   }
 
+  if (!config.moralisApiKey) {
+    throw new Error("LIVE_TRADING=true requires MORALIS_API_KEY.");
+  }
+
+  if (!config.jupiterApiKey) {
+    throw new Error("LIVE_TRADING=true requires JUPITER_API_KEY.");
+  }
+
   if (config.operatorReadToken === config.controlToken) {
     throw new Error("LIVE_TRADING=true requires CONTROL_TOKEN and OPERATOR_READ_TOKEN to be distinct.");
   }

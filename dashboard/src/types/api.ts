@@ -58,7 +58,7 @@ export interface MetricsResponse {
   p95LatencyMs: Record<string, number>;
 }
 
-export type WorkerRestartMethod = 'deploy_hook' | 'render_api';
+export type WorkerRestartMethod = 'deploy_hook';
 export type WorkerRestartRecordStatus = 'requested' | 'dispatched' | 'converged' | 'failed' | 'rejected' | 'cooldown' | 'unconfigured';
 export type WorkerRestartAlertSeverity = 'info' | 'warning' | 'critical';
 export type WorkerRestartAlertStatus = 'open' | 'acknowledged' | 'resolved';

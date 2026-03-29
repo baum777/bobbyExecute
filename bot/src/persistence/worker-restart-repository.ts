@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
 import { assertSchemaReady } from "./schema-migrations.js";
 
-export type WorkerRestartMethod = "deploy_hook" | "render_api";
+export type WorkerRestartMethod = "deploy_hook";
 export type WorkerRestartRecordStatus = "requested" | "dispatched" | "converged" | "failed" | "rejected" | "cooldown" | "unconfigured";
 
 export interface WorkerRestartRequestRecord {

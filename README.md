@@ -37,7 +37,11 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 ## Fast Start
 
 1. Copy [`.env.example`](.env.example) to `.env` in the repo root.
-2. Keep the safe defaults for local work:
+2. Load the env values into the shell that will run the bot. The Node entrypoints read `process.env` directly and do not auto-load `.env`.
+   - macOS/Linux: `set -a; . ./.env; set +a`
+   - Windows PowerShell: use the import snippet in [`BOBBYEXECUTION_ENV_HANDBOOK.md`](BOBBYEXECUTION_ENV_HANDBOOK.md) before running `npm run`
+   - Codex App sessions inherit the parent shell, so launch the app after the env is loaded if you want the session to see it
+3. Keep the safe defaults for local work:
 
    ```bash
    LIVE_TRADING=false
@@ -46,47 +50,47 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
    TRADING_ENABLED=false
    ```
 
-3. Install dependencies:
+4. Install dependencies:
 
    ```bash
    cd bot
    npm install
    ```
 
-4. Check schema readiness if you are pointing at a real Postgres database:
+5. Check schema readiness if you are pointing at a real Postgres database:
 
    ```bash
    cd bot
    npm run db:status
    ```
 
-5. If the status is `missing_but_migratable` or `migration_required`, run:
+6. If the status is `missing_but_migratable` or `migration_required`, run:
 
    ```bash
    cd bot
    npm run db:migrate
    ```
 
-6. Run the repo gate (`npm run premerge`, which covers lint, golden tasks, and chaos):
+7. Run the repo gate (`npm run premerge`, which covers lint, golden tasks, and chaos):
 
    ```bash
    npm run premerge
    ```
 
-7. Build the runtime:
+8. Build the runtime:
 
    ```bash
    npm run build
    ```
 
-8. Start the API server:
+9. Start the API server:
 
    ```bash
    npm run start:server
    ```
 
-9. Check `GET /health` and `GET /kpi/summary` on the public bot service.
-10. Use the private control service or the dashboard proxy routes for control-path testing, and read worker status through `GET /control/status` or `GET /control/runtime-status`.
+10. Check `GET /health` and `GET /kpi/summary` on the public bot service.
+11. Use the private control service or the dashboard proxy routes for control-path testing, and read worker status through `GET /control/status` or `GET /control/runtime-status`.
 
 ## Runtime Surfaces
 

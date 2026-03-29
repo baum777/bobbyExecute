@@ -34,6 +34,9 @@ Use this before any controlled live-test or any rollout beyond paper mode.
 - [ ] `LIVE_TEST_MODE=true`
 - [ ] `WALLET_ADDRESS` is set
 - [ ] `CONTROL_TOKEN` is set
+- [ ] `OPERATOR_READ_TOKEN` is set and distinct from `CONTROL_TOKEN`
+- [ ] `MORALIS_API_KEY` is set
+- [ ] `JUPITER_API_KEY` is set
 - [ ] `JOURNAL_PATH` points to worker persistent storage
 - [ ] `GET /health`, `/kpi/summary`, `/kpi/decisions`, `/kpi/adapters`, and `/kpi/metrics` are healthy on the public bot service
 - [ ] `GET /control/status`, `/control/runtime-config`, and `/control/history` are healthy on the private control service

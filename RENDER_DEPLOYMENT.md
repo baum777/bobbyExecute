@@ -22,6 +22,8 @@ The deployed baseline now matches the worker split:
 
 The public bot service stays read-only. Mutations live on the private control service, and the dashboard proxies privileged calls through server-side routes instead of calling the control plane directly from the browser.
 
+The dashboard browser session never receives `CONTROL_TOKEN`. Only the dashboard server and the private control plane hold control-plane secrets.
+
 ## Schema And Recovery Discipline
 
 Schema upgrades are explicit and must happen before a new release boots against a target database.
@@ -146,7 +148,38 @@ The current repository does not yet have a dedicated staging branch, so both env
 Deployment behavior:
 
 - Staging bot and dashboard auto-deploy on commit
-- Production dashboard and bot are manually promoted from Render for this baseline
+- Production dashboard and bot are manually promoted in the Render UI for this baseline
+- `RENDER_API_KEY` is local-only tooling auth if you use Render CLI or scripts from your workstation; it does not belong in runtime env or `render.yaml`
+
+## Operator Workflow
+
+### Login Flow
+
+1. Open the dashboard URL for the target environment.
+2. Sign in with a configured operator account.
+3. The dashboard server validates the session server-side and sets a signed browser cookie.
+4. Privileged actions are proxied server-side with `CONTROL_TOKEN`; the browser only carries the session cookie.
+
+### Operator Roles
+
+- `viewer`: read surfaces only
+- `operator`: pause/resume, reset, emergency stop, and read-safe control actions
+- `admin`: operator actions plus mode/runtime-config changes and live promotion decisions
+
+### Control Actions
+
+- `pause` / `resume` update runtime flow control without restarting the worker.
+- `emergency stop` trips the kill switch and pauses execution immediately.
+- `reset` clears the stop state when the operator has confirmed recovery.
+- `mode` and `runtime-config` updates remain server-side control-plane mutations.
+- `restart worker` uses the Render deploy hook orchestration path only.
+- live promotion actions cover approve, deny, apply, and rollback for governed live modes.
+
+### Manual Production Deploy
+
+Production deploys are manual in the Render UI.
+Use the same commit that passed staging, then promote it in the Render dashboard for the production environment.
+Do not model production deploys as an automated runtime action or as a task that depends on `RENDER_API_KEY`.
 
 ## Boot Configuration
 

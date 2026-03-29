@@ -16,7 +16,7 @@ Use this for a controlled live-test session. The runtime is fail-closed; if prer
 - Run `cd bot && npm run recovery:db-rehearse:render` if the automatic Render cron is stale or failed; use `cd bot && npm run recovery:db-rehearse -- --source-database-url=<canonical-db> --target-database-url=<scratch-db> --source-context=production --target-context=disposable-rehearsal` only to rebuild evidence after the Render-native path is unavailable
 - Run `cd bot && npm run live:preflight` (fails closed unless worker boot-critical state at `JOURNAL_PATH` is valid)
 - Set `LIVE_TRADING=true`, `DRY_RUN=false`, `RPC_MODE=real`, `TRADING_ENABLED=true`, `LIVE_TEST_MODE=true`
-- Set `WALLET_ADDRESS` and `CONTROL_TOKEN`
+- Set `WALLET_ADDRESS`, `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, `MORALIS_API_KEY`, and `JUPITER_API_KEY`
 - Keep `JOURNAL_PATH` on worker persistent storage
 
 ## Start Sequence

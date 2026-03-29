@@ -50,6 +50,7 @@ export const ConfigSchema = z
       .optional()
       .default("https://solana-gateway.moralis.io"),
     moralisApiKey: z.string().optional(),
+    jupiterApiKey: z.string().optional(),
 
     // Wallet
     walletAddress: z.string().min(32).optional(),
@@ -158,6 +159,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     dexpaprikaBaseUrl: env.DEXPAPRIKA_BASE_URL,
     moralisBaseUrl: env.MORALIS_BASE_URL,
     moralisApiKey: env.MORALIS_API_KEY,
+    jupiterApiKey: env.JUPITER_API_KEY,
     walletAddress: env.WALLET_ADDRESS,
     controlToken: env.CONTROL_TOKEN,
     operatorReadToken: env.OPERATOR_READ_TOKEN,

@@ -92,6 +92,8 @@ describe("Live test config (Wave 8)", () => {
     process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
     process.env.CONTROL_TOKEN = "phase10-live-control-token";
     process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
+    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
+    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
 
     const config = parseConfig(process.env as Record<string, string | undefined>);
     const liveTest = assertLiveTestPrerequisites(config);
@@ -123,6 +125,8 @@ describe("Live test config (Wave 8)", () => {
     process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
     process.env.CONTROL_TOKEN = "phase10-live-control-token";
     process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
+    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
+    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
     process.env.JOURNAL_PATH = createValidWorkerStateFixture();
 
     const report = runLiveTestPreflight();
@@ -146,6 +150,8 @@ describe("Live test config (Wave 8)", () => {
     process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
     process.env.CONTROL_TOKEN = "phase10-live-control-token";
     process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
+    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
+    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
 
     const dir = mkdtempSync(join(tmpdir(), "bobbyexecute-live-preflight-missing-"));
     workerStateDirs.push(dir);

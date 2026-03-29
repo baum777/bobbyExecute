@@ -28,6 +28,8 @@ function liveEnv(): Record<string, string | undefined> {
     WALLET_ADDRESS: "11111111111111111111111111111111",
     CONTROL_TOKEN: "phase10-live-control-token",
     OPERATOR_READ_TOKEN: "phase10-live-operator-token",
+    MORALIS_API_KEY: "phase10-moralis-api-key",
+    JUPITER_API_KEY: "phase10-jupiter-api-key",
     JOURNAL_PATH: "data/journal.jsonl",
     RUNTIME_POLICY_AUTHORITY: "ts-env",
     RPC_URL: "https://api.mainnet-beta.solana.com",

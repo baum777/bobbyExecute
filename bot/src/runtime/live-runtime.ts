@@ -83,7 +83,7 @@ import type {
   RuntimeSnapshot,
   RuntimeStatus,
 } from "./dry-run-runtime.js";
-import { assertRuntimePolicyAuthority } from "../config/safety.js";
+import { assertLiveTradingPrerequisites, assertRuntimePolicyAuthority } from "../config/safety.js";
 
 const DEFAULT_LIVE_TOKEN_ID = "So11111111111111111111111111111111111111112";
 const RECENT_CYCLE_LIMIT = 10;
@@ -270,6 +270,7 @@ function toCycleSummary(input: {
 
 export async function createLiveRuntime(config: Config, runtimeDeps: LiveRuntimeDeps = {}): Promise<LiveRuntime> {
   assertRuntimePolicyAuthority(config);
+  assertLiveTradingPrerequisites(config);
 
   const defaults = createDefaultSafetyRepos(config);
   const killSwitchRepository = runtimeDeps.killSwitchRepository ?? defaults.killSwitchRepository;

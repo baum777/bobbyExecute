@@ -3,7 +3,7 @@ import type { RuntimeController } from "./controller.js";
 import { createExecutionHandler } from "../agents/execution.agent.js";
 import { createLiveRuntime, type LiveRuntimeDeps } from "./live-runtime.js";
 import { createPaperRuntime, type PaperRuntimeDeps } from "./paper-runtime.js";
-import { parseRolloutPostureConfig } from "../config/safety.js";
+import { assertLiveTradingPrerequisites, parseRolloutPostureConfig } from "../config/safety.js";
 import { createCanonicalDecisionAuthority } from "../core/decision/index.js";
 
 export type RuntimeDeps = PaperRuntimeDeps & LiveRuntimeDeps;
@@ -12,6 +12,8 @@ export function assertLiveEligibility(config: Config, runtimeDeps: RuntimeDeps =
   if (config.executionMode !== "live") {
     return;
   }
+
+  assertLiveTradingPrerequisites(config);
 
   if (config.runtimePolicyAuthority !== "ts-env") {
     throw new Error("LIVE_BOOT_ABORTED_RUNTIME_POLICY_AMBIGUOUS");
