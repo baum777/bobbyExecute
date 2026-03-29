@@ -7,7 +7,7 @@ This repository consumes the standalone shared-core Codex workflow package from:
 ## Linked Version
 
 - shared-core version: `0.1.4`
-- package fingerprint: `bda9998180a9a0feae960b38fa4c1f3d3084a0fafd461cdd08612aa6bfa570b0`
+- package fingerprint: `8f93e32a633d9601f609beca48cb8df913e476fef495789c9aee8a4e0f41ed42`
 - linkage mode: versioned local repository reference
 
 ## What Is Adopted
