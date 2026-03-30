@@ -9,7 +9,8 @@ environments:
         branch: main
         autoDeployTrigger: commit
         rootDir: bot
-        buildCommand: npm ci && npm run build
+        preDeployCommand: npm run db:migrate
+        buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:server
         healthCheckPath: /health
         envVars:
@@ -57,7 +58,8 @@ environments:
         branch: main
         autoDeployTrigger: commit
         rootDir: bot
-        buildCommand: npm ci && npm run build
+        preDeployCommand: npm run db:migrate
+        buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:control
         healthCheckPath: /health
         envVars:
@@ -105,7 +107,8 @@ environments:
         branch: main
         autoDeployTrigger: commit
         rootDir: bot
-        buildCommand: npm ci && npm run build
+        preDeployCommand: npm run db:migrate
+        buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:worker
         envVars:
           - key: NODE_ENV
@@ -158,7 +161,7 @@ environments:
         branch: main
         autoDeployTrigger: commit
         rootDir: dashboard
-        buildCommand: npm ci && npm run build
+        buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start
         healthCheckPath: /
         envVars:
@@ -197,7 +200,7 @@ environments:
         autoDeployTrigger: commit
         rootDir: bot
         schedule: "0 3 * * *"
-        buildCommand: npm ci && npm run build
+        buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run recovery:db-rehearse:render
         envVars:
           - key: NODE_ENV
@@ -264,7 +267,8 @@ environments:
         branch: main
         autoDeployTrigger: off
         rootDir: bot
-        buildCommand: npm ci && npm run build
+        preDeployCommand: npm run db:migrate
+        buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:server
         healthCheckPath: /health
         envVars:
@@ -312,7 +316,8 @@ environments:
         branch: main
         autoDeployTrigger: off
         rootDir: bot
-        buildCommand: npm ci && npm run build
+        preDeployCommand: npm run db:migrate
+        buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:control
         healthCheckPath: /health
         envVars:
@@ -360,7 +365,8 @@ environments:
         branch: main
         autoDeployTrigger: off
         rootDir: bot
-        buildCommand: npm ci && npm run build
+        preDeployCommand: npm run db:migrate
+        buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:worker
         envVars:
           - key: NODE_ENV
