@@ -315,11 +315,23 @@ export default function DecisionsPage() {
                     {advisoryQuery.data?.enabled && advisoryQuery.data.advisory && (
                       <div className="space-y-2 text-xs text-text-secondary">
                         <p>
-                          <span className="text-text-muted">Summary:</span> {advisoryQuery.data.advisory.summary}
+                          <span className="text-text-muted">Advisory summary (non-authoritative):</span>{' '}
+                          {advisoryQuery.data.advisory.summary}
                         </p>
                         <p>
-                          <span className="text-text-muted">Reasoning:</span> {advisoryQuery.data.advisory.reasoning}
+                          <span className="text-text-muted">Advisory narrative (non-authoritative):</span>{' '}
+                          {advisoryQuery.data.advisory.reasoning}
                         </p>
+                        <div className="rounded border border-border-subtle/60 bg-bg-primary/30 px-2 py-1.5">
+                          <p className="text-[10px] text-text-muted">
+                            <span className="font-medium text-text-secondary">Advisory confidence</span>
+                            {': '}
+                            {advisoryQuery.data.advisory.confidence.toFixed(3)}
+                          </p>
+                          <p className="text-[10px] text-text-muted mt-0.5 leading-snug">
+                            Self-rated LLM confidence only; not trade or decision confidence.
+                          </p>
+                        </div>
                         {advisoryQuery.data.audits?.[0] && (
                           <p className="text-[10px] text-text-muted font-mono">
                             {advisoryQuery.data.audits[0].provider} · {advisoryQuery.data.audits[0].latencyMs}ms ·{' '}

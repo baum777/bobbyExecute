@@ -350,12 +350,21 @@ export interface KpiDecisionsResponse {
   decisions: KpiDecision[];
 }
 
-/** Advisory LLM annotation — non-authoritative; optional when `ADVISORY_LLM_ENABLED=true`. */
+/**
+ * Advisory LLM annotation — non-authoritative; optional when `ADVISORY_LLM_ENABLED=true`.
+ * `summary` / `reasoning` are LLM commentary — not canonical reasonClass, blockReason, or execution rationale.
+ */
 export interface KpiAdvisoryLLMResponseBody {
+  /** Short LLM commentary; not a canonical decision summary. */
   summary: string;
+  /** Narrative explanation only; not canonical reasonClass / block reason / risk rationale. */
   reasoning: string;
   riskNotes?: string[];
   anomalies?: string[];
+  /**
+   * Model self-rating / advisory confidence only (0–1).
+   * Not canonical decision confidence, signal confidence, or execution confidence.
+   */
   confidence: number;
   provider: string;
   model: string;
