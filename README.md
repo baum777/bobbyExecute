@@ -13,6 +13,7 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 - Render-native automatic rehearsal refresh runs from a dedicated cron job and writes the evidence back to the same canonical Postgres store the promotion gate already trusts.
 - Governed live promotion now requires fresh database rehearsal evidence before `live_limited` or `live` promotion.
 - Dashboard operator auth is separately configured with a server-side session secret and operator directory, so privileged dashboard actions fail closed if those env vars are missing.
+- Live trading now goes through a separate remote signer service in `signer/`; the bot/runtime keeps `WALLET_ADDRESS` as public identity only and does not depend on a raw production private key in normal env vars.
 - The repository does not claim uncontrolled live trading readiness.
 
 ## Canonical Docs
@@ -31,6 +32,8 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 - [`docs/bobbyexecution/market_data_reliability_protocol.md`](docs/bobbyexecution/market_data_reliability_protocol.md)
 - [`docs/bobbyexecution/risk_and_chaos_governance.md`](docs/bobbyexecution/risk_and_chaos_governance.md)
 - [`docs/bobbyexecution/runtime_observability_protocol.md`](docs/bobbyexecution/runtime_observability_protocol.md)
+- [`docs/secure-signer-boundary.md`](docs/secure-signer-boundary.md)
+- [`signer/README.md`](signer/README.md)
 - [`docs/architecture/master-trading-bot-intelligence-spec.md`](docs/architecture/master-trading-bot-intelligence-spec.md)
 - [`docs/trading/trading-edge_chaos-scenarios.md`](docs/trading/trading-edge_chaos-scenarios.md)
 
@@ -91,6 +94,7 @@ Governance-first Solana trading bot with deterministic execution, append-only jo
 
 10. Check `GET /health` and `GET /kpi/summary` on the public bot service.
 11. Use the private control service or the dashboard proxy routes for control-path testing, and read worker status through `GET /control/status` or `GET /control/runtime-status`.
+12. If you are testing live trading, start the signer service from [`signer/README.md`](signer/README.md), then set `SIGNER_MODE=remote` and `SIGNER_URL` before enabling `LIVE_TRADING=true`.
 
 ## Runtime Surfaces
 
@@ -144,6 +148,7 @@ When any bounded journal or drilldown state is present, the control page also sh
 ├─ governance/   canonical governance layer
 ├─ docs/         operational and architecture docs
 ├─ bot/          active TypeScript runtime
+├─ signer/       standalone remote signer service
 ├─ ops/          team artifacts and internal process docs
 ├─ packages/     skill manifests and instructions
 └─ dor-bot/      legacy Python reference tree

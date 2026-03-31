@@ -11,6 +11,8 @@ BobbyExecute no longer expects a raw production wallet private key in normal bot
 
 The minimal signer service now lives in `signer/` as a standalone Node/TypeScript subproject. The bot/runtime side only knows the public identity and the remote signer endpoint.
 
+Local run instructions and the service-specific env model live in [`signer/README.md`](../signer/README.md).
+
 ## Environment variables
 
 - `SIGNER_MODE`
