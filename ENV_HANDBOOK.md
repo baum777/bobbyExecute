@@ -544,7 +544,7 @@ This section controls which LLM provider is used and how the fallback path behav
 - **Type:** URL string
 - **Required:** optional
 - **Purpose:** Base URL for Moralis Solana gateway calls.
-- **Example value:** `https://deep-index.moralis.io/api/v2.2`
+- **Example value:** `https://solana-gateway.moralis.io`
 
 ### `JUPITER_QUOTE_URL`
 - **Type:** URL string

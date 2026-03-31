@@ -9,7 +9,7 @@ import {
 } from "../http-resilience.js";
 import { validateFreshness } from "../freshness.js";
 
-const BASE_URL = "https://deep-index.moralis.io/api/v2.2";
+const BASE_URL = "https://solana-gateway.moralis.io";
 const DEFAULT_MAX_STALENESS_MS = 30_000;
 const MORALIS_API_KEY_HEADER = "X-Api-Key";
 
@@ -59,6 +59,15 @@ export class MoralisClient {
 
   /** EVM: GET /wallets/{address}/tokens */
   async getTokenBalances(address: string): Promise<unknown> {
+    if (this.chain === "solana") {
+      const url = `${this.baseUrl}/account/mainnet/${address}/tokens`;
+      const res = await this._fetch(url);
+      if (!res.ok) throw new Error(`Moralis error: ${res.status} ${res.statusText}`);
+      const raw = await res.json();
+      validateFreshness(raw, this.maxStalenessMs);
+      return raw;
+    }
+
     const url = `${this.baseUrl}/wallets/${address}/tokens?chain=${this.chain}`;
     const res = await this._fetch(url);
     if (!res.ok) throw new Error(`Moralis error: ${res.status} ${res.statusText}`);

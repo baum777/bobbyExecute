@@ -59,7 +59,7 @@ export const ConfigSchema = z
       .string()
       .url()
       .optional()
-      .default("https://deep-index.moralis.io/api/v2.2"),
+      .default("https://solana-gateway.moralis.io"),
     moralisApiKey: z.string().optional(),
     jupiterApiKey: z.string().optional(),
 
@@ -184,8 +184,8 @@ function normalizeMoralisBaseUrl(raw: string | undefined): string | undefined {
     return undefined;
   }
 
-  if (trimmed === "https://solana-gateway.moralis.io") {
-    return "https://deep-index.moralis.io/api/v2.2";
+  if (trimmed === "https://deep-index.moralis.io/api/v2.2") {
+    return "https://solana-gateway.moralis.io";
   }
 
   return trimmed;

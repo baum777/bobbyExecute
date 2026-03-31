@@ -140,7 +140,7 @@ environments:
           - key: CIRCUIT_BREAKER_RECOVERY_MS
             value: "60000"
           - key: MORALIS_BASE_URL
-            value: https://deep-index.moralis.io/api/v2.2
+            value: https://solana-gateway.moralis.io
           - key: JOURNAL_PATH
             value: /var/data/journal.jsonl
           - key: WORKER_HEARTBEAT_INTERVAL_MS
@@ -404,7 +404,7 @@ environments:
           - key: CIRCUIT_BREAKER_RECOVERY_MS
             value: "60000"
           - key: MORALIS_BASE_URL
-            value: https://deep-index.moralis.io/api/v2.2
+            value: https://solana-gateway.moralis.io
           - key: JOURNAL_PATH
             value: /var/data/journal.jsonl
           - key: WORKER_HEARTBEAT_INTERVAL_MS
