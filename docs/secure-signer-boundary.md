@@ -9,6 +9,8 @@ BobbyExecute no longer expects a raw production wallet private key in normal bot
 - The signer service returns a signed transaction payload.
 - The bot verifies the signed payload matches the expected wallet address before submission.
 
+The minimal signer service now lives in `signer/` as a standalone Node/TypeScript subproject. The bot/runtime side only knows the public identity and the remote signer endpoint.
+
 ## Environment variables
 
 - `SIGNER_MODE`
@@ -43,9 +45,8 @@ Do not store the raw wallet private key in the bot or dashboard Render env vars.
 
 ## Intentionally not implemented
 
-- The signer service itself
 - KMS integration
 - Multi-signer routing or quorum logic
 - Transaction message mutation by the signer
 
-Those can be added later behind the same signer contract without changing the bot runtime surface.
+The signer service is intentionally minimal and can later be replaced with a KMS/HSM-backed backend without changing the bot runtime surface.
