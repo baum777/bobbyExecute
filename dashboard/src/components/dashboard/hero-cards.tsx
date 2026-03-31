@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { LoadingCard } from '@/components/shared/loading-card';
 import { ErrorCard } from '@/components/shared/error-card';
 import { formatUptime, pct } from '@/lib/utils';
+import { kpiProvenanceLabel } from '@/lib/kpi-provenance';
 import { Activity, Shield, Zap, Database, Heart } from 'lucide-react';
 
 export function HeroCards() {
@@ -33,6 +34,7 @@ export function HeroCards() {
   const riskScore = summary?.riskScore ?? 0;
   const chaosRate = summary?.chaosPassRate ?? 0;
   const dataQuality = summary?.dataQuality ?? 0;
+  const mp = summary?.metricProvenance;
 
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -66,6 +68,7 @@ export function HeroCards() {
               HALTED: {health.killSwitch.reason || 'Unknown'}
             </div>
           )}
+          <p className="mt-1 text-[10px] uppercase tracking-wide text-text-muted">Metric: wired</p>
         </CardContent>
       </Card>
 
@@ -101,6 +104,9 @@ export function HeroCards() {
             />
           </div>
           <p className="mt-1.5 text-xs text-text-muted">Governance exposure index</p>
+          <p className="mt-1 text-[10px] uppercase tracking-wide text-text-muted">
+            Metric: {kpiProvenanceLabel(mp?.riskScore)}
+          </p>
         </CardContent>
       </Card>
 
@@ -130,6 +136,9 @@ export function HeroCards() {
             />
           </div>
           <p className="mt-1.5 text-xs text-text-muted">Chaos gate scenarios passing</p>
+          <p className="mt-1 text-[10px] uppercase tracking-wide text-text-muted">
+            Metric: {kpiProvenanceLabel(mp?.chaosPassRate)}
+          </p>
         </CardContent>
       </Card>
 
@@ -155,6 +164,9 @@ export function HeroCards() {
             />
           </div>
           <p className="mt-1.5 text-xs text-text-muted">Healthy adapters ratio</p>
+          <p className="mt-1 text-[10px] uppercase tracking-wide text-text-muted">
+            Metric: {kpiProvenanceLabel(mp?.dataQuality)}
+          </p>
         </CardContent>
       </Card>
     </div>

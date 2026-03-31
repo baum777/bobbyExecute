@@ -10,7 +10,7 @@ const DEFAULT_XAI_MODEL = process.env.XAI_MODEL_PRIMARY ?? "grok-beta";
 const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
 /**
- * Generate LLM response with optional model override.
+ * Advisory-only LLM text generation (experimental). Not used by deterministic trading paths.
  * Falls back to canned response on error.
  */
 export async function generateResponse(
@@ -37,4 +37,3 @@ export async function generateResponse(
     return CANNED_FALLBACK;
   }
 }
-

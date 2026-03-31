@@ -66,8 +66,8 @@ npm run live:test
 ## Runtime Surfaces
 
 - `GET /health`
-- `GET /kpi/summary`
-- `GET /kpi/decisions`
+- `GET /kpi/summary` (includes `metricProvenance` for operator-visible honesty: wired vs derived vs default scalars)
+- `GET /kpi/decisions` (derived **projection** from action logs — not a standalone canonical decision authority)
 - `GET /kpi/adapters`
 - `GET /kpi/metrics`
 - Public bot surface is read-only and does not expose runtime replay or incident routes.
@@ -89,6 +89,11 @@ npm run live:test
   - `POST /control/restart-alerts/:id/acknowledge`
   - `POST /control/restart-alerts/:id/resolve`
 - `GET /control/history`
+
+## Advisory LLM (non-trading)
+
+- Optional OpenAI/xAI wiring lives under `src/advisory-llm/` and is exported only as `@onchain-trading-bot/core/advisory-llm`.
+- It is **not** imported by bootstrap, worker, server, or `src/index.ts` — not part of the deterministic trading hot path.
 
 ## Schema And Recovery
 

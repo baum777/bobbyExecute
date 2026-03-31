@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { LoadingCard } from '@/components/shared/loading-card';
 import { LatencyBar } from '@/components/shared/latency-bar';
 import { relativeTime } from '@/lib/utils';
+import { kpiProvenanceLabel } from '@/lib/kpi-provenance';
 import { TrendingUp, Timer } from 'lucide-react';
 
 export function ActivitySection() {
@@ -24,6 +25,7 @@ export function ActivitySection() {
   const latencyEntries = metrics?.p95LatencyMs
     ? Object.entries(metrics.p95LatencyMs)
     : [];
+  const mp = summary?.metricProvenance;
 
   return (
     <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
@@ -46,6 +48,10 @@ export function ActivitySection() {
               Last decision: {relativeTime(summary.lastDecisionAt)}
             </p>
           )}
+          <p className="mt-2 text-[10px] uppercase tracking-wide text-text-muted">
+            Trades metric: {kpiProvenanceLabel(mp?.tradesToday)} · Last activity:{' '}
+            {kpiProvenanceLabel(mp?.lastDecisionAt)}
+          </p>
         </CardContent>
       </Card>
 
@@ -66,6 +72,7 @@ export function ActivitySection() {
               ))}
             </div>
           )}
+          <p className="mt-2 text-[10px] uppercase tracking-wide text-text-muted">Metric: wired</p>
         </CardContent>
       </Card>
     </div>

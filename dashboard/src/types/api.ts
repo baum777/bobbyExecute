@@ -20,6 +20,13 @@ export interface HealthResponse {
   killSwitch?: KillSwitchState;
 }
 
+export type KpiMetricProvenance =
+  | 'wired'
+  | 'derived'
+  | 'default'
+  | 'legacy_projection'
+  | 'unwired';
+
 export interface SummaryResponse {
   botStatus: BotStatus;
   riskScore: number;
@@ -27,6 +34,13 @@ export interface SummaryResponse {
   dataQuality: number;
   lastDecisionAt: string | null;
   tradesToday: number;
+  metricProvenance?: {
+    riskScore: KpiMetricProvenance;
+    chaosPassRate: KpiMetricProvenance;
+    dataQuality: KpiMetricProvenance;
+    lastDecisionAt: KpiMetricProvenance;
+    tradesToday: KpiMetricProvenance;
+  };
 }
 
 export interface Adapter {
@@ -48,6 +62,10 @@ export interface Decision {
   token: string;
   confidence: number;
   reasons: string[];
+  provenanceKind: 'derived';
+  source: 'action_log_projection';
+  actionLogAction?: string;
+  actionLogAgentId?: string;
 }
 
 export interface DecisionsResponse {

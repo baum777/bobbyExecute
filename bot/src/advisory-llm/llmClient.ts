@@ -1,3 +1,7 @@
+/**
+ * Advisory / experimental LLM client — NOT imported by trading runtime or HTTP bootstrap.
+ * Provider wiring only; no trading authority.
+ */
 import OpenAI from "openai";
 
 type LlmProvider = "xai" | "openai";

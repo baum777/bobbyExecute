@@ -67,13 +67,18 @@ export default function DecisionsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">Decisions</h2>
-        <p className="text-sm text-text-muted">
-          {decisions.length} decisions &middot; {counts.allow} allowed &middot;{' '}
-          {counts.block} blocked &middot; {counts.abort} aborted
-        </p>
-      </div>
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary">Decisions</h2>
+          <p className="text-sm text-text-muted">
+            {decisions.length} entries &middot; {counts.allow} allow &middot; {counts.block} block &middot;{' '}
+            {counts.abort} abort
+          </p>
+          <p className="mt-1 text-xs text-text-muted max-w-3xl">
+            <span className="font-medium text-text-secondary">Derived</span> from persisted action logs (GET
+            /kpi/decisions). Allow/block/abort here is a KPI mapping for audit, not the sole canonical trading
+            decision record.
+          </p>
+        </div>
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -236,11 +241,22 @@ export default function DecisionsPage() {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-border-subtle">
+                <div className="pt-2 border-t border-border-subtle space-y-1">
                   <p className="text-xs text-text-muted flex items-center gap-1.5">
                     <Clock className="h-3 w-3" />
-                    Source: Bot API /kpi/decisions
+                    Source: Bot API /kpi/decisions (action-log projection)
                   </p>
+                  {selected.actionLogAction && (
+                    <p className="text-xs text-text-muted">
+                      Action log: <span className="font-mono">{selected.actionLogAction}</span>
+                      {selected.actionLogAgentId ? (
+                        <>
+                          {' '}
+                          · agent <span className="font-mono">{selected.actionLogAgentId}</span>
+                        </>
+                      ) : null}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

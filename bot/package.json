@@ -5,6 +5,16 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./advisory-llm": {
+      "types": "./dist/advisory-llm/index.d.ts",
+      "import": "./dist/advisory-llm/index.js"
+    }
+  },
   "engines": {
     "node": ">=22.0.0"
   },

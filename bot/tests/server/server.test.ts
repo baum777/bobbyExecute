@@ -366,6 +366,13 @@ describe("Server (Wave 3)", () => {
       chaosPassRate: expect.any(Number),
       dataQuality: expect.any(Number),
       tradesToday: expect.any(Number),
+      metricProvenance: {
+        riskScore: "default",
+        chaosPassRate: "default",
+        dataQuality: expect.stringMatching(/^(wired|derived|default)$/),
+        lastDecisionAt: expect.stringMatching(/^(wired|derived|default)$/),
+        tradesToday: expect.stringMatching(/^(wired|derived|default)$/),
+      },
     });
     expect(typeof body.lastDecisionAt === "string" || body.lastDecisionAt === null).toBe(true);
   });
@@ -431,6 +438,7 @@ describe("Server (Wave 3)", () => {
       const summary = await summaryRes.json();
       expect(summary.lastDecisionAt).toBe("2026-03-18T12:01:00.000Z");
       expect(summary.tradesToday).toBe(0);
+      expect(summary.metricProvenance?.lastDecisionAt).toBe("wired");
     } finally {
       await srv.close();
     }
@@ -485,16 +493,24 @@ describe("Server (Wave 3)", () => {
       const decisions = await decisionsRes.json();
       expect(summary.tradesToday).toBe(1);
       expect(summary.lastDecisionAt).toBe("2026-03-18T12:03:00.000Z");
+      expect(summary.metricProvenance?.tradesToday).toBe("derived");
+      expect(summary.metricProvenance?.lastDecisionAt).toBe("derived");
       expect(decisions.decisions[0]).toMatchObject({
         action: "block",
         token: "USDC",
         confidence: 0.2,
         reasons: ["RISK_FAIL_CLOSED"],
+        provenanceKind: "derived",
+        source: "action_log_projection",
+        actionLogAction: "risk_blocked",
       });
       expect(decisions.decisions[1]).toMatchObject({
         action: "allow",
         token: "USDC",
         confidence: 0.8,
+        provenanceKind: "derived",
+        source: "action_log_projection",
+        actionLogAction: "complete",
       });
     } finally {
       await srv.close();
@@ -561,6 +577,8 @@ describe("Server (Wave 3)", () => {
       expect(dec.action).toBe("allow");
       expect(dec.confidence).toBe(0.85);
       expect(dec.token).toContain("So11");
+      expect(dec.provenanceKind).toBe("derived");
+      expect(dec.source).toBe("action_log_projection");
     } finally {
       await srv.close();
     }

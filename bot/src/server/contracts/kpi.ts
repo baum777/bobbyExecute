@@ -220,6 +220,14 @@ export interface HealthResponse {
   };
 }
 
+/** How a KPI value was produced (for operator honesty; never silent about derivation). */
+export type KpiMetricProvenance =
+  | "wired"
+  | "derived"
+  | "default"
+  | "legacy_projection"
+  | "unwired";
+
 export interface KpiSummaryResponse {
   botStatus: "running" | "paused" | "stopped";
   riskScore: number;
@@ -227,6 +235,14 @@ export interface KpiSummaryResponse {
   dataQuality: number;
   lastDecisionAt: string | null;
   tradesToday: number;
+  /** Provenance labels for summary scalars (parallel to the numeric fields above). */
+  metricProvenance?: {
+    riskScore: KpiMetricProvenance;
+    chaosPassRate: KpiMetricProvenance;
+    dataQuality: KpiMetricProvenance;
+    lastDecisionAt: KpiMetricProvenance;
+    tradesToday: KpiMetricProvenance;
+  };
   worker?: import("../../persistence/runtime-visibility-repository.js").RuntimeWorkerVisibility;
   runtime?: {
     mode: "dry" | "paper" | "live";
@@ -288,6 +304,16 @@ export interface KpiDecision {
   token: string;
   confidence: number;
   reasons: string[];
+  /**
+   * Projection from persisted action log entries, not a standalone canonical decision record.
+   * Trading is deterministic; this view is for audit/UI only.
+   */
+  provenanceKind: "derived";
+  source: "action_log_projection";
+  /** Original action log `action` field (e.g. evaluate, complete). */
+  actionLogAction?: string;
+  /** Original action log agent id when present. */
+  actionLogAgentId?: string;
 }
 
 export interface KpiDecisionsResponse {

@@ -25,6 +25,10 @@ export function AdapterHealthTable() {
           <CardTitle>Adapter Health</CardTitle>
           <Plug className="h-4 w-4 text-text-muted" />
         </div>
+        <p className="text-[10px] uppercase tracking-wide text-text-muted pt-1">
+          GET /kpi/adapters — wired when circuit breaker is active; else derived from runtime snapshot or default
+          placeholders
+        </p>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

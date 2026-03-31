@@ -9,6 +9,7 @@ import type {
   KpiMetricsResponse,
   KpiDecision,
   KpiAdapter,
+  KpiMetricProvenance,
 } from "../contracts/kpi.js";
 import type { CircuitBreaker, AdapterHealth } from "../../governance/circuit-breaker.js";
 import type { ActionLogger, ActionLogEntry } from "../../observability/action-log.js";
@@ -63,6 +64,10 @@ function actionToKpiDecision(entry: ActionLogEntry, index: number): KpiDecision 
     token,
     confidence,
     reasons,
+    provenanceKind: "derived",
+    source: "action_log_projection",
+    actionLogAction: entry.action,
+    actionLogAgentId: entry.agentId,
   };
 }
 
@@ -116,6 +121,14 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
           : runtime?.adapterHealth && runtime.adapterHealth.total > 0
             ? runtime.adapterHealth.healthy / runtime.adapterHealth.total
             : 1;
+      const lastDecisionAtProvenance: KpiMetricProvenance =
+        lastEntry != null ? "derived" : runtime?.lastDecisionAt != null ? "wired" : "default";
+      const dataQualityProvenance: KpiMetricProvenance =
+        circuitBreaker != null
+          ? "wired"
+          : runtime?.adapterHealth && runtime.adapterHealth.total > 0
+            ? "derived"
+            : "default";
       const body: KpiSummaryResponse = {
         botStatus:
           getBotStatus?.() ??
@@ -125,6 +138,13 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
         dataQuality,
         lastDecisionAt,
         tradesToday,
+        metricProvenance: {
+          riskScore: "default",
+          chaosPassRate: "default",
+          dataQuality: dataQualityProvenance,
+          lastDecisionAt: lastDecisionAtProvenance,
+          tradesToday: "derived",
+        },
         worker: visible.worker,
         runtime: runtime
           ? {

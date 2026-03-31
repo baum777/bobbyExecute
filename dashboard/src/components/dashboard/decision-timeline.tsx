@@ -26,6 +26,9 @@ export function DecisionTimeline() {
           <CardTitle>Recent Decisions</CardTitle>
           <ScrollText className="h-4 w-4 text-text-muted" />
         </div>
+        <p className="text-[10px] text-text-muted pt-1">
+          Derived projection from action logs via GET /kpi/decisions — not a standalone canonical decision record.
+        </p>
       </CardHeader>
       <CardContent>
         <div className="space-y-0 max-h-[380px] overflow-y-auto pr-1">

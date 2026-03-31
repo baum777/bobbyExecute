@@ -767,6 +767,13 @@ function ControlPageContent() {
         <p className="text-sm text-text-muted">Safety controls, worker restarts, and emergency actions</p>
       </div>
 
+      <div className="rounded border border-border-subtle bg-bg-surface-hover/30 px-3 py-2 text-xs text-text-secondary">
+        Operational truth is distributed: this page reflects the private control plane and worker visibility. Trading KPIs and
+        action-log projections are exposed separately on the public bot service (
+        <code className="text-[11px]">/kpi/*</code>
+        ). Use both surfaces for a full picture; neither is the sole authority.
+      </div>
+
       <Card className="border-border-default">
         <CardHeader>
           <div className="flex items-center gap-3">
