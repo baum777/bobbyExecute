@@ -75,7 +75,7 @@ export default function DecisionsPage() {
           </p>
           <p className="mt-1 text-xs text-text-muted max-w-3xl">
             Rows with <span className="font-medium text-text-secondary">canonical</span> come from runtime cycle
-            summaries (decision envelope v2) when available; <span className="font-medium text-text-secondary">derived</span>{' '}
+            summaries (decision envelope v3) when available; <span className="font-medium text-text-secondary">derived</span>{' '}
             rows are legacy action-log projections from the same endpoint.
           </p>
         </div>
@@ -159,6 +159,11 @@ export default function DecisionsPage() {
                           <Badge variant="default" className="text-[9px] px-1.5 py-0">
                             {d.provenanceKind === 'canonical' ? 'canonical' : 'derived'}
                           </Badge>
+                          {d.reasonClass ? (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-mono">
+                              {d.reasonClass}
+                            </Badge>
+                          ) : null}
                         </div>
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {d.reasons.map((r, i) => (
@@ -244,10 +249,48 @@ export default function DecisionsPage() {
                   </div>
                 </div>
 
+                {selected.provenanceKind === 'canonical' && selected.reasonClass && (
+                  <div className="space-y-1 text-xs text-text-secondary">
+                    <p className="text-text-muted uppercase tracking-wider text-[10px]">Provenance</p>
+                    <div className="grid gap-1 font-mono text-[11px]">
+                      {selected.executionMode ? (
+                        <div>
+                          <span className="text-text-muted">mode:</span> {selected.executionMode}
+                        </div>
+                      ) : null}
+                      {selected.schemaVersion ? (
+                        <div>
+                          <span className="text-text-muted">schema:</span> {selected.schemaVersion}
+                        </div>
+                      ) : null}
+                      {selected.sources && selected.sources.length > 0 ? (
+                        <div className="break-all">
+                          <span className="text-text-muted">sources:</span> {selected.sources.join(', ')}
+                        </div>
+                      ) : null}
+                      {selected.freshness ? (
+                        <div>
+                          <span className="text-text-muted">freshness:</span> mkt {selected.freshness.marketAgeMs}ms ·
+                          wallet {selected.freshness.walletAgeMs}ms (max {selected.freshness.maxAgeMs}ms)
+                        </div>
+                      ) : null}
+                      {selected.evidenceRef && Object.keys(selected.evidenceRef).length > 0 ? (
+                        <div className="break-all">
+                          <span className="text-text-muted">evidence:</span>{' '}
+                          {JSON.stringify(selected.evidenceRef)}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+
                 <div className="pt-2 border-t border-border-subtle space-y-1">
                   <p className="text-xs text-text-muted flex items-center gap-1.5">
                     <Clock className="h-3 w-3" />
-                    Source: Bot API /kpi/decisions (action-log projection)
+                    Source:{' '}
+                    {selected.provenanceKind === 'canonical'
+                      ? 'runtime_cycle_summary (canonical envelope)'
+                      : 'action_log_projection'}
                   </p>
                   {selected.actionLogAction && (
                     <p className="text-xs text-text-muted">

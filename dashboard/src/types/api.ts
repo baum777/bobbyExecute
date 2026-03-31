@@ -58,6 +58,16 @@ export interface AdaptersResponse {
 export type DecisionProvenanceKind = 'canonical' | 'derived';
 export type DecisionSource = 'runtime_cycle_summary' | 'action_log_projection';
 
+export type DecisionReasonClass =
+  | 'DATA_STALE'
+  | 'DATA_MISSING'
+  | 'DATA_DISAGREEMENT'
+  | 'SIGNAL_REJECTED'
+  | 'RISK_BLOCKED'
+  | 'EXECUTION_FAILED'
+  | 'SUCCESS'
+  | 'NO_TRADE';
+
 export interface Decision {
   id: string;
   timestamp: string;
@@ -70,6 +80,19 @@ export interface Decision {
   executionMode?: 'dry' | 'paper' | 'live';
   decisionHash?: string;
   schemaVersion?: string;
+  reasonClass?: DecisionReasonClass;
+  sources?: string[];
+  freshness?: {
+    marketAgeMs: number;
+    walletAgeMs: number;
+    maxAgeMs: number;
+    observedAt: string;
+  };
+  evidenceRef?: {
+    marketRawHash?: string;
+    walletRawHash?: string;
+    signalPackHash?: string;
+  };
   actionLogAction?: string;
   actionLogAgentId?: string;
 }

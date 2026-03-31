@@ -421,7 +421,11 @@ describe("createExecutionHandler", () => {
     });
 
     const firstPromise = handler({ ...baseIntent, executionMode: "live", idempotencyKey: "inflight-1" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline && getMicroLiveControlSnapshot().counters.inFlight < 1) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(getMicroLiveControlSnapshot().counters.inFlight).toBe(1);
     const second = await handler({ ...baseIntent, executionMode: "live", idempotencyKey: "inflight-2" });
 
     expect(second.success).toBe(false);

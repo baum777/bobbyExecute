@@ -1,5 +1,5 @@
 /**
- * PR-B1: live / paper / dry all use Engine + decision.envelope.v2 with executionMode.
+ * PR-B1/B3: live / paper / dry share Engine + canonical envelope (v3 adds provenance).
  */
 import { describe, expect, it, vi } from "vitest";
 import type { Config } from "../../src/config/config-schema.js";
@@ -69,7 +69,7 @@ function dryConfig(wallet: string): Config {
 }
 
 describe("decision path convergence (PR-B1)", () => {
-  it("Engine emits decision.envelope.v2 with executionMode for dry and paper", async () => {
+  it("Engine emits decision.envelope.v3 with executionMode for dry and paper", async () => {
     const clock = new FakeClock("2026-03-31T12:00:00.000Z");
     const market: MarketSnapshot = {
       schema_version: "market.v1",
@@ -149,7 +149,7 @@ describe("decision path convergence (PR-B1)", () => {
         })
       );
 
-      expect(state.decisionEnvelope?.schemaVersion).toBe("decision.envelope.v2");
+      expect(state.decisionEnvelope?.schemaVersion).toBe("decision.envelope.v3");
       expect(state.decisionEnvelope?.executionMode).toBe(mode);
       expect(state.decisionEnvelope?.entrypoint).toBe("engine");
       expect(state.decisionEnvelope?.flow).toBe("trade");
@@ -199,11 +199,11 @@ describe("decision path convergence (PR-B1)", () => {
 
     const summaries = await cycleWriter.list(5);
     expect(summaries.length).toBeGreaterThanOrEqual(1);
-    expect(summaries[0].decisionEnvelope?.schemaVersion).toBe("decision.envelope.v2");
+    expect(summaries[0].decisionEnvelope?.schemaVersion).toBe("decision.envelope.v3");
     expect(summaries[0].decisionEnvelope?.executionMode).toBe("paper");
   });
 
-  it("DryRunRuntime dry mode still uses envelope v2 with executionMode dry", async () => {
+  it("DryRunRuntime dry mode still uses envelope v3 with executionMode dry", async () => {
     const clock = new FakeClock("2026-03-31T12:00:00.000Z");
     const runtime = new DryRunRuntime(dryConfig("11111111111111111111111111111111"), {
       clock,
@@ -215,7 +215,7 @@ describe("decision path convergence (PR-B1)", () => {
     await runtime.start();
     await runtime.stop();
     const s = runtime.getSnapshot().lastCycleSummary;
-    expect(s?.decisionEnvelope?.schemaVersion).toBe("decision.envelope.v2");
+    expect(s?.decisionEnvelope?.schemaVersion).toBe("decision.envelope.v3");
     expect(s?.decisionEnvelope?.executionMode).toBe("dry");
   });
 });

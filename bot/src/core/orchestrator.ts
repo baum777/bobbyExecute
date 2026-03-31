@@ -20,6 +20,8 @@ import {
   type DecisionEnvelope,
   type DecisionStage,
 } from "./contracts/decision-envelope.js";
+import { calculateDiscrepancy, DISCREPANCY_THRESHOLD } from "./contracts/dataquality.js";
+import { hashSignalPackForEvidence } from "./decision/ingest-provenance.js";
 import {
   type IdempotencyStore,
   IDEMPOTENCY_REPLAY_BLOCK,
@@ -155,7 +157,18 @@ export class Orchestrator {
               state.signalPack = signalPack;
               state.phase = "analyse";
 
-              return { payload: { intentSpec, signalPack } };
+              const freshnessApproxMs = Math.round((1 - (signalPack.dataQuality.freshness ?? 1)) * 10_000);
+              return {
+                payload: { intentSpec, signalPack },
+                sources: (signalPack.sources ?? []).map((s) => `signal:${s}`),
+                freshness: {
+                  marketAgeMs: freshnessApproxMs,
+                  walletAgeMs: freshnessApproxMs,
+                  maxAgeMs: 60_000,
+                  observedAt: context.timestamp,
+                },
+                evidenceRef: { signalPackHash: hashSignalPackForEvidence(signalPack) },
+              };
             },
             signal: async (context) => {
               if (!signalPack) {
@@ -194,6 +207,34 @@ export class Orchestrator {
             risk: async (context) => {
               if (!signalPack || !scoreCard || !patternResult || !decisionResult) {
                 throw new Error("ORCHESTRATOR_COORDINATOR_MISSING_RISK_STATE");
+              }
+
+              const priceBySource: Record<string, number> = {};
+              for (const s of signalPack.signals) {
+                const id = (s as { source?: string }).source ?? "unknown";
+                if (typeof (s as { priceUsd?: number }).priceUsd === "number") {
+                  priceBySource[id] = (s as { priceUsd: number }).priceUsd;
+                }
+              }
+              const priceValues = Object.values(priceBySource);
+              if (decisionResult.decision === "allow" && priceValues.length >= 2) {
+                const disc = calculateDiscrepancy(priceValues);
+                if (disc > DISCREPANCY_THRESHOLD) {
+                  return {
+                    blocked: true,
+                    blockedReason: "DATA_DISAGREEMENT:cross_source_price_divergence",
+                    reasonClass: "DATA_DISAGREEMENT",
+                    sources: (signalPack.sources ?? []).map((x) => `signal:${x}`),
+                    freshness: {
+                      marketAgeMs: Math.round((1 - (signalPack.dataQuality.freshness ?? 1)) * 10_000),
+                      walletAgeMs: Math.round((1 - (signalPack.dataQuality.freshness ?? 1)) * 10_000),
+                      maxAgeMs: 60_000,
+                      observedAt: context.timestamp,
+                    },
+                    evidenceRef: { signalPackHash: hashSignalPackForEvidence({ priceBySource, disc }) },
+                    payload: { discrepancy: disc },
+                  };
+                }
               }
 
               const dataQuality = {

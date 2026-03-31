@@ -23,8 +23,15 @@ import { createCanonicalDecisionAuthority, type DecisionCoordinator } from "./de
 import {
   assertDecisionEnvelope,
   type DecisionEnvelope,
+  type DecisionFreshness,
+  type DecisionEvidenceRef,
   type DecisionStage,
 } from "./contracts/decision-envelope.js";
+import type { DecisionReasonClass } from "./contracts/decision-reason-class.js";
+import {
+  hashSignalPackForEvidence,
+  validateIngestAndBuildProvenance,
+} from "./decision/ingest-provenance.js";
 
 export type EngineStage =
   | "ingest"
@@ -171,6 +178,9 @@ export class Engine {
     };
     let market: MarketSnapshot | undefined;
     let wallet: WalletSnapshot | undefined;
+    let ingestSources: string[] = [];
+    let ingestFreshness: DecisionFreshness | undefined;
+    let ingestEvidenceRef: DecisionEvidenceRef = {};
     let signal: { direction: string; confidence: number; cqd?: import("./contracts/cqd.js").CQDSnapshotV1 } | undefined;
     let intent: TradeIntent | undefined;
     let execReport: ExecutionReport | undefined;
@@ -197,10 +207,36 @@ export class Engine {
               state.wallet = wallet;
               state.stage = "signal";
 
-              return { payload: { market, wallet } };
+              const nowMs = this.clock.now().getTime();
+              const ingestCheck = validateIngestAndBuildProvenance(market, wallet, nowMs);
+              ingestSources = ingestCheck.sources;
+              ingestFreshness = ingestCheck.freshness;
+              ingestEvidenceRef = { ...ingestCheck.evidenceRef };
+
+              if (!ingestCheck.ok) {
+                state.blocked = true;
+                state.blockedReason = ingestCheck.blockedReason;
+                await this.log(state, "ingest_blocked");
+                return {
+                  blocked: true,
+                  blockedReason: ingestCheck.blockedReason,
+                  reasonClass: ingestCheck.reasonClass,
+                  sources: ingestCheck.sources,
+                  freshness: ingestCheck.freshness,
+                  evidenceRef: ingestCheck.evidenceRef,
+                  payload: { ingestRejected: true },
+                };
+              }
+
+              return {
+                payload: { market, wallet },
+                sources: ingestCheck.sources,
+                freshness: ingestCheck.freshness,
+                evidenceRef: ingestCheck.evidenceRef,
+              };
             },
             signal: async (context) => {
-              if (!market || !wallet) {
+              if (!market || !wallet || !ingestFreshness) {
                 throw new Error("ENGINE_COORDINATOR_MISSING_INGEST_STATE");
               }
 
@@ -212,6 +248,16 @@ export class Engine {
                 return {
                   blocked: true,
                   blockedReason: state.blockedReason,
+                  reasonClass: "SIGNAL_REJECTED" satisfies DecisionReasonClass,
+                  sources: [...ingestSources, "signal:engine"],
+                  freshness: ingestFreshness,
+                  evidenceRef: {
+                    ...ingestEvidenceRef,
+                    signalPackHash: hashSignalPackForEvidence({
+                      blocked: true,
+                      reason: state.blockedReason,
+                    }),
+                  },
                   payload: { blocked: true },
                 };
               }
@@ -245,7 +291,25 @@ export class Engine {
               state.tradeIntent = intent;
               await this.appendCriticalJournal(state, "decision_outcome", { market, wallet, signal }, { intent });
 
-              return { payload: { market, wallet, signal, intent } };
+              const signalEvidence = hashSignalPackForEvidence({
+                direction: signal.direction,
+                confidence: signal.confidence,
+                intent: {
+                  tokenIn: intent.tokenIn,
+                  tokenOut: intent.tokenOut,
+                  minAmountOut: intent.minAmountOut,
+                },
+              });
+
+              return {
+                payload: { market, wallet, signal, intent },
+                sources: [...ingestSources, "signal:engine"],
+                freshness: ingestFreshness,
+                evidenceRef: {
+                  ...ingestEvidenceRef,
+                  signalPackHash: signalEvidence,
+                },
+              };
             },
             risk: async () => {
               if (!intent || !market || !wallet || !signal) {
@@ -269,6 +333,10 @@ export class Engine {
                 return {
                   blocked: true,
                   blockedReason: risk.reason,
+                  reasonClass: "RISK_BLOCKED" satisfies DecisionReasonClass,
+                  sources: [...ingestSources, "risk:engine"],
+                  freshness: ingestFreshness,
+                  evidenceRef: ingestEvidenceRef,
                   payload: { allowed: risk.allowed, reason: risk.reason },
                 };
               }
@@ -280,6 +348,10 @@ export class Engine {
                 return {
                   blocked: true,
                   blockedReason: state.blockedReason,
+                  reasonClass: "RISK_BLOCKED" satisfies DecisionReasonClass,
+                  sources: [...ingestSources, "risk:daily_loss"],
+                  freshness: ingestFreshness,
+                  evidenceRef: ingestEvidenceRef,
                   payload: { allowed: false, reason: state.blockedReason },
                 };
               }
@@ -305,13 +377,25 @@ export class Engine {
                 return {
                   blocked: true,
                   blockedReason: state.blockedReason,
+                  reasonClass: "RISK_BLOCKED" satisfies DecisionReasonClass,
+                  sources: [...ingestSources, "chaos:gate"],
+                  freshness: ingestFreshness,
+                  evidenceRef: {
+                    ...ingestEvidenceRef,
+                    signalPackHash: chaos.reportHash ? hashSignalPackForEvidence({ chaosReportHash: chaos.reportHash }) : ingestEvidenceRef.signalPackHash,
+                  },
                   payload: { allowed: false, reason: chaos.reason, reportHash: chaos.reportHash },
                 };
               }
 
               state.stage = "execute";
               await this.emitStageTransition(state, "chaos", "execute");
-              return { payload: { riskAllowed: risk.allowed, chaosAllowed: chaos.allowed } };
+              return {
+                payload: { riskAllowed: risk.allowed, chaosAllowed: chaos.allowed },
+                sources: [...ingestSources, "risk:engine", "chaos:gate"],
+                freshness: ingestFreshness,
+                evidenceRef: ingestEvidenceRef,
+              };
             },
             execute: async () => {
               if (!intent) {
@@ -325,7 +409,15 @@ export class Engine {
               state.stage = "verify";
               await this.emitStageTransition(state, "execute", "verify");
 
-              return { payload: { execReport } };
+              return {
+                payload: { execReport },
+                sources: [...ingestSources, "execute:engine"],
+                freshness: ingestFreshness,
+                evidenceRef: {
+                  ...ingestEvidenceRef,
+                  signalPackHash: hashSignalPackForEvidence({ execReport: { success: execReport.success, failureCode: execReport.failureCode } }),
+                },
+              };
             },
             verify: async () => {
               if (!intent || !execReport) {
@@ -349,6 +441,13 @@ export class Engine {
                 return {
                   blocked: true,
                   blockedReason: state.blockedReason,
+                  reasonClass: "EXECUTION_FAILED" satisfies DecisionReasonClass,
+                  sources: [...ingestSources, "verify:rpc"],
+                  freshness: ingestFreshness,
+                  evidenceRef: {
+                    ...ingestEvidenceRef,
+                    signalPackHash: hashSignalPackForEvidence({ rpcVerify: { passed: false, reason: state.blockedReason } }),
+                  },
                   payload: { rpcVerify },
                 };
               }
@@ -360,7 +459,12 @@ export class Engine {
 
               state.stage = "journal";
               await this.emitStageTransition(state, "verify", "journal");
-              return { payload: { rpcVerify } };
+              return {
+                payload: { rpcVerify },
+                sources: [...ingestSources, "verify:rpc"],
+                freshness: ingestFreshness,
+                evidenceRef: ingestEvidenceRef,
+              };
             },
             journal: async () => {
               if (!intent || !execReport || !rpcVerify || !market || !wallet || !signal) {
@@ -385,7 +489,7 @@ export class Engine {
       state.blocked = envelope.blocked;
       state.blockedReason = envelope.blockedReason;
 
-      if (envelope.schemaVersion === "decision.envelope.v2") {
+      if (envelope.schemaVersion === "decision.envelope.v3") {
         state.journalEntry = {
           traceId: state.traceId,
           timestamp: this.clock.now().toISOString(),

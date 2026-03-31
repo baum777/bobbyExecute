@@ -23,10 +23,11 @@ const researchOk = async (): Promise<SignalPack> => ({
   dataQuality: { completeness: 0.95, freshness: 0.9, sourceReliability: 0.95 },
 });
 
+/** Single strong signal so scorecard yields decision=allow (fail-closed paths must exercise allow). */
 const researchAllow = async (): Promise<SignalPack> => ({
   traceId: "fc-trace-allow",
   timestamp: new Date().toISOString(),
-  sources: ["moralis", "dexscreener"],
+  sources: ["moralis"],
   signals: [
     {
       source: "moralis",
@@ -34,15 +35,6 @@ const researchAllow = async (): Promise<SignalPack> => ({
       baseToken: "SOL",
       quoteToken: "USDC",
       priceUsd: 100,
-      volume24h: 250000,
-      liquidity: 1500000,
-    },
-    {
-      source: "dexscreener",
-      timestamp: new Date().toISOString(),
-      baseToken: "SOL",
-      quoteToken: "USDC",
-      priceUsd: 300,
       volume24h: 250000,
       liquidity: 1500000,
     },

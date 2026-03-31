@@ -220,6 +220,7 @@ export async function buildDecisionEnvelopeFixtureSet(): Promise<DecisionEnvelop
   const allowEnvelope = await coordinator.run({
     entrypoint: "engine",
     flow: "trade",
+    executionMode: "dry",
     clock,
     traceIdSeed: "shared-allow",
     tracePrefix: "shared",
@@ -237,6 +238,7 @@ export async function buildDecisionEnvelopeFixtureSet(): Promise<DecisionEnvelop
   const denyEnvelope = await coordinator.run({
     entrypoint: "orchestrator",
     flow: "analysis",
+    executionMode: "dry",
     clock,
     traceIdSeed: "shared-deny",
     tracePrefix: "shared",
@@ -328,12 +330,16 @@ export function makeEnvelopeRelayCoordinator(envelope: DecisionEnvelope): Decisi
         }
       }
 
+      const base = { ...envelope, entrypoint: request.entrypoint, flow: request.flow, traceId };
+      if (envelope.schemaVersion === "decision.envelope.v3") {
+        return {
+          ...base,
+          executionMode: request.executionMode ?? envelope.executionMode,
+        };
+      }
       return {
-        ...envelope,
-        entrypoint: request.entrypoint,
-        flow: request.flow,
-        executionMode: request.executionMode ?? envelope.executionMode ?? "dry",
-        traceId,
+        ...base,
+        executionMode: request.executionMode ?? (envelope as { executionMode?: string }).executionMode ?? "dry",
       };
     },
   };

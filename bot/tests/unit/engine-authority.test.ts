@@ -77,13 +77,17 @@ class StageFailingJournalWriter implements JournalWriter {
 function makeMalformedDecisionCoordinator(): DecisionCoordinator {
   return {
     run: vi.fn(async () => ({
-      schemaVersion: "decision.envelope.v2",
+      schemaVersion: "decision.envelope.v3",
       entrypoint: "engine",
       flow: "trade",
       executionMode: "dry",
       traceId: "trace-1",
       stage: "monitor",
       blocked: false,
+      reasonClass: "NO_TRADE",
+      sources: [],
+      freshness: { marketAgeMs: 0, walletAgeMs: 0, maxAgeMs: 1, observedAt: "2026-03-17T12:00:00.000Z" },
+      evidenceRef: {},
       decisionHash: "decision-hash-1",
       // resultHash is intentionally missing to prove runtime validation blocks it.
     })) as DecisionCoordinator["run"],

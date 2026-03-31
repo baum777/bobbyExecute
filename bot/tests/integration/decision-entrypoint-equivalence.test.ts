@@ -9,26 +9,61 @@ describe("decision entrypoint equivalence", () => {
 
     const runs = await Promise.all(
       [
-        { entrypoint: "engine", flow: "trade", prefix: "trace" },
-        { entrypoint: "orchestrator", flow: "analysis", prefix: "orch" },
-        { entrypoint: "dry-runtime", flow: "trade", prefix: "runtime" },
-        { entrypoint: "live-runtime", flow: "trade", prefix: "runtime" },
+        { entrypoint: "engine", prefix: "trace" },
+        { entrypoint: "orchestrator", prefix: "orch" },
+        { entrypoint: "dry-runtime", prefix: "runtime" },
+        { entrypoint: "live-runtime", prefix: "runtime" },
       ].map((item) =>
         coordinator.run({
           entrypoint: item.entrypoint as "engine" | "orchestrator" | "dry-runtime" | "live-runtime",
-          flow: item.flow as "analysis" | "trade",
+          flow: "trade",
+          executionMode: "dry",
           clock,
           traceIdSeed: "shared-seed",
           tracePrefix: item.prefix,
           handlers: {
-            ingest: async () => ({ payload: { ingest: "ok" } }),
-            signal: async () => ({ payload: { signal: "ok" } }),
-            reasoning: async () => ({ payload: { reasoning: "ok" } }),
-            risk: async () => ({ payload: { risk: "ok" } }),
-            execute: async () => ({ payload: { execute: "ok" } }),
-            verify: async () => ({ payload: { verify: "ok" } }),
-            journal: async () => ({ payload: { journal: "ok" } }),
-            monitor: async () => ({ payload: { monitor: "ok" } }),
+            ingest: async () => ({
+              payload: { ingest: "ok" },
+              sources: ["fixture:ingest"],
+              freshness: { marketAgeMs: 0, walletAgeMs: 0, maxAgeMs: 60_000, observedAt: clock.now().toISOString() },
+              evidenceRef: {},
+            }),
+            signal: async () => ({
+              payload: { signal: "ok" },
+              sources: ["fixture:ingest", "fixture:signal"],
+              freshness: { marketAgeMs: 0, walletAgeMs: 0, maxAgeMs: 60_000, observedAt: clock.now().toISOString() },
+              evidenceRef: {},
+            }),
+            risk: async () => ({
+              payload: { risk: "ok" },
+              sources: ["fixture:ingest", "fixture:signal", "fixture:risk"],
+              freshness: { marketAgeMs: 0, walletAgeMs: 0, maxAgeMs: 60_000, observedAt: clock.now().toISOString() },
+              evidenceRef: {},
+            }),
+            execute: async () => ({
+              payload: { execute: "ok" },
+              sources: ["fixture:ingest", "fixture:signal", "fixture:risk", "fixture:execute"],
+              freshness: { marketAgeMs: 0, walletAgeMs: 0, maxAgeMs: 60_000, observedAt: clock.now().toISOString() },
+              evidenceRef: {},
+            }),
+            verify: async () => ({
+              payload: { verify: "ok" },
+              sources: ["fixture:ingest", "fixture:signal", "fixture:risk", "fixture:execute", "fixture:verify"],
+              freshness: { marketAgeMs: 0, walletAgeMs: 0, maxAgeMs: 60_000, observedAt: clock.now().toISOString() },
+              evidenceRef: {},
+            }),
+            journal: async () => ({
+              payload: { journal: "ok" },
+              sources: ["fixture:ingest", "fixture:signal", "fixture:risk", "fixture:execute", "fixture:verify", "fixture:journal"],
+              freshness: { marketAgeMs: 0, walletAgeMs: 0, maxAgeMs: 60_000, observedAt: clock.now().toISOString() },
+              evidenceRef: {},
+            }),
+            monitor: async () => ({
+              payload: { monitor: "ok" },
+              sources: ["fixture:ingest", "fixture:signal", "fixture:risk", "fixture:execute", "fixture:verify", "fixture:journal", "fixture:monitor"],
+              freshness: { marketAgeMs: 0, walletAgeMs: 0, maxAgeMs: 60_000, observedAt: clock.now().toISOString() },
+              evidenceRef: {},
+            }),
           },
         })
       )
