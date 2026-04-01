@@ -4,16 +4,20 @@
  */
 import { createTraceId } from "../../observability/trace-id.js";
 import { hashDecision, hashResult } from "../determinism/hash.js";
+import { resolveDecisionReasonClass } from "../contracts/decision-reason-class.js";
 import type {
   DecisionCoordinator,
   DecisionEnvelope,
+  DecisionEvidenceRef,
   DecisionFlow,
+  DecisionFreshness,
   DecisionHandlers,
   DecisionRequest,
   DecisionStage,
   DecisionStageContext,
   DecisionStageOutcome,
 } from "../contracts/decision-envelope.js";
+import type { DecisionReasonClass } from "../contracts/decision-reason-class.js";
 
 const CANONICAL_STAGE_ORDER: DecisionStage[] = [
   "ingest",
@@ -50,6 +54,10 @@ export class CanonicalDecisionAuthority implements DecisionCoordinator {
       payload?: unknown;
       blocked?: boolean;
       blockedReason?: string;
+      reasonClass?: DecisionReasonClass;
+      sources?: string[];
+      freshness?: DecisionFreshness;
+      evidenceRef?: DecisionEvidenceRef;
     }> = [];
 
     for (const requiredStage of REQUIRED_STAGES[request.flow]) {
@@ -89,7 +97,20 @@ export class CanonicalDecisionAuthority implements DecisionCoordinator {
     }
 
     const executionMode = request.executionMode ?? "dry";
-    const schemaVersion = "decision.envelope.v2" as const;
+    const schemaVersion = "decision.envelope.v3" as const;
+
+    const tradeCompleted = inferTradeCompleted(stageResults);
+    const reasonClass =
+      pickTerminalReasonClass(stageResults, blocked, terminalStage, blockedReason) ??
+      resolveDecisionReasonClass({
+        blocked,
+        terminalStage,
+        blockedReason,
+        tradeCompleted,
+      });
+
+    const mergedProvenance = mergeProvenanceFromStages(stageResults, timestamp);
+
     const canonicalDecisionHash = hashDecision({
       schemaVersion,
       executionMode,
@@ -98,9 +119,17 @@ export class CanonicalDecisionAuthority implements DecisionCoordinator {
         payload: record.payload,
         blocked: record.blocked === true,
         blockedReason: record.blockedReason,
+        reasonClass: record.reasonClass,
+        sources: record.sources,
+        freshness: record.freshness,
+        evidenceRef: record.evidenceRef,
       })),
       blocked,
       blockedReason,
+      reasonClass,
+      sources: mergedProvenance.sources,
+      freshness: mergedProvenance.freshness,
+      evidenceRef: mergedProvenance.evidenceRef,
     });
     const canonicalResultHash = hashResult({
       schemaVersion,
@@ -109,9 +138,11 @@ export class CanonicalDecisionAuthority implements DecisionCoordinator {
         stage: record.stage,
         blocked: record.blocked === true,
         blockedReason: record.blockedReason,
+        reasonClass: record.reasonClass,
       })),
       blocked,
       blockedReason,
+      reasonClass,
     });
 
     return {
@@ -123,6 +154,10 @@ export class CanonicalDecisionAuthority implements DecisionCoordinator {
       stage: terminalStage,
       blocked,
       blockedReason,
+      reasonClass,
+      sources: mergedProvenance.sources,
+      freshness: mergedProvenance.freshness,
+      evidenceRef: mergedProvenance.evidenceRef,
       decisionHash: canonicalDecisionHash,
       resultHash: canonicalResultHash,
     };
@@ -134,13 +169,98 @@ function normalizeOutcome(stage: DecisionStage, outcome: DecisionStageOutcome | 
   payload?: unknown;
   blocked?: boolean;
   blockedReason?: string;
+  reasonClass?: DecisionReasonClass;
+  sources?: string[];
+  freshness?: DecisionFreshness;
+  evidenceRef?: DecisionEvidenceRef;
 } {
   return {
     stage,
     payload: outcome?.payload,
     blocked: outcome?.blocked === true,
     blockedReason: outcome?.blockedReason,
+    reasonClass: outcome?.reasonClass,
+    sources: outcome?.sources,
+    freshness: outcome?.freshness,
+    evidenceRef: outcome?.evidenceRef,
   };
+}
+
+function inferTradeCompleted(
+  stages: Array<{ stage: DecisionStage; payload?: unknown; blocked?: boolean }>
+): boolean {
+  const exec = stages.find((s) => s.stage === "execute");
+  if (!exec || exec.blocked) {
+    return false;
+  }
+  const payload = exec.payload as { execReport?: { success?: boolean } } | undefined;
+  return payload?.execReport?.success === true;
+}
+
+function mergeProvenanceFromStages(
+  stages: Array<{
+    sources?: string[];
+    freshness?: DecisionFreshness;
+    evidenceRef?: DecisionEvidenceRef;
+  }>,
+  decisionTimestampIso: string
+): { sources: string[]; freshness: DecisionFreshness; evidenceRef: DecisionEvidenceRef } {
+  const sourceSet = new Set<string>();
+  let freshness: DecisionFreshness | undefined;
+  let evidenceRef: DecisionEvidenceRef = {};
+
+  for (const s of stages) {
+    for (const x of s.sources ?? []) {
+      sourceSet.add(x);
+    }
+    if (s.freshness) {
+      freshness = s.freshness;
+    }
+    if (s.evidenceRef) {
+      evidenceRef = { ...evidenceRef, ...s.evidenceRef };
+    }
+  }
+
+  if (!freshness) {
+    freshness = {
+      marketAgeMs: 0,
+      walletAgeMs: 0,
+      maxAgeMs: 1,
+      observedAt: decisionTimestampIso,
+    };
+  } else {
+    freshness = {
+      ...freshness,
+      observedAt: decisionTimestampIso,
+    };
+  }
+
+  return {
+    sources: Array.from(sourceSet).sort(),
+    freshness,
+    evidenceRef,
+  };
+}
+
+function pickTerminalReasonClass(
+  stages: Array<{ stage: DecisionStage; blocked?: boolean; reasonClass?: DecisionReasonClass }>,
+  blocked: boolean,
+  terminalStage: DecisionStage,
+  blockedReason: string | undefined
+): DecisionReasonClass | undefined {
+  for (let i = stages.length - 1; i >= 0; i -= 1) {
+    const s = stages[i];
+    if (s.stage === terminalStage && s.reasonClass) {
+      return s.reasonClass;
+    }
+    if (blocked && s.blocked && s.reasonClass) {
+      return s.reasonClass;
+    }
+  }
+  if (blockedReason === "DATA_DISAGREEMENT:cross_source_price_divergence") {
+    return "DATA_DISAGREEMENT";
+  }
+  return undefined;
 }
 
 export function createCanonicalDecisionAuthority(): DecisionCoordinator {

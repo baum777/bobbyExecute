@@ -42,13 +42,17 @@ function makeSignalPack(): SignalPack {
 function makeMalformedDecisionCoordinator(): DecisionCoordinator {
   return {
     run: vi.fn(async () => ({
-      schemaVersion: "decision.envelope.v2",
+      schemaVersion: "decision.envelope.v3",
       entrypoint: "orchestrator",
       flow: "analysis",
       executionMode: "dry",
       traceId: "orch-1",
       stage: "journal",
       blocked: false,
+      reasonClass: "NO_TRADE",
+      sources: [],
+      freshness: { marketAgeMs: 0, walletAgeMs: 0, maxAgeMs: 1, observedAt: "2026-03-17T12:00:00.000Z" },
+      evidenceRef: {},
       resultHash: "result-hash-1",
       // decisionHash is intentionally missing to prove runtime validation blocks it.
     })) as DecisionCoordinator["run"],

@@ -125,8 +125,152 @@ export interface RuntimeReviewSummary {
   recentIncidents: RuntimeRecentIncidentSummary[];
 }
 
-const RECENT_CYCLE_LIMIT = 10;
-const RECENT_INCIDENT_LIMIT = 20;
+export const RECENT_CYCLE_LIMIT = 10;
+export const RECENT_INCIDENT_LIMIT = 20;
+
+/**
+ * Shared aggregation for `recentHistory` in runtime snapshots (dry / paper / live).
+ */
+export function buildRuntimeReviewSummary(
+  recentCycleSummaries: RuntimeCycleSummary[],
+  recentIncidents: IncidentRecord[]
+): RuntimeReviewSummary {
+  const recentCycles = recentCycleSummaries.slice(-RECENT_CYCLE_LIMIT);
+  const recentIncidentsWindow = recentIncidents.slice(-RECENT_INCIDENT_LIMIT);
+  const cycleOutcomes: Record<RuntimeCycleOutcome, number> = {
+    success: 0,
+    blocked: 0,
+    error: 0,
+  };
+  const attemptsByMode: Record<"dry" | "paper" | "live", number> = {
+    dry: 0,
+    paper: 0,
+    live: 0,
+  };
+  const refusalCounts: Record<string, number> = {};
+  const failureStageCounts: Record<string, number> = {};
+  const verificationHealth = {
+    passed: 0,
+    failed: 0,
+    failureReasons: {} as Record<string, number>,
+  };
+
+  for (const summary of recentCycles) {
+    cycleOutcomes[summary.outcome] += 1;
+    attemptsByMode[summary.mode] += 1;
+    if (summary.blocked && summary.blockedReason) {
+      refusalCounts[summary.blockedReason] = (refusalCounts[summary.blockedReason] ?? 0) + 1;
+    }
+    if (summary.errorOccurred) {
+      failureStageCounts[summary.stage] = (failureStageCounts[summary.stage] ?? 0) + 1;
+    }
+    if (summary.verificationOccurred) {
+      if (summary.verification?.passed === true) {
+        verificationHealth.passed += 1;
+      } else {
+        verificationHealth.failed += 1;
+        const reason = summary.verification?.reason ?? "unknown";
+        verificationHealth.failureReasons[reason] = (verificationHealth.failureReasons[reason] ?? 0) + 1;
+      }
+    }
+    if (summary.execution?.success === false) {
+      const code = summary.execution.error ?? summary.execution.mode ?? "execution_failed";
+      failureStageCounts[summary.execution.mode ?? summary.stage] =
+        (failureStageCounts[summary.execution.mode ?? summary.stage] ?? 0) + 1;
+      refusalCounts[code] = (refusalCounts[code] ?? 0) + 1;
+    }
+  }
+
+  const incidentCounts: Record<string, number> = {};
+  for (const incident of recentIncidentsWindow) {
+    incidentCounts[incident.type] = (incidentCounts[incident.type] ?? 0) + 1;
+    if (
+      incident.type === "live_guardrail_refused" ||
+      incident.type === "live_execution_refused"
+    ) {
+      const reason =
+        incident.details?.reasonCode?.toString() ??
+        incident.details?.blockedReason?.toString() ??
+        incident.details?.reason?.toString() ??
+        incident.message;
+      refusalCounts[reason] = (refusalCounts[reason] ?? 0) + 1;
+    }
+    if (incident.type === "rollout_posture_transition") {
+      failureStageCounts["rollout"] = (failureStageCounts["rollout"] ?? 0) + 1;
+    }
+  }
+
+  const controlActions = recentIncidentsWindow.filter((incident) =>
+    incident.type === "live_control_armed" ||
+    incident.type === "live_control_disarmed" ||
+    incident.type === "live_control_killed" ||
+    incident.type === "live_control_blocked" ||
+    incident.type === "runtime_paused" ||
+    incident.type === "runtime_resumed" ||
+    incident.type === "runtime_halted" ||
+    incident.type === "emergency_stop"
+  );
+
+  const stateTransitions = recentIncidentsWindow.filter((incident) =>
+    incident.type === "runtime_paused" ||
+    incident.type === "runtime_resumed" ||
+    incident.type === "runtime_halted" ||
+    incident.type === "emergency_stop" ||
+    incident.type === "rollout_posture_transition" ||
+    incident.type === "live_control_armed" ||
+    incident.type === "live_control_disarmed" ||
+    incident.type === "live_control_killed" ||
+    incident.type === "live_control_blocked"
+  ).map((incident) => ({
+    at: incident.at,
+    type: incident.type,
+    message: incident.message,
+    details: incident.details,
+  }));
+
+  return {
+    recentCycleCount: recentCycles.length,
+    cycleOutcomes,
+    attemptsByMode,
+    refusalCounts,
+    failureStageCounts,
+    verificationHealth,
+    incidentCounts,
+    controlActions: controlActions.map((incident) => ({
+      id: incident.id,
+      at: incident.at,
+      severity: incident.severity,
+      type: incident.type,
+      message: incident.message,
+      details: incident.details,
+    })),
+    stateTransitions,
+    recentCycles: recentCycles.map((summary) => ({
+      traceId: summary.traceId,
+      cycleTimestamp: summary.cycleTimestamp,
+      mode: summary.mode,
+      outcome: summary.outcome,
+      stage: summary.stage,
+      blocked: summary.blocked,
+      blockedReason: summary.blockedReason,
+      intakeOutcome: summary.intakeOutcome,
+      executionOccurred: summary.executionOccurred,
+      verificationOccurred: summary.verificationOccurred,
+      decisionOccurred: summary.decisionOccurred,
+      errorOccurred: summary.errorOccurred,
+      decisionEnvelope: summary.decisionEnvelope,
+      decision: summary.decision,
+    })),
+    recentIncidents: recentIncidentsWindow.map((incident) => ({
+      id: incident.id,
+      at: incident.at,
+      severity: incident.severity,
+      type: incident.type,
+      message: incident.message,
+      details: incident.details,
+    })),
+  };
+}
 
 export interface RuntimeDegradedState {
   active: boolean;
@@ -571,141 +715,7 @@ export class DryRunRuntime {
   }
 
   private getReviewSummary(): RuntimeReviewSummary {
-    const recentCycles = this.recentCycleSummaries.slice(-RECENT_CYCLE_LIMIT);
-    const recentIncidents = this.recentIncidents.slice(-RECENT_INCIDENT_LIMIT);
-    const cycleOutcomes: Record<RuntimeCycleOutcome, number> = {
-      success: 0,
-      blocked: 0,
-      error: 0,
-    };
-    const attemptsByMode: Record<"dry" | "paper" | "live", number> = {
-      dry: 0,
-      paper: 0,
-      live: 0,
-    };
-    const refusalCounts: Record<string, number> = {};
-    const failureStageCounts: Record<string, number> = {};
-    const verificationHealth = {
-      passed: 0,
-      failed: 0,
-      failureReasons: {} as Record<string, number>,
-    };
-
-    for (const summary of recentCycles) {
-      cycleOutcomes[summary.outcome] += 1;
-      attemptsByMode[summary.mode] += 1;
-      if (summary.blocked && summary.blockedReason) {
-        refusalCounts[summary.blockedReason] = (refusalCounts[summary.blockedReason] ?? 0) + 1;
-      }
-      if (summary.errorOccurred) {
-        failureStageCounts[summary.stage] = (failureStageCounts[summary.stage] ?? 0) + 1;
-      }
-      if (summary.verificationOccurred) {
-        if (summary.verification?.passed === true) {
-          verificationHealth.passed += 1;
-        } else {
-          verificationHealth.failed += 1;
-          const reason = summary.verification?.reason ?? "unknown";
-          verificationHealth.failureReasons[reason] = (verificationHealth.failureReasons[reason] ?? 0) + 1;
-        }
-      }
-      if (summary.execution?.success === false) {
-        const code = summary.execution.error ?? summary.execution.mode ?? "execution_failed";
-        failureStageCounts[summary.execution.mode ?? summary.stage] =
-          (failureStageCounts[summary.execution.mode ?? summary.stage] ?? 0) + 1;
-        refusalCounts[code] = (refusalCounts[code] ?? 0) + 1;
-      }
-    }
-
-    const incidentCounts: Record<string, number> = {};
-    for (const incident of recentIncidents) {
-      incidentCounts[incident.type] = (incidentCounts[incident.type] ?? 0) + 1;
-      if (
-        incident.type === "live_guardrail_refused" ||
-        incident.type === "live_execution_refused"
-      ) {
-        const reason =
-          incident.details?.reasonCode?.toString() ??
-          incident.details?.blockedReason?.toString() ??
-          incident.details?.reason?.toString() ??
-          incident.message;
-        refusalCounts[reason] = (refusalCounts[reason] ?? 0) + 1;
-      }
-      if (incident.type === "rollout_posture_transition") {
-        failureStageCounts["rollout"] = (failureStageCounts["rollout"] ?? 0) + 1;
-      }
-    }
-
-    const controlActions = recentIncidents.filter((incident) =>
-      incident.type === "live_control_armed" ||
-      incident.type === "live_control_disarmed" ||
-      incident.type === "live_control_killed" ||
-      incident.type === "live_control_blocked" ||
-      incident.type === "runtime_paused" ||
-      incident.type === "runtime_resumed" ||
-      incident.type === "runtime_halted" ||
-      incident.type === "emergency_stop"
-    );
-
-    const stateTransitions = recentIncidents.filter((incident) =>
-      incident.type === "runtime_paused" ||
-      incident.type === "runtime_resumed" ||
-      incident.type === "runtime_halted" ||
-      incident.type === "emergency_stop" ||
-      incident.type === "rollout_posture_transition" ||
-      incident.type === "live_control_armed" ||
-      incident.type === "live_control_disarmed" ||
-      incident.type === "live_control_killed" ||
-      incident.type === "live_control_blocked"
-    ).map((incident) => ({
-      at: incident.at,
-      type: incident.type,
-      message: incident.message,
-      details: incident.details,
-    }));
-
-    return {
-      recentCycleCount: recentCycles.length,
-      cycleOutcomes,
-      attemptsByMode,
-      refusalCounts,
-      failureStageCounts,
-      verificationHealth,
-      incidentCounts,
-      controlActions: controlActions.map((incident) => ({
-        id: incident.id,
-        at: incident.at,
-        severity: incident.severity,
-        type: incident.type,
-        message: incident.message,
-        details: incident.details,
-      })),
-      stateTransitions,
-      recentCycles: recentCycles.map((summary) => ({
-        traceId: summary.traceId,
-        cycleTimestamp: summary.cycleTimestamp,
-        mode: summary.mode,
-        outcome: summary.outcome,
-        stage: summary.stage,
-        blocked: summary.blocked,
-        blockedReason: summary.blockedReason,
-        intakeOutcome: summary.intakeOutcome,
-        executionOccurred: summary.executionOccurred,
-        verificationOccurred: summary.verificationOccurred,
-        decisionOccurred: summary.decisionOccurred,
-        errorOccurred: summary.errorOccurred,
-        decisionEnvelope: summary.decisionEnvelope,
-        decision: summary.decision,
-      })),
-      recentIncidents: recentIncidents.map((incident) => ({
-        id: incident.id,
-        at: incident.at,
-        severity: incident.severity,
-        type: incident.type,
-        message: incident.message,
-        details: incident.details,
-      })),
-    };
+    return buildRuntimeReviewSummary(this.recentCycleSummaries, this.recentIncidents);
   }
 
   async getCycleReplay(traceId: string): Promise<RuntimeCycleReplay | null> {

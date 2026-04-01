@@ -79,10 +79,11 @@ import { runRiskEngine } from "../risk/risk-engine.js";
 import { runSignalEngine } from "../signals/signal-engine.js";
 import { createCanonicalDecisionAuthority, type DecisionCoordinator } from "../core/decision/index.js";
 import { type RuntimeController } from "./controller.js";
-import type {
-  RuntimeControlResult,
-  RuntimeSnapshot,
-  RuntimeStatus,
+import {
+  buildRuntimeReviewSummary,
+  type RuntimeControlResult,
+  type RuntimeSnapshot,
+  type RuntimeStatus,
 } from "./dry-run-runtime.js";
 import { assertLiveTradingPrerequisites, assertRuntimePolicyAuthority } from "../config/safety.js";
 
@@ -599,6 +600,7 @@ export class LiveRuntime implements RuntimeController {
       lastDecisionAt: this.lastDecisionAt,
       lastState: this.lastState,
       lastCycleSummary: this.lastCycleSummary,
+      recentHistory: buildRuntimeReviewSummary(this.recentCycleSummaries, this.recentIncidents),
     };
   }
 

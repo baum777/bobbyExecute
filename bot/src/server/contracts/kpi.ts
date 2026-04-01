@@ -298,6 +298,17 @@ export interface KpiSummaryResponse {
   };
 }
 
+/** Normalized audit reason (canonical envelope v3). */
+export type KpiDecisionReasonClass =
+  | "DATA_STALE"
+  | "DATA_MISSING"
+  | "DATA_DISAGREEMENT"
+  | "SIGNAL_REJECTED"
+  | "RISK_BLOCKED"
+  | "EXECUTION_FAILED"
+  | "SUCCESS"
+  | "NO_TRADE";
+
 export interface KpiDecision {
   id: string;
   timestamp: string;
@@ -315,6 +326,20 @@ export interface KpiDecision {
   executionMode?: "dry" | "paper" | "live";
   decisionHash?: string;
   schemaVersion?: string;
+  /** PR-C1: from decision.envelope.v3 only (not reconstructed). */
+  reasonClass?: KpiDecisionReasonClass;
+  sources?: string[];
+  freshness?: {
+    marketAgeMs: number;
+    walletAgeMs: number;
+    maxAgeMs: number;
+    observedAt: string;
+  };
+  evidenceRef?: {
+    marketRawHash?: string;
+    walletRawHash?: string;
+    signalPackHash?: string;
+  };
   /** Original action log `action` field (e.g. evaluate, complete). */
   actionLogAction?: string;
   /** Original action log agent id when present. */

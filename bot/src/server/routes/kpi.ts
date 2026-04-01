@@ -43,7 +43,7 @@ function mapHealthToStatus(h: AdapterHealth): KpiAdapter["status"] {
 
 function cycleSummaryToKpiDecision(cycle: RuntimeRecentCycleSummary): KpiDecision | null {
   const env = cycle.decisionEnvelope;
-  if (!env) {
+  if (!env || env.schemaVersion !== "decision.envelope.v3") {
     return null;
   }
   const action: KpiDecision["action"] = env.blocked ? "block" : "allow";
@@ -56,9 +56,13 @@ function cycleSummaryToKpiDecision(cycle: RuntimeRecentCycleSummary): KpiDecisio
     reasons: env.blockedReason ? [env.blockedReason] : [],
     provenanceKind: "canonical",
     source: "runtime_cycle_summary",
-    executionMode: env.schemaVersion === "decision.envelope.v2" ? env.executionMode : undefined,
+    executionMode: env.executionMode,
     decisionHash: env.decisionHash,
     schemaVersion: env.schemaVersion,
+    reasonClass: env.reasonClass,
+    sources: env.sources,
+    freshness: env.freshness,
+    evidenceRef: env.evidenceRef,
   };
 }
 

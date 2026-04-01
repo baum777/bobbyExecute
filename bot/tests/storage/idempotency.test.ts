@@ -43,7 +43,7 @@ describe("Orchestrator idempotency gate", () => {
     timestamp: ts,
     signals: [
       { source: "dexscreener", timestamp: ts, baseToken: "SOL", quoteToken: "USDC", priceUsd: 100 },
-      { source: "paprika", timestamp: ts, baseToken: "SOL", quoteToken: "USDC", priceUsd: 165 },
+      { source: "paprika", timestamp: ts, baseToken: "SOL", quoteToken: "USDC", priceUsd: 100 },
     ],
     dataQuality: {
       completeness: 0.95,

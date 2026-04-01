@@ -84,10 +84,11 @@ describe("paper bootstrap integration parity (phase-6)", () => {
     });
     await runtimeConfigManager.initialize();
 
+    const freshTs = new Date().toISOString();
     const marketSnapshot: MarketSnapshot = {
       schema_version: "market.v1",
       traceId: "phase6-market-trace",
-      timestamp: "2026-03-18T00:00:00.000Z",
+      timestamp: freshTs,
       source: "dexpaprika",
       poolId: "phase6-paper-pool",
       baseToken: "SOL",
@@ -100,7 +101,7 @@ describe("paper bootstrap integration parity (phase-6)", () => {
     };
     const walletSnapshot: WalletSnapshot = {
       traceId: "phase6-wallet-trace",
-      timestamp: "2026-03-18T00:00:00.000Z",
+      timestamp: freshTs,
       source: "moralis",
       walletAddress: process.env.WALLET_ADDRESS!,
       balances: [
