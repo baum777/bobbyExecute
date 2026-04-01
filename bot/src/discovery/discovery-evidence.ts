@@ -97,7 +97,10 @@ function summarizeStatus(
   if (observations.length === 0 || observations.some((observation) => observation.status === "ERROR")) {
     return "REJECTED";
   }
-  if (missingFields.length > 0 || observations.some((observation) => observation.status !== "OK")) {
+  if (
+    missingFields.length > 0 ||
+    observations.some((observation) => observation.status !== "OK" || observation.isStale)
+  ) {
     return "PARTIAL";
   }
   return "COLLECTED";

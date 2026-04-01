@@ -9,6 +9,7 @@ export const CandidateTokenPrioritySchema = z.enum([
   "low",
   "medium",
   "high",
+  // Reserved for future use. PR-02b does not emit this priority yet.
   "critical",
 ]);
 

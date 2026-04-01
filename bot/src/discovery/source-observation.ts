@@ -24,14 +24,10 @@ export interface CreateSourceObservationInput {
 }
 
 function deriveStatus(
-  freshnessMs: number,
   missingFields: string[]
 ): SourceObservationStatus {
   if (missingFields.length > 0) {
     return "PARTIAL";
-  }
-  if (freshnessMs > 0) {
-    return "STALE";
   }
   return "OK";
 }
@@ -40,8 +36,9 @@ export function createSourceObservation(
   input: CreateSourceObservationInput
 ): SourceObservation {
   const missingFields = [...new Set(input.missingFields ?? [])].sort();
-  const notes = [...new Set(input.notes ?? [])];
+  const notes = [...new Set(input.notes ?? [])].sort();
   const payloadHash = hashDecision(input.payload);
+  const isStale = input.freshnessMs > 0;
 
   return SourceObservationSchema.parse({
     schema_version: "source_observation.v1",
@@ -51,7 +48,8 @@ export function createSourceObservation(
     observedAtMs: input.observedAtMs,
     freshnessMs: input.freshnessMs,
     payloadHash,
-    status: deriveStatus(input.freshnessMs, missingFields),
+    status: deriveStatus(missingFields),
+    isStale,
     rawRef: input.rawRef,
     missingFields,
     notes,

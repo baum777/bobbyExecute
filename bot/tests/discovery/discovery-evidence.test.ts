@@ -44,5 +44,27 @@ describe("DiscoveryEvidence", () => {
     expect(evidence.missingFields).toEqual(["liquidityUsd"]);
     expect(evidence.disagreedFields).toEqual(["priceUsd"]);
     expect(evidence.disagreedSources.priceUsd).toEqual(["market", "social"]);
+    expect(evidence.observations[1]?.status).toBe("PARTIAL");
+    expect(evidence.observations[1]?.isStale).toBe(true);
+  });
+
+  it("treats stale-only observations as partial evidence without losing staleness", () => {
+    const staleObservation = createSourceObservation({
+      source: "market",
+      token: "SOL",
+      observedAtMs: 100,
+      freshnessMs: 5_000,
+      payload: { symbol: "SOL", priceUsd: 101 },
+    });
+
+    const evidence = buildDiscoveryEvidence({
+      token: "SOL",
+      observations: [staleObservation],
+    });
+
+    expect(staleObservation.status).toBe("OK");
+    expect(staleObservation.isStale).toBe(true);
+    expect(evidence.status).toBe("PARTIAL");
+    expect(evidence.observations[0]?.isStale).toBe(true);
   });
 });

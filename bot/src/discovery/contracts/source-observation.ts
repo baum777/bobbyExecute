@@ -17,7 +17,6 @@ export const SourceObservationSourceSchema = z.enum([
 export const SourceObservationStatusSchema = z.enum([
   "OK",
   "PARTIAL",
-  "STALE",
   "ERROR",
 ]);
 
@@ -30,6 +29,7 @@ export const SourceObservationSchema = z.object({
   freshnessMs: z.number().int().nonnegative(),
   payloadHash: z.string(),
   status: SourceObservationStatusSchema,
+  isStale: z.boolean().default(false),
   rawRef: z.string().optional(),
   missingFields: z.array(z.string()).default([]),
   notes: z.array(z.string()).default([]),

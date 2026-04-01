@@ -6,6 +6,10 @@ import { UniverseBuildResultSchema } from "@bot/intelligence/universe/contracts/
 import { DataQualityV1Schema } from "@bot/intelligence/quality/contracts/data-quality.v1.js";
 import { CQDSnapshotV1Schema } from "@bot/intelligence/cqd/contracts/cqd.snapshot.v1.js";
 import { ContextPackV1Schema } from "@bot/intelligence/context/contracts/context-pack.v1.js";
+import * as universeContracts from "@bot/intelligence/universe/contracts/index.js";
+import * as contextContracts from "@bot/intelligence/context/contracts/index.js";
+import * as cqdContracts from "@bot/intelligence/cqd/contracts/index.js";
+import * as qualityContracts from "@bot/intelligence/quality/contracts/index.js";
 
 describe("v2 contract scaffolding", () => {
   it("parses foundational pre-authority contract scaffolds", () => {
@@ -19,12 +23,14 @@ describe("v2 contract scaffolding", () => {
       observedAtMs: nowMs,
       freshnessMs: 500,
       payloadHash: "obs-hash",
-      status: "STALE",
+      status: "OK",
+      isStale: true,
       rawRef: "raw://market/sol",
       missingFields: [],
       notes: [],
     });
     expect(observation.source).toBe("market");
+    expect(observation.isStale).toBe(true);
 
     const evidence = DiscoveryEvidenceSchema.parse({
       schema_version: "discovery_evidence.v1",
@@ -123,5 +129,23 @@ describe("v2 contract scaffolding", () => {
       evidenceRefs: [evidence.evidenceId],
     });
     expect(context.narrativeTags[0]).toBe("launch_wave");
+  });
+
+  it("keeps intelligence contract barrels clean and singular", () => {
+    expect(Object.keys(universeContracts).sort()).toEqual([
+      "UniverseBuildResultSchema",
+      "UniverseCoverageStateSchema",
+      "UniverseSourceCoverageEntrySchema",
+    ]);
+    expect(Object.keys(contextContracts).sort()).toEqual([
+      "ContextPackV1Schema",
+    ]);
+    expect(Object.keys(cqdContracts).sort()).toEqual([
+      "CQDSnapshotV1Schema",
+    ]);
+    expect(Object.keys(qualityContracts).sort()).toEqual([
+      "DataQualityV1Schema",
+      "DataQualityV1StatusSchema",
+    ]);
   });
 });

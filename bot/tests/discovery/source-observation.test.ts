@@ -13,14 +13,16 @@ describe("source observation", () => {
       freshnessMs: 0,
       payloadHash: "hash",
       status: "OK",
+      isStale: false,
       missingFields: [],
       notes: [],
     });
 
     expect(parsed.status).toBe("OK");
+    expect(parsed.isStale).toBe(false);
   });
 
-  it("does not silently normalize partial or stale observations to OK", () => {
+  it("represents partiality and staleness independently", () => {
     const partial = createSourceObservation({
       source: "social",
       token: "SOL",
@@ -30,17 +32,34 @@ describe("source observation", () => {
       missingFields: ["symbol"],
     });
     expect(partial.status).toBe("PARTIAL");
+    expect(partial.isStale).toBe(false);
 
-    const stale = createSourceObservation({
+    const staleOnly = createSourceObservation({
       source: "market",
       token: "SOL",
       observedAtMs: 10,
       freshnessMs: 1_000,
       payload: { priceUsd: 100 },
     });
-    expect(stale.status).toBe("STALE");
+    expect(staleOnly.status).toBe("OK");
+    expect(staleOnly.isStale).toBe(true);
 
-    const errored = withSourceObservationStatus(stale, "ERROR");
+    const stalePartial = createSourceObservation({
+      source: "wallet",
+      token: "SOL",
+      observedAtMs: 10,
+      freshnessMs: 1_000,
+      payload: { holderCount: 12 },
+      missingFields: ["symbol", "holderCount", "symbol"],
+      notes: ["wallet_gap", "wallet_gap", "delayed_feed"],
+    });
+    expect(stalePartial.status).toBe("PARTIAL");
+    expect(stalePartial.isStale).toBe(true);
+    expect(stalePartial.missingFields).toEqual(["holderCount", "symbol"]);
+    expect(stalePartial.notes).toEqual(["delayed_feed", "wallet_gap"]);
+
+    const errored = withSourceObservationStatus(staleOnly, "ERROR");
     expect(errored.status).toBe("ERROR");
+    expect(errored.isStale).toBe(true);
   });
 });
