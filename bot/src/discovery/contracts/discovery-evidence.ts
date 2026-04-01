@@ -9,9 +9,9 @@ import {
 } from "./source-observation.js";
 
 export const DiscoveryEvidenceStatusSchema = z.enum([
-  "collected",
-  "partial",
-  "rejected",
+  "COLLECTED",
+  "PARTIAL",
+  "REJECTED",
 ]);
 
 export const DiscoveryEvidenceSchema = z.object({
@@ -19,6 +19,7 @@ export const DiscoveryEvidenceSchema = z.object({
   token: z.string(),
   chain: z.enum(["solana"]),
   evidenceId: z.string(),
+  evidenceRef: z.string(),
   observationRefs: z.array(z.string()).default([]),
   sources: z.array(SourceObservationSourceSchema).default([]),
   observations: z.array(SourceObservationSchema).default([]),
@@ -27,6 +28,8 @@ export const DiscoveryEvidenceSchema = z.object({
   completeness: z.number().min(0).max(1),
   status: DiscoveryEvidenceStatusSchema,
   missingFields: z.array(z.string()).default([]),
+  disagreedFields: z.array(z.string()).default([]),
+  disagreedSources: z.record(z.array(SourceObservationSourceSchema)).default({}),
   notes: z.array(z.string()).default([]),
 });
 

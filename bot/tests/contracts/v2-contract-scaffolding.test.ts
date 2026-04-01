@@ -19,8 +19,10 @@ describe("v2 contract scaffolding", () => {
       observedAtMs: nowMs,
       freshnessMs: 500,
       payloadHash: "obs-hash",
-      status: "ok",
+      status: "STALE",
       rawRef: "raw://market/sol",
+      missingFields: [],
+      notes: [],
     });
     expect(observation.source).toBe("market");
 
@@ -29,14 +31,17 @@ describe("v2 contract scaffolding", () => {
       token: "SOL",
       chain: "solana",
       evidenceId: "ev-1",
+      evidenceRef: "discovery_evidence:SOL:ev-1",
       observationRefs: ["obs-1"],
       sources: ["market", "social"],
       observations: [observation],
       collectedAtMs: nowMs,
       payloadHash: "evidence-hash",
       completeness: 0.8,
-      status: "collected",
+      status: "COLLECTED",
       missingFields: [],
+      disagreedFields: [],
+      disagreedSources: {},
       notes: ["scaffold"],
     });
     expect(evidence.observations).toHaveLength(1);
@@ -61,7 +66,10 @@ describe("v2 contract scaffolding", () => {
       included: true,
       exclusionReasons: [],
       normalizedFeatures: { confidence: 0.7 },
-      sourceCoverage: { market: 1, social: 1 },
+      sourceCoverage: {
+        market: { status: "OK" },
+        social: { status: "PARTIAL" },
+      },
     });
     expect(universe.included).toBe(true);
 

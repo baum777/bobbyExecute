@@ -36,12 +36,12 @@ describe("runtime entrypoints do not import advisory LLM", () => {
 
   it("core engine does not reference v2 discovery scaffolding", async () => {
     const text = await readSrc("core/engine.ts");
-    expect(text).not.toMatch(/discovery\/contracts|intelligence\/context|intelligence\/cqd|intelligence\/signals/);
+    expect(text).not.toMatch(/discovery\/contracts|discovery\/source-observation|discovery\/discovery-evidence|discovery\/candidate-discovery|intelligence\/context|intelligence\/cqd|intelligence\/signals|intelligence\/universe\/build-universe-result/);
   });
 
   it("execution agent does not reference v2 discovery scaffolding", async () => {
     const text = await readSrc("agents/execution.agent.ts");
-    expect(text).not.toMatch(/discovery\/contracts|intelligence\/context|intelligence\/cqd|intelligence\/signals/);
+    expect(text).not.toMatch(/discovery\/contracts|discovery\/source-observation|discovery\/discovery-evidence|discovery\/candidate-discovery|intelligence\/context|intelligence\/cqd|intelligence\/signals|intelligence\/universe\/build-universe-result/);
   });
 });
 

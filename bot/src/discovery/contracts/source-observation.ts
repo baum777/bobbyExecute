@@ -15,10 +15,10 @@ export const SourceObservationSourceSchema = z.enum([
 ]);
 
 export const SourceObservationStatusSchema = z.enum([
-  "ok",
-  "partial",
-  "stale",
-  "error",
+  "OK",
+  "PARTIAL",
+  "STALE",
+  "ERROR",
 ]);
 
 export const SourceObservationSchema = z.object({
@@ -31,6 +31,8 @@ export const SourceObservationSchema = z.object({
   payloadHash: z.string(),
   status: SourceObservationStatusSchema,
   rawRef: z.string().optional(),
+  missingFields: z.array(z.string()).default([]),
+  notes: z.array(z.string()).default([]),
 });
 
 export type SourceObservationChain = z.infer<typeof SourceObservationChainSchema>;
