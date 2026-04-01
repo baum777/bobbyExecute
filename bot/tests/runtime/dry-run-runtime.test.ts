@@ -268,7 +268,7 @@ describe("DryRunRuntime (phase-2)", () => {
       success: true,
       mode: "paper",
       paperExecution: true,
-      actualAmountOut: "0.95",
+      actualAmountOut: "95",
     });
     expect(summaries[0].verification).toMatchObject({
       passed: true,

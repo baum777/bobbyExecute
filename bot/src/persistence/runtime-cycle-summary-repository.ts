@@ -2,6 +2,7 @@ import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname } from "node:path";
 import type { ExecutionReport, RpcVerificationReport } from "../core/contracts/trade.js";
+import type { DecisionEnvelope } from "../core/contracts/decision-envelope.js";
 
 export type RuntimeCycleIntakeOutcome = "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
 export type RuntimeCycleOutcome = "success" | "blocked" | "error";
@@ -49,6 +50,8 @@ export interface RuntimeCycleSummary {
   stage: string;
   blocked: boolean;
   blockedReason?: string;
+  /** Primary canonical decision artifact for this cycle (when produced by Engine / coordinator). */
+  decisionEnvelope?: DecisionEnvelope;
   decisionOccurred: boolean;
   signalOccurred: boolean;
   riskOccurred: boolean;

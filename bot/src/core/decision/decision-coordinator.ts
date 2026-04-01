@@ -88,8 +88,11 @@ export class CanonicalDecisionAuthority implements DecisionCoordinator {
       }
     }
 
+    const executionMode = request.executionMode ?? "dry";
+    const schemaVersion = "decision.envelope.v2" as const;
     const canonicalDecisionHash = hashDecision({
-      schemaVersion: "decision.envelope.v1",
+      schemaVersion,
+      executionMode,
       stages: stageResults.map((record) => ({
         stage: record.stage,
         payload: record.payload,
@@ -100,7 +103,8 @@ export class CanonicalDecisionAuthority implements DecisionCoordinator {
       blockedReason,
     });
     const canonicalResultHash = hashResult({
-      schemaVersion: "decision.envelope.v1",
+      schemaVersion,
+      executionMode,
       stages: stageResults.map((record) => ({
         stage: record.stage,
         blocked: record.blocked === true,
@@ -111,9 +115,10 @@ export class CanonicalDecisionAuthority implements DecisionCoordinator {
     });
 
     return {
-      schemaVersion: "decision.envelope.v1",
+      schemaVersion,
       entrypoint: request.entrypoint,
       flow: request.flow,
+      executionMode,
       traceId,
       stage: terminalStage,
       blocked,

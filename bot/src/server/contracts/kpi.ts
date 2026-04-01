@@ -134,6 +134,7 @@ export interface RuntimeRecentHistory {
     verificationOccurred: boolean;
     decisionOccurred: boolean;
     errorOccurred: boolean;
+    decisionEnvelope?: import("../../core/contracts/decision-envelope.js").DecisionEnvelope;
     decision?: {
       allowed: boolean;
       direction?: string;
@@ -305,11 +306,15 @@ export interface KpiDecision {
   confidence: number;
   reasons: string[];
   /**
-   * Projection from persisted action log entries, not a standalone canonical decision record.
-   * Trading is deterministic; this view is for audit/UI only.
+   * canonical = runtime cycle summary + decision envelope (primary).
+   * derived = action log projection (legacy compatibility only).
    */
-  provenanceKind: "derived";
-  source: "action_log_projection";
+  provenanceKind: "canonical" | "derived";
+  source: "runtime_cycle_summary" | "action_log_projection";
+  /** Present when provenanceKind is canonical. */
+  executionMode?: "dry" | "paper" | "live";
+  decisionHash?: string;
+  schemaVersion?: string;
   /** Original action log `action` field (e.g. evaluate, complete). */
   actionLogAction?: string;
   /** Original action log agent id when present. */

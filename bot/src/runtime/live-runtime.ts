@@ -5,15 +5,14 @@ import { SystemClock } from "../core/clock.js";
 import type { MarketSnapshot } from "../core/contracts/market.js";
 import type { WalletSnapshot } from "../core/contracts/wallet.js";
 import type { SignalPack } from "../core/contracts/signalpack.js";
-import type { TradeIntent, ExecutionReport } from "../core/contracts/trade.js";
+import type { TradeIntent, ExecutionReport, RpcVerificationReport } from "../core/contracts/trade.js";
+import { Engine } from "../core/engine.js";
 import type { EngineState } from "../core/engine.js";
 import type { JournalWriter } from "../journal-writer/writer.js";
 import { FileSystemJournalWriter } from "../journal-writer/writer.js";
-import { createTraceId } from "../observability/trace-id.js";
 import { RepositoryIncidentRecorder, type IncidentRecorder } from "../observability/incidents.js";
 import type { IncidentRecord, IncidentRepository } from "../persistence/incident-repository.js";
 import { FileSystemIncidentRepository } from "../persistence/incident-repository.js";
-import { appendJournal } from "../persistence/journal-repository.js";
 import {
   FileSystemRuntimeCycleSummaryWriter,
   type RuntimeCycleSummary,
@@ -50,6 +49,7 @@ import {
 } from "../governance/kill-switch.js";
 import {
   configureDailyLossRepository,
+  createDailyLossTracker,
   hydrateDailyLossState,
   loadDailyLossState,
   recordTrade,
@@ -93,6 +93,7 @@ const RECENT_INCIDENT_LIMIT = 20;
 export interface LiveRuntimeDeps {
   ingestHandler?: () => Promise<{ market: MarketSnapshot; wallet: WalletSnapshot }>;
   executionHandlerFactory?: typeof createExecutionHandler;
+  engine?: Engine;
   clock?: Clock;
   decisionCoordinator?: DecisionCoordinator;
   runtimeConfigManager?: RuntimeConfigManager;
@@ -115,6 +116,7 @@ export interface LiveRuntimeDeps {
 interface LiveRuntimeResolvedDeps {
   ingestHandler: () => Promise<{ market: MarketSnapshot; wallet: WalletSnapshot }>;
   executionHandler: (intent: TradeIntent) => Promise<ExecutionReport>;
+  engine: Engine;
   journalWriter: JournalWriter;
   incidentRecorder: IncidentRecorder;
   cycleSummaryWriter: RuntimeCycleSummaryWriter;
@@ -232,11 +234,13 @@ function toCycleSummary(input: {
   decisionOccurred: boolean;
   signalOccurred: boolean;
   riskOccurred: boolean;
+  chaosOccurred?: boolean;
   executionOccurred: boolean;
   verificationOccurred: boolean;
   errorOccurred: boolean;
   error?: string;
   decision?: RuntimeCycleSummary["decision"];
+  decisionEnvelope?: import("../core/contracts/decision-envelope.js").DecisionEnvelope;
   tradeIntentId?: string;
   execution?: RuntimeCycleSummary["execution"];
   verification?: RuntimeCycleSummary["verification"];
@@ -255,13 +259,14 @@ function toCycleSummary(input: {
     decisionOccurred: input.decisionOccurred,
     signalOccurred: input.signalOccurred,
     riskOccurred: input.riskOccurred,
-    chaosOccurred: false,
+    chaosOccurred: input.chaosOccurred ?? false,
     executionOccurred: input.executionOccurred,
     verificationOccurred: input.verificationOccurred,
     paperExecutionProduced: false,
     errorOccurred: input.errorOccurred,
     error: input.error,
     decision: input.decision,
+    decisionEnvelope: input.decisionEnvelope,
     tradeIntentId: input.tradeIntentId,
     execution: input.execution,
     verification: input.verification,
@@ -324,9 +329,24 @@ export async function createLiveRuntime(config: Config, runtimeDeps: LiveRuntime
     incidentRecorder,
   });
 
+  const clock = runtimeDeps.clock ?? new SystemClock();
+  const decisionCoordinator = runtimeDeps.decisionCoordinator ?? createCanonicalDecisionAuthority();
+  const engine =
+    runtimeDeps.engine ??
+    new Engine({
+      clock,
+      dryRun: false,
+      executionMode: "live",
+      decisionCoordinator,
+      journalWriter,
+      journalPolicy: "mandatory",
+      dailyLossTracker: createDailyLossTracker(clock),
+    });
+
   return new LiveRuntime(config, {
     ingestHandler,
     executionHandler,
+    engine,
     journalWriter,
     incidentRecorder,
     cycleSummaryWriter,
@@ -335,8 +355,8 @@ export async function createLiveRuntime(config: Config, runtimeDeps: LiveRuntime
     liveControlRepository,
     dailyLossRepository,
     idempotencyRepository,
-    clock: runtimeDeps.clock ?? new SystemClock(),
-    decisionCoordinator: runtimeDeps.decisionCoordinator ?? createCanonicalDecisionAuthority(),
+    clock,
+    decisionCoordinator,
     logger: runtimeDeps.logger ?? console,
     loopIntervalMs: runtimeDeps.loopIntervalMs ?? 15_000,
   });
@@ -344,6 +364,7 @@ export async function createLiveRuntime(config: Config, runtimeDeps: LiveRuntime
 
 export class LiveRuntime implements RuntimeController {
   private readonly clock: Clock;
+  private readonly engine: Engine;
   private readonly decisionCoordinator: DecisionCoordinator;
   private readonly runtimeConfigManager?: RuntimeConfigManager;
   private intervalRef: NodeJS.Timeout | null = null;
@@ -368,6 +389,7 @@ export class LiveRuntime implements RuntimeController {
     private readonly deps: LiveRuntimeResolvedDeps
   ) {
     this.clock = deps.clock;
+    this.engine = deps.engine;
     this.decisionCoordinator = deps.decisionCoordinator;
     this.runtimeConfigManager = deps.runtimeConfigManager;
   }
@@ -664,326 +686,191 @@ export class LiveRuntime implements RuntimeController {
       this.counters.cycleCount += 1;
       this.lastCycleAt = currentCycleTimestamp;
 
-      const intake = await this.deps.ingestHandler();
-      const market = intake.market;
-      const wallet = intake.wallet;
-      const traceId = market.traceId || wallet.traceId || currentCycleTraceId;
-      currentCycleTraceId = traceId;
-      currentCycleIntakeOutcome = "ok";
+      let cycleMarket: MarketSnapshot | undefined;
+      let cycleWallet: WalletSnapshot | undefined;
 
-      const signalPack = buildSignalPack(market, traceId, currentCycleTimestamp);
-      const scoreCard = runScoringEngine({ signalPack, traceId, timestamp: currentCycleTimestamp });
-      const patternResult = recognizePatterns(traceId, currentCycleTimestamp, scoreCard, signalPack);
-      const riskDecision = runRiskEngine({
-        traceId,
-        timestamp: currentCycleTimestamp,
-        liquidity: market.liquidity,
-        socialManip: patternResult.patterns.length > 0 ? 0.35 : 0.05,
-        momentumExhaust: Math.max(0, Math.min(1, 1 - scoreCard.hybrid)),
-        structuralWeakness: wallet.balances.length === 0 ? 0.4 : 0.05,
-      });
-
-      if (!riskDecision.allowed) {
-        const incident = await this.recordIncident({
-          severity: "warning",
-          type: "live_execution_refused",
-          message: riskDecision.reason ?? "Risk gate refused execution",
-          details: { traceId, reason: riskDecision.reason ?? "risk_gate_refused" },
+      const executeWithIdempotency = async (intent: TradeIntent): Promise<ExecutionReport> => {
+        if (this.deps.idempotencyRepository.hasSync(intent.idempotencyKey)) {
+          return {
+            traceId: intent.traceId,
+            timestamp: intent.timestamp,
+            tradeIntentId: intent.idempotencyKey,
+            success: false,
+            error: "Duplicate idempotency key rejected",
+            dryRun: false,
+            executionMode: "live",
+            failClosed: true,
+            failureStage: "execution",
+            failureCode: "IDEMPOTENCY_REPLAY_BLOCK",
+          };
+        }
+        this.deps.idempotencyRepository.putSync(intent.idempotencyKey, {
+          status: "pending",
+          traceId: intent.traceId,
         });
-        this.counters.blockedCount += 1;
-        this.lastState = {
-          stage: "risk",
-          traceId,
-          timestamp: currentCycleTimestamp,
-          blocked: true,
-          blockedReason: riskDecision.reason ?? "Risk gate refused execution",
-          market,
-          wallet,
-          signal: { direction: "hold", confidence: 0 },
-        };
-        await this.persistCycleSummary(
-          toCycleSummary({
-            cycleTimestamp: currentCycleTimestamp,
-            traceId,
-            mode: "live",
-            outcome: "blocked",
-            intakeOutcome: currentCycleIntakeOutcome,
-            stage: "risk",
-            blocked: true,
-            blockedReason: riskDecision.reason ?? "Risk gate refused execution",
-            decisionOccurred: true,
-            signalOccurred: true,
-            riskOccurred: true,
-            executionOccurred: false,
-            verificationOccurred: false,
-            errorOccurred: false,
-            decision: {
-              allowed: false,
-              direction: "hold",
-              confidence: 0,
-              riskAllowed: false,
-              reason: riskDecision.reason,
-            },
-            incidentIds: [incident.id],
-          })
-        );
-        return;
-      }
-
-      const signalOutput = runSignalEngine({
-        market,
-        scoreCard,
-        patternResult,
-        dataQuality: signalPack.dataQuality,
-        traceId,
-        timestamp: currentCycleTimestamp,
-        dryRun: false,
-        executionMode: "live",
-      });
-
-      if (signalOutput.blocked) {
-        const incident = await this.recordIncident({
-          severity: "warning",
-          type: "live_execution_refused",
-          message: signalOutput.reason,
-          details: { traceId, reason: signalOutput.reason },
+        const report = await this.deps.executionHandler(intent);
+        if (report.success) {
+          this.counters.executionCount += 1;
+          recordTrade(estimateLossUsd(intent, report, cycleMarket?.priceUsd));
+        }
+        this.deps.idempotencyRepository.putSync(intent.idempotencyKey, {
+          status: report.success ? "completed" : "failed",
+          traceId: intent.traceId,
+          failureCode: report.failureCode,
         });
-        this.counters.blockedCount += 1;
-        this.lastState = {
-          stage: "signal",
-          traceId,
-          timestamp: currentCycleTimestamp,
-          blocked: true,
-          blockedReason: signalOutput.reason,
-          market,
-          wallet,
-        };
-        await this.persistCycleSummary(
-          toCycleSummary({
-            cycleTimestamp: currentCycleTimestamp,
-            traceId,
-            mode: "live",
-            outcome: "blocked",
-            intakeOutcome: currentCycleIntakeOutcome,
-            stage: "signal",
-            blocked: true,
-            blockedReason: signalOutput.reason,
-            decisionOccurred: true,
-            signalOccurred: true,
-            riskOccurred: true,
-            executionOccurred: false,
-            verificationOccurred: false,
-            errorOccurred: false,
-            decision: {
-              allowed: false,
-              direction: "hold",
-              confidence: 0,
-              riskAllowed: riskDecision.allowed,
-              reason: signalOutput.reason,
-            },
-            incidentIds: [incident.id],
-          })
-        );
-        return;
-      }
-
-      const intent: TradeIntent = {
-        ...signalOutput.intent,
-        executionMode: "live",
-        dryRun: false,
+        return report;
       };
+
+      this.lastState = await this.engine.run(
+        async () => {
+          const intake = await this.deps.ingestHandler();
+          cycleMarket = intake.market;
+          cycleWallet = intake.wallet;
+          const tid = intake.market.traceId || intake.wallet.traceId || currentCycleTraceId;
+          currentCycleTraceId = tid;
+          currentCycleIntakeOutcome = "ok";
+          return intake;
+        },
+        async (market) => {
+          const traceId = market.traceId || cycleWallet?.traceId || currentCycleTraceId;
+          const signalPack = buildSignalPack(market, traceId, currentCycleTimestamp);
+          const scoreCard = runScoringEngine({ signalPack, traceId, timestamp: currentCycleTimestamp });
+          const patternResult = recognizePatterns(traceId, currentCycleTimestamp, scoreCard, signalPack);
+          const out = runSignalEngine({
+            market,
+            scoreCard,
+            patternResult,
+            dataQuality: signalPack.dataQuality,
+            traceId,
+            timestamp: currentCycleTimestamp,
+            dryRun: false,
+            executionMode: "live",
+          });
+          if (out.blocked) {
+            return { blocked: true, blockedReason: out.reason };
+          }
+          return {
+            direction: out.intent.tokenOut === "USDC" ? "buy" : "hold",
+            confidence: scoreCard.hybrid,
+            intent: { ...out.intent, executionMode: "live", dryRun: false },
+          };
+        },
+        async (intent, market, wallet) => {
+          const signalPack = buildSignalPack(market, intent.traceId, intent.timestamp);
+          const scoreCard = runScoringEngine({
+            signalPack,
+            traceId: intent.traceId,
+            timestamp: intent.timestamp,
+          });
+          const patternResult = recognizePatterns(intent.traceId, intent.timestamp, scoreCard, signalPack);
+          return runRiskEngine({
+            traceId: intent.traceId,
+            timestamp: intent.timestamp,
+            liquidity: market.liquidity,
+            socialManip: patternResult.patterns.length > 0 ? 0.35 : 0.05,
+            momentumExhaust: Math.max(0, Math.min(1, 1 - scoreCard.hybrid)),
+            structuralWeakness: wallet.balances.length === 0 ? 0.4 : 0.05,
+          });
+        },
+        executeWithIdempotency,
+        async (intent, report) => {
+          if (!report.success) {
+            return {
+              traceId: intent.traceId,
+              timestamp: intent.timestamp,
+              passed: false,
+              checks: {},
+              reason: report.error,
+              verificationMode: "rpc",
+            };
+          }
+          return {
+            traceId: intent.traceId,
+            timestamp: intent.timestamp,
+            passed: true,
+            checks: {},
+            verificationMode: "rpc",
+          };
+        }
+      );
+
+      currentCycleTraceId = this.lastState.traceId;
       this.lastDecisionAt = currentCycleTimestamp;
       this.counters.decisionCount += 1;
 
-      const liveControl = getMicroLiveControlSnapshot();
-      if (liveControl.posture !== "live_armed" || liveControl.blocked || liveControl.killSwitchActive) {
-        const incident = await this.recordIncident({
-          severity: "warning",
-          type: "live_guardrail_refused",
-          message: liveControl.reasonDetail ?? "Live control posture is not armed",
-          details: {
-            traceId,
-            posture: liveControl.posture,
-            reasonCode: liveControl.reasonCode,
-          },
-        });
+      const env = this.lastState.decisionEnvelope;
+      const intent = this.lastState.tradeIntent;
+      const report = this.lastState.executionReport;
+
+      if (this.lastState.blocked) {
         this.counters.blockedCount += 1;
-        this.lastState = {
-          stage: "risk",
-          traceId,
-          timestamp: currentCycleTimestamp,
-          blocked: true,
-          blockedReason: liveControl.reasonDetail ?? "Live control posture is not armed",
-          market,
-          wallet,
-          signal: { direction: "buy", confidence: 0.5 },
-          tradeIntent: intent,
-        };
-        await this.persistCycleSummary(
-          toCycleSummary({
-            cycleTimestamp: currentCycleTimestamp,
-            traceId,
-            mode: "live",
-            outcome: "blocked",
-            intakeOutcome: currentCycleIntakeOutcome,
-            stage: "risk",
-            blocked: true,
-            blockedReason: liveControl.reasonDetail ?? "Live control posture is not armed",
-            decisionOccurred: true,
-            signalOccurred: true,
-            riskOccurred: true,
-            executionOccurred: false,
-            verificationOccurred: false,
-            errorOccurred: false,
-            decision: {
-              allowed: false,
-              direction: intent.tokenOut === "USDC" ? "buy" : "hold",
-              confidence: 0.5,
-              riskAllowed: riskDecision.allowed,
-              reason: liveControl.reasonDetail ?? "Live control posture is not armed",
-              tradeIntentId: intent.idempotencyKey,
-            },
-            tradeIntentId: intent.idempotencyKey,
-            incidentIds: [incident.id],
-          })
-        );
-        return;
       }
 
-      if (this.deps.idempotencyRepository.hasSync(intent.idempotencyKey)) {
-        const incident = await this.recordIncident({
-          severity: "warning",
-          type: "live_execution_refused",
-          message: "Duplicate idempotency key rejected",
-          details: { traceId, tradeIntentId: intent.idempotencyKey },
-        });
-        this.counters.blockedCount += 1;
-        await this.persistCycleSummary(
-          toCycleSummary({
-            cycleTimestamp: currentCycleTimestamp,
-            traceId,
-            mode: "live",
-            outcome: "blocked",
-            intakeOutcome: currentCycleIntakeOutcome,
-            stage: "execution",
-            blocked: true,
-            blockedReason: "IDEMPOTENCY_REPLAY_BLOCK",
-            decisionOccurred: true,
-            signalOccurred: true,
-            riskOccurred: true,
-            executionOccurred: false,
-            verificationOccurred: false,
-            errorOccurred: false,
-            decision: {
-              allowed: false,
-              direction: intent.tokenOut === "USDC" ? "buy" : "hold",
-              confidence: 0.5,
-              riskAllowed: riskDecision.allowed,
-              reason: "Duplicate idempotency key rejected",
-              tradeIntentId: intent.idempotencyKey,
-            },
-            tradeIntentId: intent.idempotencyKey,
-            incidentIds: [incident.id],
-          })
-        );
-        return;
-      }
-
-      this.deps.idempotencyRepository.putSync(intent.idempotencyKey, {
-        status: "pending",
-        traceId,
-      });
-
-      const report = await this.deps.executionHandler(intent);
-      if (report.success) {
-        this.counters.executionCount += 1;
-        recordTrade(estimateLossUsd(intent, report, market.priceUsd));
-      }
-
-      const journalEntry = {
-        traceId,
-        timestamp: currentCycleTimestamp,
-        stage: "live_cycle",
-        input: { market, wallet, signalPack, intent },
-        output: { report },
-        blocked: !report.success,
-        reason: report.error,
-      };
-      await appendJournal(this.deps.journalWriter, journalEntry);
-
-      this.lastState = {
-        stage: report.success ? "journal" : report.failureStage === "verification" ? "verify" : "execute",
-        traceId,
-        timestamp: currentCycleTimestamp,
-        market,
-        wallet,
-        signal: { direction: intent.tokenOut === "USDC" ? "buy" : "hold", confidence: scoreCard.hybrid },
-        tradeIntent: intent,
-        riskAllowed: riskDecision.allowed,
-        executionReport: report,
-        blocked: !report.success,
-        blockedReason: report.success ? undefined : report.error,
-        error: report.success ? undefined : report.error,
-      };
-
-      if (!report.success) {
-        this.counters.blockedCount += 1;
+      if (report && !report.success) {
         await this.recordIncident({
           severity: "critical",
           type: "live_execution_refused",
           message: report.error ?? "Live execution failed",
           details: {
-            traceId,
-            tradeIntentId: intent.idempotencyKey,
+            traceId: this.lastState.traceId,
+            tradeIntentId: intent?.idempotencyKey,
             failureStage: report.failureStage ?? null,
             failureCode: report.failureCode ?? null,
           },
         });
       }
 
-      this.deps.idempotencyRepository.putSync(intent.idempotencyKey, {
-        status: report.success ? "completed" : "failed",
-        traceId,
-        failureCode: report.failureCode,
-      });
-
       const summary = toCycleSummary({
         cycleTimestamp: currentCycleTimestamp,
-        traceId,
+        traceId: this.lastState.traceId,
         mode: "live",
-        outcome: report.success ? "success" : "blocked",
+        outcome:
+          this.lastState.error !== undefined
+            ? "error"
+            : this.lastState.blocked
+              ? "blocked"
+              : "success",
         intakeOutcome: currentCycleIntakeOutcome,
-        stage: report.success ? "journal" : report.failureStage ?? "execution",
-        blocked: !report.success,
-        blockedReason: report.success ? undefined : report.error,
-        decisionOccurred: true,
-        signalOccurred: true,
-        riskOccurred: true,
-        executionOccurred: true,
-        verificationOccurred: Boolean(report.success || report.failureStage === "verification"),
-        errorOccurred: !report.success,
-        error: report.success ? undefined : report.error,
-        decision: {
-          allowed: report.success,
-          direction: intent.tokenOut === "USDC" ? "buy" : "hold",
-          confidence: scoreCard.hybrid,
-          riskAllowed: riskDecision.allowed,
-          reason: report.success ? undefined : report.error,
-          tradeIntentId: intent.idempotencyKey,
-        },
-        tradeIntentId: intent.idempotencyKey,
-        execution: {
-          success: report.success,
-          mode: report.executionMode,
-          paperExecution: report.paperExecution,
-          actualAmountOut: report.actualAmountOut,
-          error: report.error,
-        },
-        verification: {
-          passed: report.success,
-          mode: "rpc",
-          reason: report.error,
-        },
+        stage: this.lastState.stage,
+        blocked: this.lastState.blocked === true,
+        blockedReason: this.lastState.blockedReason,
+        decisionEnvelope: env,
+        decisionOccurred: intent !== undefined,
+        signalOccurred: this.lastState.signal !== undefined,
+        riskOccurred: this.lastState.riskAllowed !== undefined,
+        chaosOccurred: this.lastState.chaosAllowed !== undefined,
+        executionOccurred: report !== undefined,
+        verificationOccurred: this.lastState.rpcVerification !== undefined,
+        errorOccurred: this.lastState.error !== undefined,
+        error: this.lastState.error,
+        decision: intent
+          ? {
+              allowed: this.lastState.blocked !== true,
+              direction: intent.tokenOut === "USDC" ? "buy" : "hold",
+              confidence: this.lastState.signal?.confidence,
+              riskAllowed: this.lastState.riskAllowed,
+              chaosAllowed: this.lastState.chaosAllowed,
+              reason: this.lastState.blockedReason ?? this.lastState.error,
+              tradeIntentId: intent.idempotencyKey,
+            }
+          : undefined,
+        tradeIntentId: intent?.idempotencyKey,
+        execution: report
+          ? {
+              success: report.success,
+              mode: report.executionMode,
+              paperExecution: report.paperExecution,
+              actualAmountOut: report.actualAmountOut,
+              error: report.error,
+            }
+          : undefined,
+        verification: this.lastState.rpcVerification
+          ? {
+              passed: this.lastState.rpcVerification.passed,
+              mode: this.lastState.rpcVerification.verificationMode,
+              reason: this.lastState.rpcVerification.reason,
+            }
+          : undefined,
         incidentIds: [],
       });
 

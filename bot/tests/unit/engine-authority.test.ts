@@ -77,9 +77,10 @@ class StageFailingJournalWriter implements JournalWriter {
 function makeMalformedDecisionCoordinator(): DecisionCoordinator {
   return {
     run: vi.fn(async () => ({
-      schemaVersion: "decision.envelope.v1",
+      schemaVersion: "decision.envelope.v2",
       entrypoint: "engine",
       flow: "trade",
+      executionMode: "dry",
       traceId: "trace-1",
       stage: "monitor",
       blocked: false,
@@ -179,7 +180,7 @@ describe("Engine authority closure", () => {
     expect(stages).toContain("chaos_decision");
     expect(stages).toContain("execution_result");
     expect(stages).toContain("verification_result");
-    expect(stages).toContain("complete");
+    expect(stages).toContain("canonical_trade_complete");
   });
 
   it("rejects malformed decision envelopes from the coordinator", async () => {

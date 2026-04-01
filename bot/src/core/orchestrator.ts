@@ -142,6 +142,7 @@ export class Orchestrator {
         await this.decisionCoordinator.run({
           entrypoint: "orchestrator",
           flow: "analysis",
+          executionMode: this.dryRun ? "dry" : "paper",
           clock: this.clock,
           traceIdSeed: replayMode ? intentSpec : undefined,
           tracePrefix: "orch",

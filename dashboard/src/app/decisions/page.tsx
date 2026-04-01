@@ -74,9 +74,9 @@ export default function DecisionsPage() {
             {counts.abort} abort
           </p>
           <p className="mt-1 text-xs text-text-muted max-w-3xl">
-            <span className="font-medium text-text-secondary">Derived</span> from persisted action logs (GET
-            /kpi/decisions). Allow/block/abort here is a KPI mapping for audit, not the sole canonical trading
-            decision record.
+            Rows with <span className="font-medium text-text-secondary">canonical</span> come from runtime cycle
+            summaries (decision envelope v2) when available; <span className="font-medium text-text-secondary">derived</span>{' '}
+            rows are legacy action-log projections from the same endpoint.
           </p>
         </div>
 
@@ -156,6 +156,9 @@ export default function DecisionsPage() {
                           <span className="text-xs text-text-muted tabular-nums">
                             conf: {d.confidence.toFixed(2)}
                           </span>
+                          <Badge variant="default" className="text-[9px] px-1.5 py-0">
+                            {d.provenanceKind === 'canonical' ? 'canonical' : 'derived'}
+                          </Badge>
                         </div>
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {d.reasons.map((r, i) => (

@@ -25,7 +25,7 @@ export const DecisionStageSchema = z.enum([
   "monitor",
 ]);
 
-export const DecisionEnvelopeSchema = z.object({
+const DecisionEnvelopeV1Schema = z.object({
   schemaVersion: z.literal("decision.envelope.v1"),
   entrypoint: DecisionEntrypointSchema,
   flow: DecisionFlowSchema,
@@ -36,6 +36,23 @@ export const DecisionEnvelopeSchema = z.object({
   decisionHash: z.string(),
   resultHash: z.string(),
 });
+
+/** Primary canonical contract — includes runtime execution mode for cross-mode convergence. */
+const DecisionEnvelopeV2Schema = z.object({
+  schemaVersion: z.literal("decision.envelope.v2"),
+  entrypoint: DecisionEntrypointSchema,
+  flow: DecisionFlowSchema,
+  /** Trading execution mode for this decision (dry / paper / live). */
+  executionMode: z.enum(["dry", "paper", "live"]),
+  traceId: z.string(),
+  stage: DecisionStageSchema,
+  blocked: z.boolean(),
+  blockedReason: z.string().optional(),
+  decisionHash: z.string(),
+  resultHash: z.string(),
+});
+
+export const DecisionEnvelopeSchema = z.union([DecisionEnvelopeV1Schema, DecisionEnvelopeV2Schema]);
 
 export type DecisionEntrypoint = z.infer<typeof DecisionEntrypointSchema>;
 export type DecisionFlow = z.infer<typeof DecisionFlowSchema>;
@@ -81,6 +98,8 @@ export type DecisionHandlers = Partial<Record<DecisionStage, DecisionStageHandle
 export interface DecisionRequest {
   entrypoint: DecisionEntrypoint;
   flow: DecisionFlow;
+  /** Defaults to dry when omitted (analysis flows). */
+  executionMode?: "dry" | "paper" | "live";
   clock: Clock;
   traceIdSeed?: unknown;
   tracePrefix?: string;

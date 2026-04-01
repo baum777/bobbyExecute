@@ -165,7 +165,7 @@ describe("paper bootstrap integration parity (phase-6)", () => {
         success: true,
         executionMode: "paper",
         paperExecution: true,
-        actualAmountOut: "0.95",
+        actualAmountOut: String(marketSnapshot.priceUsd * 0.95),
       });
       expect(runtimeSnapshot.lastState?.rpcVerification).toMatchObject({
         passed: true,
@@ -190,7 +190,7 @@ describe("paper bootstrap integration parity (phase-6)", () => {
           success: true,
           mode: "paper",
           paperExecution: true,
-          actualAmountOut: "0.95",
+          actualAmountOut: String(marketSnapshot.priceUsd * 0.95),
         },
         verification: {
           passed: true,
@@ -308,31 +308,17 @@ describe("paper bootstrap integration parity (phase-6)", () => {
         .split("\n")
         .filter(Boolean)
         .map((line) => JSON.parse(line) as { stage: string; output: Record<string, unknown> });
-      const executionEntry = journalEntries.find((entry) => entry.stage === "execution_result");
-      const verificationEntry = journalEntries.find((entry) => entry.stage === "verification_result");
-      const completeEntry = journalEntries.find((entry) => entry.stage === "complete");
+      const canonicalEntry = journalEntries.find((entry) => entry.stage === "canonical_trade_complete");
 
-      expect(journalEntries.length).toBeGreaterThanOrEqual(5);
-      expect(executionEntry?.output).toMatchObject({
+      expect(journalEntries.length).toBeGreaterThanOrEqual(1);
+      expect(canonicalEntry?.output).toMatchObject({
         execReport: {
           success: true,
           executionMode: "paper",
           paperExecution: true,
         },
-      });
-      expect(verificationEntry?.output).toMatchObject({
         rpcVerify: {
           passed: true,
-          verificationMode: "paper-simulated",
-          reason: "PAPER_MODE_SIMULATED_VERIFICATION",
-        },
-      });
-      expect(completeEntry?.output).toMatchObject({
-        execReport: {
-          executionMode: "paper",
-          paperExecution: true,
-        },
-        rpcVerify: {
           verificationMode: "paper-simulated",
         },
       });

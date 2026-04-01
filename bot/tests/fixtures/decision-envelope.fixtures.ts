@@ -332,6 +332,7 @@ export function makeEnvelopeRelayCoordinator(envelope: DecisionEnvelope): Decisi
         ...envelope,
         entrypoint: request.entrypoint,
         flow: request.flow,
+        executionMode: request.executionMode ?? envelope.executionMode ?? "dry",
         traceId,
       };
     },

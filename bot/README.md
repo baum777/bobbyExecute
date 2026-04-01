@@ -67,7 +67,7 @@ npm run live:test
 
 - `GET /health`
 - `GET /kpi/summary` (includes `metricProvenance` for operator-visible honesty: wired vs derived vs default scalars)
-- `GET /kpi/decisions` (derived **projection** from action logs — not a standalone canonical decision authority)
+- `GET /kpi/decisions` — prefers **canonical** rows from runtime `recentHistory.recentCycles[].decisionEnvelope` when the worker exposes snapshots; legacy action-log projections fill gaps and are labeled `derived`.
 - `GET /kpi/adapters`
 - `GET /kpi/metrics`
 - Public bot surface is read-only and does not expose runtime replay or incident routes.

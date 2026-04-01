@@ -20,7 +20,11 @@ import { SystemClock } from "./clock.js";
 import { hashDecision, hashResult } from "./determinism/hash.js";
 import { createTraceId } from "../observability/trace-id.js";
 import { createCanonicalDecisionAuthority, type DecisionCoordinator } from "./decision/index.js";
-import { assertDecisionEnvelope, type DecisionEnvelope, type DecisionStage } from "./contracts/decision-envelope.js";
+import {
+  assertDecisionEnvelope,
+  type DecisionEnvelope,
+  type DecisionStage,
+} from "./contracts/decision-envelope.js";
 
 export type EngineStage =
   | "ingest"
@@ -64,11 +68,21 @@ export type IngestHandler = () => Promise<{
   wallet: WalletSnapshot;
 }>;
 
-export type SignalHandler = (market: MarketSnapshot) => Promise<{
+export type SignalOk = {
   direction: string;
   confidence: number;
   cqd?: import("./contracts/cqd.js").CQDSnapshotV1;
-}>;
+  /** When set, used as the canonical trade intent for this cycle (traceId/timestamp aligned by engine). */
+  intent?: TradeIntent;
+};
+
+export type SignalResult = SignalOk | { blocked: true; blockedReason?: string };
+
+function isSignalBlocked(result: SignalResult): result is { blocked: true; blockedReason?: string } {
+  return "blocked" in result && result.blocked === true;
+}
+
+export type SignalHandler = (market: MarketSnapshot) => Promise<SignalResult>;
 
 export type RiskHandler = (
   intent: TradeIntent,
@@ -98,6 +112,8 @@ export interface EngineConfig {
   clock?: Clock;
   actionLogger?: ActionLogger;
   dryRun?: boolean;
+  /** Runtime execution mode for canonical decision envelope v2 (default: dry if dryRun, else paper). */
+  executionMode?: "dry" | "paper" | "live";
   /** For deterministic tests - when set, used as traceId suffix instead of random */
   traceIdSeed?: string;
   decisionCoordinator?: DecisionCoordinator;
@@ -117,6 +133,7 @@ export class Engine {
   private readonly clock: Clock;
   private readonly actionLogger?: ActionLogger;
   private readonly dryRun: boolean;
+  private readonly executionMode: "dry" | "paper" | "live";
   private readonly traceIdSeed?: string;
   private readonly decisionCoordinator: DecisionCoordinator;
   private readonly journalWriter?: JournalWriter;
@@ -129,6 +146,8 @@ export class Engine {
     this.clock = config.clock ?? new SystemClock();
     this.actionLogger = config.actionLogger;
     this.dryRun = config.dryRun ?? true;
+    this.executionMode =
+      config.executionMode ?? (this.dryRun ? "dry" : "paper");
     this.traceIdSeed = config.traceIdSeed;
     this.decisionCoordinator = config.decisionCoordinator ?? createCanonicalDecisionAuthority();
     this.journalWriter = config.journalWriter;
@@ -162,6 +181,7 @@ export class Engine {
         await this.decisionCoordinator.run({
           entrypoint: "engine",
           flow: "trade",
+          executionMode: this.executionMode,
           clock: this.clock,
           traceIdSeed: this.traceIdSeed,
           tracePrefix: "trace",
@@ -184,23 +204,44 @@ export class Engine {
                 throw new Error("ENGINE_COORDINATOR_MISSING_INGEST_STATE");
               }
 
-              signal = await signalFn(market);
+              const signalOut = await signalFn(market);
+              if (isSignalBlocked(signalOut)) {
+                state.blocked = true;
+                state.blockedReason = signalOut.blockedReason ?? "SIGNAL_BLOCKED";
+                await this.log(state, "signal_blocked");
+                return {
+                  blocked: true,
+                  blockedReason: state.blockedReason,
+                  payload: { blocked: true },
+                };
+              }
+              signal = {
+                direction: signalOut.direction,
+                confidence: signalOut.confidence,
+                cqd: signalOut.cqd,
+              };
               state.signal = signal;
               state.stage = "risk";
               await this.emitStageTransition(state, "signal", "risk");
 
-              intent = {
-                traceId: context.traceId,
-                timestamp: context.timestamp,
-                idempotencyKey: `${context.traceId}-intent`,
-                tokenIn: "SOL",
-                tokenOut: "USDC",
-                amountIn: "1",
-                minAmountOut: "0.95",
-                slippagePercent: 1,
-                dryRun: this.dryRun,
-                executionMode: this.dryRun ? "dry" : "paper",
-              };
+              intent = signalOut.intent
+                ? {
+                    ...signalOut.intent,
+                    traceId: context.traceId,
+                    timestamp: context.timestamp,
+                  }
+                : {
+                    traceId: context.traceId,
+                    timestamp: context.timestamp,
+                    idempotencyKey: `${context.traceId}-intent`,
+                    tokenIn: "SOL",
+                    tokenOut: "USDC",
+                    amountIn: "1",
+                    minAmountOut: "0.95",
+                    slippagePercent: 1,
+                    dryRun: this.dryRun,
+                    executionMode: this.executionMode,
+                  };
               state.tradeIntent = intent;
               await this.appendCriticalJournal(state, "decision_outcome", { market, wallet, signal }, { intent });
 
@@ -326,29 +367,9 @@ export class Engine {
                 throw new Error("ENGINE_COORDINATOR_MISSING_JOURNAL_STATE");
               }
 
-              const decisionHash = hashDecision({ market, wallet, signal });
-              const resultHash = hashResult({ execReport, rpcVerify });
               state.stage = "journal";
-              state.journalEntry = {
-                traceId: state.traceId,
-                timestamp: this.clock.now().toISOString(),
-                stage: "complete",
-                decisionHash,
-                resultHash,
-                input: { market, wallet, signal, intent },
-                output: { execReport, rpcVerify },
-                blocked: false,
-              };
-              if (this.journalWriter) {
-                await appendJournal(this.journalWriter, state.journalEntry);
-              }
-              state.blocked = false;
-              state.blockedReason = undefined;
-              await this.log(state, "complete");
-              state.stage = "monitor";
-              await this.emitStageTransition(state, "journal", "monitor");
               return {
-                payload: { decisionHash, resultHash },
+                payload: { intent, execReport, rpcVerify, market, wallet, signal },
               };
             },
             monitor: async () => {
@@ -363,6 +384,37 @@ export class Engine {
       state.decisionEnvelope = envelope;
       state.blocked = envelope.blocked;
       state.blockedReason = envelope.blockedReason;
+
+      if (envelope.schemaVersion === "decision.envelope.v2") {
+        state.journalEntry = {
+          traceId: state.traceId,
+          timestamp: this.clock.now().toISOString(),
+          stage: envelope.blocked ? "canonical_trade_blocked" : "canonical_trade_complete",
+          decisionHash: envelope.decisionHash,
+          resultHash: envelope.resultHash,
+          input: {
+            decisionEnvelope: envelope,
+            market,
+            wallet,
+            signal,
+            intent,
+          },
+          output: {
+            execReport,
+            rpcVerify,
+            blocked: envelope.blocked,
+          },
+          blocked: envelope.blocked,
+          reason: envelope.blockedReason,
+        };
+        if (this.journalWriter) {
+          await appendJournal(this.journalWriter, state.journalEntry);
+        }
+        if (!envelope.blocked) {
+          await this.log(state, "complete");
+        }
+      }
+
       state.stage = state.chaosAllowed === false ? "chaos" : mapDecisionStageToEngineStage(envelope.stage);
       return state;
     } catch (err) {

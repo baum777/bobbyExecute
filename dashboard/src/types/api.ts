@@ -55,6 +55,9 @@ export interface AdaptersResponse {
   adapters: Adapter[];
 }
 
+export type DecisionProvenanceKind = 'canonical' | 'derived';
+export type DecisionSource = 'runtime_cycle_summary' | 'action_log_projection';
+
 export interface Decision {
   id: string;
   timestamp: string;
@@ -62,8 +65,11 @@ export interface Decision {
   token: string;
   confidence: number;
   reasons: string[];
-  provenanceKind: 'derived';
-  source: 'action_log_projection';
+  provenanceKind: DecisionProvenanceKind;
+  source: DecisionSource;
+  executionMode?: 'dry' | 'paper' | 'live';
+  decisionHash?: string;
+  schemaVersion?: string;
   actionLogAction?: string;
   actionLogAgentId?: string;
 }

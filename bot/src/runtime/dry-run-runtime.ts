@@ -4,6 +4,7 @@ import { SystemClock } from "../core/clock.js";
 import type { Config } from "../config/config-schema.js";
 import type { RuntimeConfigManager } from "./runtime-config-manager.js";
 import type { ExecutionReport, RpcVerificationReport, TradeIntent } from "../core/contracts/trade.js";
+import { runSignalEngine } from "../signals/signal-engine.js";
 import type { MarketSnapshot } from "../core/contracts/market.js";
 import type { WalletSnapshot } from "../core/contracts/wallet.js";
 import { isKillSwitchHalted, triggerKillSwitch } from "../governance/kill-switch.js";
@@ -79,6 +80,8 @@ export interface RuntimeRecentCycleSummary {
   verificationOccurred: boolean;
   decisionOccurred: boolean;
   errorOccurred: boolean;
+  /** Canonical decision envelope when the cycle was produced by Engine (all modes). */
+  decisionEnvelope?: import("../core/contracts/decision-envelope.js").DecisionEnvelope;
   decision?: {
     allowed: boolean;
     direction?: string;
@@ -237,6 +240,7 @@ export class DryRunRuntime {
       new Engine({
         clock: this.clock,
         dryRun: config.executionMode !== "live",
+        executionMode: config.executionMode,
         actionLogger: deps.actionLogger,
         decisionCoordinator: deps.decisionCoordinator,
         journalWriter: this.journalWriter,
@@ -690,6 +694,7 @@ export class DryRunRuntime {
         verificationOccurred: summary.verificationOccurred,
         decisionOccurred: summary.decisionOccurred,
         errorOccurred: summary.errorOccurred,
+        decisionEnvelope: summary.decisionEnvelope,
         decision: summary.decision,
       })),
       recentIncidents: recentIncidents.map((incident) => ({
@@ -934,10 +939,50 @@ export class DryRunRuntime {
             },
           };
         },
-        async () => ({
-          direction: this.mode === "paper" ? "buy" : "hold",
-          confidence: this.mode === "paper" ? 0.8 : 0,
-        }),
+        async (market) => {
+          if (this.mode === "paper") {
+            const out = runSignalEngine({
+              market,
+              scoreCard: {
+                traceId: market.traceId,
+                timestamp: market.timestamp,
+                mci: 0.7,
+                bci: 0.5,
+                hybrid: 0.8,
+                crossSourceConfidenceScore: 0.95,
+                ageAdjusted: true,
+                doublePenaltyApplied: false,
+                version: "1.0",
+                decisionHash: "dry-runtime-paper",
+              },
+              patternResult: {
+                traceId: market.traceId,
+                timestamp: market.timestamp,
+                patterns: [],
+                flags: [],
+                confidence: 0.5,
+                evidence: [],
+              },
+              dataQuality: { completeness: 1 },
+              traceId: market.traceId,
+              timestamp: market.timestamp,
+              dryRun: false,
+              executionMode: "paper",
+            });
+            if (out.blocked) {
+              return { blocked: true, blockedReason: out.reason };
+            }
+            return {
+              direction: "buy",
+              confidence: 0.8,
+              intent: out.intent,
+            };
+          }
+          return {
+            direction: "hold",
+            confidence: 0,
+          };
+        },
         async () => {
           if (this.mode === "paper") {
             return { allowed: true };
@@ -1243,6 +1288,7 @@ export class DryRunRuntime {
       stage: state.stage,
       blocked: state.blocked === true,
       blockedReason: state.blockedReason,
+      decisionEnvelope: state.decisionEnvelope,
       decision: state.tradeIntent
         ? {
             allowed: state.blocked !== true,

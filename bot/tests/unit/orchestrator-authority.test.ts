@@ -42,9 +42,10 @@ function makeSignalPack(): SignalPack {
 function makeMalformedDecisionCoordinator(): DecisionCoordinator {
   return {
     run: vi.fn(async () => ({
-      schemaVersion: "decision.envelope.v1",
+      schemaVersion: "decision.envelope.v2",
       entrypoint: "orchestrator",
       flow: "analysis",
+      executionMode: "dry",
       traceId: "orch-1",
       stage: "journal",
       blocked: false,

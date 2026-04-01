@@ -15,7 +15,7 @@ import type { CircuitBreaker, AdapterHealth } from "../../governance/circuit-bre
 import type { ActionLogger, ActionLogEntry } from "../../observability/action-log.js";
 import { getP95 } from "../../observability/metrics.js";
 import { ADAPTER_IDS } from "../../adapters/adapters-with-cb.js";
-import type { RuntimeSnapshot } from "../../runtime/dry-run-runtime.js";
+import type { RuntimeRecentCycleSummary, RuntimeSnapshot } from "../../runtime/dry-run-runtime.js";
 import { buildRuntimeHistory, buildRuntimeReadiness } from "../runtime-truth.js";
 import { loadVisibleRuntimeState } from "../runtime-visibility.js";
 import type { RuntimeVisibilityRepository } from "../../persistence/runtime-visibility-repository.js";
@@ -39,6 +39,27 @@ function mapHealthToStatus(h: AdapterHealth): KpiAdapter["status"] {
     return stale ? "degraded" : "healthy";
   }
   return "down";
+}
+
+function cycleSummaryToKpiDecision(cycle: RuntimeRecentCycleSummary): KpiDecision | null {
+  const env = cycle.decisionEnvelope;
+  if (!env) {
+    return null;
+  }
+  const action: KpiDecision["action"] = env.blocked ? "block" : "allow";
+  return {
+    id: env.traceId,
+    timestamp: cycle.cycleTimestamp,
+    action,
+    token: cycle.decision?.direction ?? "unknown",
+    confidence: cycle.decision?.confidence ?? 0,
+    reasons: env.blockedReason ? [env.blockedReason] : [],
+    provenanceKind: "canonical",
+    source: "runtime_cycle_summary",
+    executionMode: env.schemaVersion === "decision.envelope.v2" ? env.executionMode : undefined,
+    decisionHash: env.decisionHash,
+    schemaVersion: env.schemaVersion,
+  };
 }
 
 function actionToKpiDecision(entry: ActionLogEntry, index: number): KpiDecision {
@@ -216,8 +237,26 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
     async (request, reply) => {
       const limit = Math.min(parseInt(request.query.limit ?? "50", 10) || 50, 200);
       const entries = await getEntries();
+      const visible = await loadVisibleRuntimeState(
+        runtimeVisibilityRepository,
+        runtimeEnvironment,
+        getRuntimeSnapshot
+      );
+      const runtime = visible.runtime;
+      const canonical: KpiDecision[] = [];
+      const seen = new Set<string>();
+      for (const cycle of runtime?.recentHistory?.recentCycles ?? []) {
+        const row = cycleSummaryToKpiDecision(cycle);
+        if (row && !seen.has(row.id)) {
+          canonical.push(row);
+          seen.add(row.id);
+        }
+      }
       const recent = entries.slice(-limit).reverse();
-      const decisions = recent.map((e, i) => actionToKpiDecision(e, entries.length - 1 - i));
+      const legacy = recent
+        .map((e, i) => actionToKpiDecision(e, entries.length - 1 - i))
+        .filter((d) => !seen.has(d.id));
+      const decisions = [...canonical, ...legacy].slice(0, limit);
       return reply.status(200).send({ decisions });
     }
   );
