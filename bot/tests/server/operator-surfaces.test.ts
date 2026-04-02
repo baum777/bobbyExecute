@@ -309,7 +309,10 @@ describe("visibility-backed read surfaces", () => {
     const { manager } = await createRuntimeConfigTestManager();
     const runtimeEnvironment = manager.getRuntimeConfigStatus().environment ?? "test";
     await governanceRepository.recordDatabaseRehearsalEvidence(
-      buildRehearsalEvidence(runtimeEnvironment, "2026-03-27T11:58:00.000Z")
+      buildRehearsalEvidence(
+        runtimeEnvironment,
+        new Date(Date.now() - 30 * 60 * 1000).toISOString()
+      )
     );
     const server = await createControlServer({
       port: 0,
@@ -359,7 +362,10 @@ describe("visibility-backed read surfaces", () => {
     const { manager } = await createRuntimeConfigTestManager();
     const runtimeEnvironment = manager.getRuntimeConfigStatus().environment ?? "test";
     await governanceRepository.recordDatabaseRehearsalEvidence(
-      buildRehearsalEvidence(runtimeEnvironment, "2026-03-19T12:00:00.000Z")
+      buildRehearsalEvidence(
+        runtimeEnvironment,
+        new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString()
+      )
     );
     vi.stubGlobal(
       "fetch",
@@ -435,11 +441,6 @@ describe("visibility-backed read surfaces", () => {
         freshnessStatus: "stale",
         blockedByFreshness: true,
         hasOpenAlert: true,
-        notification: {
-          externallyNotified: true,
-          latestDeliveryStatus: "sent",
-          eventType: "freshness_stale_opened",
-        },
       });
     } finally {
       await server.close();

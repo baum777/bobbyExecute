@@ -43,6 +43,26 @@ describe("runtime entrypoints do not import advisory LLM", () => {
     const text = await readSrc("agents/execution.agent.ts");
     expect(text).not.toMatch(/discovery\/contracts|discovery\/source-observation|discovery\/discovery-evidence|discovery\/candidate-discovery|intelligence\/context|intelligence\/cqd|intelligence\/signals|intelligence\/universe\/build-universe-result/);
   });
+
+  it("execution agent does not reference sidecar discovery or worker pipeline paths", async () => {
+    const text = await readSrc("agents/execution.agent.ts");
+    expect(text).not.toMatch(/discovery\/watch-candidate|runtime\/sidecar|trend-reversal-monitor|downtrend-watch-worker|intelligence\/forensics/);
+  });
+
+  it("decision result derivation does not reference worker outputs", async () => {
+    const text = await readSrc("core/decision/decision-result-derivation.ts");
+    expect(text).not.toMatch(/watch-candidate|trend-reversal|runtime\/sidecar|downtrend-watch-worker/);
+  });
+
+  it("scorecard contract does not reference worker outputs", async () => {
+    const text = await readSrc("core/contracts/scorecard.ts");
+    expect(text).not.toMatch(/watch-candidate|trend-reversal|runtime\/sidecar|downtrend-watch-worker/);
+  });
+
+  it("pattern contract does not reference worker outputs", async () => {
+    const text = await readSrc("core/contracts/pattern.ts");
+    expect(text).not.toMatch(/watch-candidate|trend-reversal|runtime\/sidecar|downtrend-watch-worker/);
+  });
 });
 
 describe("package root export surface", () => {

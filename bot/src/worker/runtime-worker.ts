@@ -7,6 +7,8 @@ import type {
   RuntimeVisibilitySnapshot,
   RuntimeWorkerVisibility,
 } from "../persistence/runtime-visibility-repository.js";
+import { FileSystemJournalWriter } from "../journal-writer/writer.js";
+import { startSidecarWorkerLoop } from "../runtime/sidecar/worker-loop.js";
 
 export interface RuntimeWorkerProcess {
   workerId: string;
@@ -24,6 +26,13 @@ export interface RuntimeWorkerStartOptions {
   runtimeEnvironment?: string;
   workerId?: string;
   heartbeatIntervalMs?: number;
+  sidecarLoopDeps?: Partial<
+    Omit<
+      Parameters<typeof startSidecarWorkerLoop>[0],
+      "runDiscoveryWorker" | "journalWriter"
+    >
+  >;
+  sidecarDiscoveryWorker?: () => Promise<unknown>;
 }
 
 function clone<T>(value: T): T {
@@ -107,6 +116,20 @@ export async function startRuntimeWorker(
     ...(options.runtimeDeps ?? {}),
     runtimeConfigManager,
   });
+  const sidecarJournalWriter = new FileSystemJournalWriter(
+    config.journalPath.replace(/\.jsonl$/i, ".sidecar.jsonl"),
+    { autoStartPeriodicFlush: false }
+  );
+  const sidecarLoop = startSidecarWorkerLoop({
+    ...(options.sidecarLoopDeps ?? {}),
+    journalWriter: sidecarJournalWriter,
+    logger: options.sidecarLoopDeps?.logger ?? console,
+    runDiscoveryWorker:
+      options.sidecarDiscoveryWorker ??
+      (async () => ({
+        candidates: [],
+      })),
+  });
 
   let heartbeatTimer: NodeJS.Timeout | null = null;
   let stopped = false;
@@ -125,6 +148,7 @@ export async function startRuntimeWorker(
       clearInterval(heartbeatTimer);
       heartbeatTimer = null;
     }
+    sidecarLoop.stop();
     await runtime.stop();
     await publishVisibilitySnapshot().catch(() => {
       // Fail closed: the runtime has already been stopped, and the next boot will resync the worker snapshot.

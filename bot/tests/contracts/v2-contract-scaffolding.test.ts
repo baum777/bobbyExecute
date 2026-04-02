@@ -6,10 +6,12 @@ import { UniverseBuildResultSchema } from "@bot/intelligence/universe/contracts/
 import { DataQualityV1Schema } from "@bot/intelligence/quality/contracts/data-quality.v1.js";
 import { CQDSnapshotV1Schema } from "@bot/intelligence/cqd/contracts/cqd.snapshot.v1.js";
 import { ContextPackV1Schema } from "@bot/intelligence/context/contracts/context-pack.v1.js";
+import { TrendReversalObservationV1Schema } from "@bot/intelligence/forensics/contracts/trend-reversal-observation.v1.js";
 import * as universeContracts from "@bot/intelligence/universe/contracts/index.js";
 import * as contextContracts from "@bot/intelligence/context/contracts/index.js";
 import * as cqdContracts from "@bot/intelligence/cqd/contracts/index.js";
 import * as qualityContracts from "@bot/intelligence/quality/contracts/index.js";
+import * as forensicsContracts from "@bot/intelligence/forensics/contracts/index.js";
 
 describe("v2 contract scaffolding", () => {
   it("parses foundational pre-authority contract scaffolds", () => {
@@ -129,6 +131,22 @@ describe("v2 contract scaffolding", () => {
       evidenceRefs: [evidence.evidenceId],
     });
     expect(context.narrativeTags[0]).toBe("launch_wave");
+
+    const trendObservation = TrendReversalObservationV1Schema.parse({
+      schema_version: "trend_reversal_observation.v1",
+      token: "SOL",
+      observationState: "RECLAIM_ATTEMPT",
+      structureContext: {
+        reclaimZone: [95, 105],
+        lowerHigh: 101,
+        drawdownPct: 23.4,
+      },
+      monitoringConfidence: 0.82,
+      invalidationFlags: [],
+      evidenceRefs: [evidence.evidenceId],
+      observedAt: nowMs,
+    });
+    expect(trendObservation.observationState).toBe("RECLAIM_ATTEMPT");
   });
 
   it("keeps intelligence contract barrels clean and singular", () => {
@@ -146,6 +164,12 @@ describe("v2 contract scaffolding", () => {
     expect(Object.keys(qualityContracts).sort()).toEqual([
       "DataQualityV1Schema",
       "DataQualityV1StatusSchema",
+    ]);
+    expect(Object.keys(forensicsContracts).sort()).toEqual([
+      "TrendReversalObservationStateSchema",
+      "TrendReversalObservationV1Schema",
+      "TrendReversalStructureContextSchema",
+      "assertTrendReversalObservationV1",
     ]);
   });
 });
