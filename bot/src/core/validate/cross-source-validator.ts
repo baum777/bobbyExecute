@@ -1,5 +1,6 @@
 /**
  * M5: Cross-Source Validator - discrepancy detection, confidence on missing metrics.
+ * Shared freshness banding is reused by Wave-1 quality gating.
  */
 import type { NormalizedTokenV1 } from "../contracts/tokenuniverse.js";
 import { calculateTokenConfidence } from "../contracts/tokenuniverse.js";
@@ -32,10 +33,37 @@ function smape(a: number, b: number, epsilon = 1e-10): number {
 }
 
 /** Freshness penalty: degraded when >15s, strong when >30s. */
-const FRESHNESS_DEGRADED_MS = 15_000;
-const FRESHNESS_STALE_MS = 30_000;
+export const FRESHNESS_DEGRADED_MS = 15_000;
+export const FRESHNESS_STALE_MS = 30_000;
 const PENALTY_DEGRADED = 0.1;
 const PENALTY_STALE = 0.25;
+
+export type FreshnessBand = "fresh" | "degraded" | "stale";
+
+export function classifyFreshnessBand(freshnessMs: number): FreshnessBand {
+  if (freshnessMs > FRESHNESS_STALE_MS) {
+    return "stale";
+  }
+  if (freshnessMs > FRESHNESS_DEGRADED_MS) {
+    return "degraded";
+  }
+  return "fresh";
+}
+
+export function freshnessPenaltyForMs(freshnessMs: number): number {
+  switch (classifyFreshnessBand(freshnessMs)) {
+    case "stale":
+      return PENALTY_STALE;
+    case "degraded":
+      return PENALTY_DEGRADED;
+    default:
+      return 0;
+  }
+}
+
+export function freshnessScoreForMs(freshnessMs: number): number {
+  return Math.max(0, 1 - freshnessPenaltyForMs(freshnessMs));
+}
 
 /**
  * Validate token across sources; flag discrepancy; reduce confidence for missing metrics.
@@ -63,11 +91,7 @@ export function validateCrossSource(
       confidencePenalty += 0.1;
     }
 
-    if (freshnessMs > FRESHNESS_STALE_MS) {
-      confidencePenalty += PENALTY_STALE;
-    } else if (freshnessMs > FRESHNESS_DEGRADED_MS) {
-      confidencePenalty += PENALTY_DEGRADED;
-    }
+    confidencePenalty += freshnessPenaltyForMs(freshnessMs);
 
     const confidence = calculateTokenConfidence(sources, sourceQualities);
     const adjustedConfidence = Math.max(0, confidence - confidencePenalty);

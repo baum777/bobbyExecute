@@ -1,6 +1,7 @@
 /**
  * Pre-authority typed artifact.
- * Contract scaffold only for v2 discovery evidence.
+ * Repo-native DiscoveryEvidence line.
+ * Wave bundle term `EvidenceBundleV1` maps here.
  */
 import { z } from "zod";
 import {

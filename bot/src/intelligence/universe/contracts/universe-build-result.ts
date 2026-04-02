@@ -1,6 +1,7 @@
 /**
  * Pre-authority typed artifact.
- * Contract scaffold only for v2 universe inclusion results.
+ * Repo-native UniverseBuildResult line.
+ * Wave bundle term `UniverseBuildResultV1` maps here.
  */
 import { z } from "zod";
 

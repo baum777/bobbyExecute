@@ -44,15 +44,14 @@ function defaultMonitorCandidate(
   quality: DataQualityV1 | null | undefined,
   observedAt: number
 ): TrendReversalObservationV1 {
-  const reasons = quality?.reasons ?? [];
+  const reasons = quality?.reasonCodes ?? [];
+  const freshnessScore = typeof quality?.freshness === "number" ? quality.freshness : 0;
   return TrendReversalObservationV1Schema.parse({
     schema_version: "trend_reversal_observation.v1",
     token: candidate.token,
     observationState: defaultObservationState(candidate),
     structureContext: {
-      drawdownPct: quality
-        ? Math.max(0, Math.round((1 - quality.freshnessScore) * 1000) / 10)
-        : undefined,
+      drawdownPct: quality ? Math.max(0, Math.round((1 - freshnessScore) * 1000) / 10) : undefined,
       reclaimZone: candidate.observationCompleteness >= 0.85 ? [0.95, 1.05] : undefined,
       lowerHigh: quality?.crossSourceConfidence,
     },

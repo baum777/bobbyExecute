@@ -1,6 +1,7 @@
 /**
  * Pre-authority typed artifact.
- * Contract scaffold only for v2 candidate discovery output.
+ * Repo-native CandidateToken line.
+ * Wave bundle term `CandidateTokenV1` maps here.
  */
 import { z } from "zod";
 import { SourceObservationSourceSchema } from "./source-observation.js";

@@ -5,7 +5,12 @@ import { CandidateTokenSchema } from "@bot/discovery/contracts/candidate-token.j
 import { UniverseBuildResultSchema } from "@bot/intelligence/universe/contracts/universe-build-result.js";
 import { DataQualityV1Schema } from "@bot/intelligence/quality/contracts/data-quality.v1.js";
 import { CQDSnapshotV1Schema } from "@bot/intelligence/cqd/contracts/cqd.snapshot.v1.js";
+import { DataQualityV1Schema as CoreDataQualityV1Schema } from "@bot/core/contracts/dataquality.js";
+import { CQDSnapshotV1Schema as CoreCQDSnapshotV1Schema } from "@bot/core/contracts/cqd.js";
 import { ContextPackV1Schema } from "@bot/intelligence/context/contracts/context-pack.v1.js";
+import * as discoveryContracts from "@bot/discovery/contracts/index.js";
+import { SignalPackV1Schema, TrendReversalMonitorInputV1Schema } from "@bot/intelligence/forensics/contracts/index.js";
+import { buildSignalPackV1, buildTrendReversalMonitorInputV1 } from "@bot/intelligence/forensics/build-signal-pack.js";
 import { TrendReversalObservationV1Schema } from "@bot/intelligence/forensics/contracts/trend-reversal-observation.v1.js";
 import * as universeContracts from "@bot/intelligence/universe/contracts/index.js";
 import * as contextContracts from "@bot/intelligence/context/contracts/index.js";
@@ -82,40 +87,136 @@ describe("v2 contract scaffolding", () => {
     expect(universe.included).toBe(true);
 
     const quality = DataQualityV1Schema.parse({
-      version: "1.0",
-      token: "SOL",
-      chain: "solana",
-      status: "pass",
+      schema_version: "data_quality.v1",
+      traceId: "quality-1",
+      timestamp: new Date(nowMs).toISOString(),
       completeness: 0.95,
-      freshnessScore: 0.9,
-      divergenceScore: 0.05,
+      freshness: 0.9,
+      discrepancy: 0,
+      sourceReliability: 0.93,
       crossSourceConfidence: 0.92,
+      confidence: 0.92,
+      source_breakdown: {
+        market: {
+          source: "market",
+          completeness: 1,
+          freshness: 1,
+          reliability: 1,
+          latency_ms: 500,
+        },
+      },
+      discrepancy_flags: [],
       missingCriticalFields: [],
       staleSources: [],
-      disagreedSources: [],
+      disagreedSources: {},
       routeViable: true,
       liquidityEligible: true,
-      reasons: [],
+      status: "pass",
+      reasonCodes: [],
     });
     expect(quality.status).toBe("pass");
 
+    expect(DataQualityV1Schema).toBe(CoreDataQualityV1Schema);
+
     const cqd = CQDSnapshotV1Schema.parse({
-      version: "1.0",
-      token: "SOL",
+      schema_version: "cqd.snapshot.v1",
       chain: "solana",
-      tsBucket: Math.floor(nowMs / 60_000),
-      features: { price_return_1m: 0.01 },
+      token: "SOL",
+      ts_bucket: Math.floor(nowMs / 60_000),
+      features: {
+        liquidity_depth: 1_000_000,
+        price_return_1m: 0.01,
+      },
       confidence: 0.8,
-      anomalyFlags: [],
-      evidencePack: [evidence.evidenceId],
+      anomaly_flags: [],
+      evidence_pack: [evidence.evidenceId],
+      source_summaries: [
+        {
+          source: "market",
+          freshness_ms: 500,
+          status: "OK",
+        },
+        {
+          source: "social",
+          freshness_ms: 1_000,
+          status: "PARTIAL",
+        },
+      ],
       sources: {
-        freshestSourceTsMs: nowMs,
-        maxStalenessMs: 1_000,
-        priceDivergencePct: 0.01,
+        freshest_source_ts_ms: nowMs,
+        max_staleness_ms: 1_000,
+        price_divergence_pct: 0.01,
       },
       hash: "cqd-hash",
     });
     expect(cqd.chain).toBe("solana");
+
+    expect(CQDSnapshotV1Schema).toBe(CoreCQDSnapshotV1Schema);
+
+    const signalPack = buildSignalPackV1({
+      token: "SOL",
+      traceId: "signal-pack-1",
+      dataQuality: quality,
+      cqdSnapshot: cqd,
+      evidenceRefs: [evidence.evidenceId],
+      marketStructureHints: {
+        observedHigh: 108,
+        observedLow: 94,
+        lastPrice: 101,
+        drawdownPct: 0.07,
+        rangePct: 0.12,
+        reclaimGapPct: 0.03,
+        priceReturnPct: -0.02,
+        notes: ["market_structure"],
+      },
+      holderFlowHints: {
+        holderCount: 1_280,
+        holderConcentrationPct: 0.22,
+        holderTurnoverPct: 0.06,
+        netFlowUsd: -2_400,
+        participationPct: 0.57,
+        notes: ["holder_flow"],
+      },
+      manipulationFlagsHints: {
+        washTradingSuspected: false,
+        spoofingSuspected: null,
+        concentrationFragility: true,
+        anomalyFlags: ["manual_watch"],
+        notes: ["manipulation_flags"],
+      },
+      sourceCoverageHints: {
+        market: {
+          status: "OK",
+          completeness: 1,
+          freshness: 1,
+          freshnessMs: 500,
+          evidenceRefs: [evidence.evidenceId],
+        },
+        social: {
+          status: "STALE",
+          completeness: 0.5,
+          freshness: 0.4,
+          freshnessMs: 1_000,
+          evidenceRefs: [evidence.evidenceId],
+        },
+      },
+      notes: ["signal_pack"],
+    });
+    expect(SignalPackV1Schema.parse(signalPack)).toEqual(signalPack);
+
+    const monitorInput = buildTrendReversalMonitorInputV1({
+      token: "SOL",
+      traceId: "monitor-input-1",
+      dataQuality: quality,
+      cqdSnapshot: cqd,
+      signalPack,
+      contextAvailability: {
+        supplementalHintsAvailable: true,
+        missingSupplementalHints: ["holder_wallet_context"],
+      },
+      notes: ["monitor_input"],
+    });
+    expect(TrendReversalMonitorInputV1Schema.parse(monitorInput)).toEqual(monitorInput);
 
     const context = ContextPackV1Schema.parse({
       version: "1.0",
@@ -150,26 +251,52 @@ describe("v2 contract scaffolding", () => {
   });
 
   it("keeps intelligence contract barrels clean and singular", () => {
+    expect(Object.keys(discoveryContracts).sort()).toEqual([
+      "CandidateTokenPrioritySchema",
+      "CandidateTokenSchema",
+      "DiscoveryEvidenceSchema",
+      "DiscoveryEvidenceStatusSchema",
+      "SourceObservationChainSchema",
+      "SourceObservationSchema",
+      "SourceObservationSourceSchema",
+      "SourceObservationStatusSchema",
+      "assertCandidateToken",
+      "assertSourceObservation",
+      "createDiscoveryEvidenceRef",
+    ].sort());
     expect(Object.keys(universeContracts).sort()).toEqual([
       "UniverseBuildResultSchema",
       "UniverseCoverageStateSchema",
       "UniverseSourceCoverageEntrySchema",
-    ]);
+    ].sort());
     expect(Object.keys(contextContracts).sort()).toEqual([
       "ContextPackV1Schema",
-    ]);
+    ].sort());
     expect(Object.keys(cqdContracts).sort()).toEqual([
       "CQDSnapshotV1Schema",
-    ]);
+    ].sort());
     expect(Object.keys(qualityContracts).sort()).toEqual([
+      "DataQualityStatusSchema",
       "DataQualityV1Schema",
-      "DataQualityV1StatusSchema",
-    ]);
+    ].sort());
     expect(Object.keys(forensicsContracts).sort()).toEqual([
+      "SignalPackCoverageStatusSchema",
+      "SignalPackHolderFlowSchema",
+      "SignalPackLiquiditySchema",
+      "SignalPackManipulationFlagsSchema",
+      "SignalPackMarketStructureSchema",
+      "SignalPackSourceCoverageEntrySchema",
+      "SignalPackV1Schema",
+      "SignalPackVolatilitySchema",
+      "SignalPackVolumeSchema",
+      "TrendReversalMonitorInputAvailabilitySchema",
+      "TrendReversalMonitorInputV1Schema",
       "TrendReversalObservationStateSchema",
       "TrendReversalObservationV1Schema",
       "TrendReversalStructureContextSchema",
+      "assertSignalPackV1",
+      "assertTrendReversalMonitorInputV1",
       "assertTrendReversalObservationV1",
-    ]);
+    ].sort());
   });
 });

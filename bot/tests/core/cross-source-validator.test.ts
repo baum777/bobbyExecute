@@ -5,6 +5,9 @@ import { describe, expect, it } from "vitest";
 import {
   validateCrossSource,
   hasDiscrepancy,
+  classifyFreshnessBand,
+  freshnessPenaltyForMs,
+  freshnessScoreForMs,
 } from "@bot/core/validate/cross-source-validator.js";
 
 const now = new Date().toISOString();
@@ -40,13 +43,21 @@ describe("validateCrossSource", () => {
   it("adds freshness penalty when freshnessMs > 30s", () => {
     const tokens = [makeToken(["dexscreener", "paprika"])];
     const results = validateCrossSource(tokens, { freshnessMs: 35_000 });
-    expect(results[0].confidencePenalty).toBeGreaterThanOrEqual(0.25);
+    expect(results[0].confidencePenalty).toBeCloseTo(freshnessPenaltyForMs(35_000), 5);
   });
 
   it("adds degraded penalty when 15s < freshnessMs <= 30s", () => {
     const tokens = [makeToken(["dexscreener", "paprika"])];
     const results = validateCrossSource(tokens, { freshnessMs: 20_000 });
-    expect(results[0].confidencePenalty).toBeGreaterThanOrEqual(0.1);
+    expect(results[0].confidencePenalty).toBeCloseTo(freshnessPenaltyForMs(20_000), 5);
+  });
+
+  it("shares freshness band semantics with the quality gate", () => {
+    expect(classifyFreshnessBand(0)).toBe("fresh");
+    expect(classifyFreshnessBand(20_000)).toBe("degraded");
+    expect(classifyFreshnessBand(35_000)).toBe("stale");
+    expect(freshnessScoreForMs(0)).toBe(1);
+    expect(freshnessScoreForMs(35_000)).toBeLessThan(freshnessScoreForMs(20_000));
   });
 });
 

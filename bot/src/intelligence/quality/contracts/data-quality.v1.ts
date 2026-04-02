@@ -1,31 +1,12 @@
 /**
  * Pre-authority typed artifact.
- * Deterministic downstream input contract scaffold only for v2 quality gating.
+ * Repo-native DataQualityV1 line.
+ * Wave bundle term `DataQualityReportV1` maps here.
+ *
+ * Re-export the core contract owner to avoid parallel shape drift.
  */
-import { z } from "zod";
-
-export const DataQualityV1StatusSchema = z.enum([
-  "pass",
-  "hold",
-  "fail",
-]);
-
-export const DataQualityV1Schema = z.object({
-  version: z.literal("1.0"),
-  token: z.string(),
-  chain: z.enum(["solana"]),
-  status: DataQualityV1StatusSchema,
-  completeness: z.number().min(0).max(1),
-  freshnessScore: z.number().min(0).max(1),
-  divergenceScore: z.number().min(0).max(1),
-  crossSourceConfidence: z.number().min(0).max(1),
-  missingCriticalFields: z.array(z.string()).default([]),
-  staleSources: z.array(z.string()).default([]),
-  disagreedSources: z.array(z.string()).default([]),
-  routeViable: z.boolean(),
-  liquidityEligible: z.boolean(),
-  reasons: z.array(z.string()).default([]),
-});
-
-export type DataQualityV1Status = z.infer<typeof DataQualityV1StatusSchema>;
-export type DataQualityV1 = z.infer<typeof DataQualityV1Schema>;
+export {
+  DataQualityStatusSchema,
+  DataQualityV1Schema,
+  type DataQualityV1,
+} from "../../../core/contracts/dataquality.js";

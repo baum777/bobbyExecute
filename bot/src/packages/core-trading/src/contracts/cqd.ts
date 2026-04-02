@@ -1,13 +1,24 @@
 import type { Chain } from "./market.js";
 
-export interface CQDFeaturesV1 {
-  price_return_1m?: number; volume_1m?: number; liquidity_depth?: number;
-  liquidity_change_5m?: number; spread_proxy?: number; atr_1m?: number;
-
-  top10_share?: number; holder_hhi?: number; mci?: number; bci?: number; hybrid_integrity?: number;
-
-  mention_rate?: number; influencer_weighted_mentions?: number; sentiment_score?: number;
-  hype_density?: number; panic_density?: number; organic_score?: number; amplified_score?: number;
+export interface CQDFeaturesV1 extends Record<string, number | undefined> {
+  price_return_1m?: number;
+  volume_1m?: number;
+  liquidity_depth?: number;
+  liquidity_change_5m?: number;
+  spread_proxy?: number;
+  atr_1m?: number;
+  top10_share?: number;
+  holder_hhi?: number;
+  mci?: number;
+  bci?: number;
+  hybrid_integrity?: number;
+  mention_rate?: number;
+  influencer_weighted_mentions?: number;
+  sentiment_score?: number;
+  hype_density?: number;
+  panic_density?: number;
+  organic_score?: number;
+  amplified_score?: number;
 }
 
 export interface CQDSourcesV1 {
@@ -16,6 +27,12 @@ export interface CQDSourcesV1 {
   price_divergence_pct?: number;
   volume_divergence_pct?: number;
   liquidity_divergence_pct?: number;
+}
+
+export interface CQDSourceSummaryV1 {
+  source: string;
+  freshness_ms: number;
+  status: "OK" | "PARTIAL" | "STALE" | "ERROR" | "MISSING";
 }
 
 export interface CQDSnapshotV1 {
@@ -27,6 +44,7 @@ export interface CQDSnapshotV1 {
   confidence: number;
   anomaly_flags: string[];
   evidence_pack: string[];
+  source_summaries?: CQDSourceSummaryV1[];
   sources: CQDSourcesV1;
   hash: string;
 }

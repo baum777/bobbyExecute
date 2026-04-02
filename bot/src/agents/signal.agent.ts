@@ -23,6 +23,13 @@ export async function createSignalHandler(): Promise<
       confidence: 0.5,
       anomaly_flags: [],
       evidence_pack: [],
+      source_summaries: [
+        {
+          source: "market",
+          freshness_ms: market.freshnessMs ?? 0,
+          status: market.priceUsd > 0 && market.volume24h > 0 ? "OK" : "PARTIAL",
+        },
+      ],
       sources: {
         freshest_source_ts_ms: Date.now(),
         max_staleness_ms: 1000,
