@@ -1,155 +1,165 @@
-# dotBot / BobbyExecute
+# BobbyExecute
 
-Governance-first Solana trading bot with deterministic execution, append-only journaling, and guarded live-test control surfaces.
+Scope: repository-level architecture summary.  
+Authority: authoritative for documentation structure and terminology; detailed governance lives in `docs/05_governance/README.md`.
 
-## Current State
+## Objective
 
-- `bot/` contains the public readonly API, private control plane, and dedicated runtime worker entrypoints.
-- Dry and paper are the normal local modes.
-- Live-test support is guarded, bounded, and operator-visible.
-- Runtime behavior is governed by persisted runtime config and a private control service, not by changing env vars.
-- Schema upgrades are explicit and versioned through `bot/migrations/`; operators run `npm run db:migrate` before booting against a fresh or upgraded database.
-- Recovery is documented and testable through `docs/bobbyexecution/recovery_and_upgrade_runbook.md`, including semantic restore validation and disposable restore rehearsals via `npm run recovery:db-rehearse`.
-- Render-native automatic rehearsal refresh runs from a dedicated cron job and writes the evidence back to the same canonical Postgres store the promotion gate already trusts.
-- Governed live promotion now requires fresh database rehearsal evidence before `live_limited` or `live` promotion.
-- Dashboard operator auth is separately configured with a server-side session secret and operator directory, so privileged dashboard actions fail closed if those env vars are missing.
-- Live trading now goes through a separate remote signer service in `signer/`; the bot/runtime keeps `WALLET_ADDRESS` as public identity only and does not depend on a raw production private key in normal env vars.
-- The repository does not claim uncontrolled live trading readiness.
+BobbyExecute is a governance-first Solana trading system being converged onto this model:
+
+```text
+deterministic core + MCP skill plane + shadow cognitive sidecars
+```
+
+## Current Truth
+
+Implemented today:
+
+- a deterministic runtime authority path in `bot/src/core/engine.ts`, `bot/src/runtime/*.ts`, and the control/runtime/server entrypoints
+- typed pre-authority contracts for discovery, data quality, CQD, constructed signals, scoring, and trend-reversal observation
+- a shadow sidecar loop for watch-candidate discovery and trend-reversal monitoring
+- a separate remote signer boundary for live signing
+
+Implemented but not authoritative:
+
+- dashboard and KPI surfaces
+- advisory LLM explanation route
+- trend-reversal observation worker outputs
+
+Partially implemented or unwired:
+
+- the full deterministic-core convergence from `SourceObservation` through `ScoreCardV1` into runtime authority
+- the MCP skill plane as a real MCP server with tools, resources, prompts, routing, and cache policy
+
+Legacy but still present in code:
+
+- `ToolRouter`
+- `Orchestrator`
+- repo-local `packages/skills/*` manifests and instructions
+
+These legacy surfaces are not treated as decision authority unless explicitly wired into the deterministic runtime path.
+
+## System Model
+
+```text
+External sources
+  -> pre-authority discovery artifacts
+     SourceObservation
+     -> DiscoveryEvidence
+     -> CandidateToken
+     -> UniverseBuildResult
+     -> DataQualityV1
+     -> CQDSnapshotV1
+     -> ConstructedSignalSetV1
+     -> ScoreCardV1
+  -> deterministic decision authority
+     policy / risk / decision envelope / execution / verify / journal
+
+Parallel non-authority lanes
+  -> MCP skill plane
+  -> shadow cognitive sidecars
+  -> dashboard and advisory views
+```
+
+## Layer Summary
+
+### 1. Deterministic core
+
+- Only decision authority.
+- Must stay replayable, fail-closed, and free of LLM influence.
+- Current authority path is the runtime engine flow in `bot/src/core/engine.ts` and `bot/src/runtime/live-runtime.ts`.
+- The newer pre-authority contracts under `bot/src/discovery/` and `bot/src/intelligence/` are implemented but not yet the active authority pipeline.
+
+### 2. MCP skill plane
+
+- Intended cognitive layer for typed tools, resources, and prompts.
+- Current repo truth is narrower: local skill manifests exist in `packages/skills/`, and a legacy `ToolRouter` exists in `bot/src/core/tool-router.ts`.
+- No verified MCP server, transport, resource registry, prompt registry, or cache/routing layer is wired today.
+
+### 3. Shadow cognitive sidecars
+
+- Advisory only.
+- Includes LLM watch-candidate discovery parsing, deterministic trend-reversal monitoring, replay-oriented observation building, and optional decision annotation.
+- Sidecar outputs cannot create decisions, override scores, or trigger execution.
+
+## Authority Rules
+
+- Only the deterministic runtime path may create decision authority.
+- Dashboard, control, skill, sidecar, and advisory surfaces are never trade-decision authority.
+- Missing, stale, rejected, or inconsistent critical data must block or degrade; it must not silently pass.
+- Critical artifacts must be serializable, replayable, and journalable.
+- Legacy surfaces may exist in code, but they are not canonical merely because they are exported.
+
+## Pipeline Summary
+
+Current authority pipeline:
+
+```text
+ingest -> signal -> risk -> chaos -> execute -> verify -> journal -> monitor
+```
+
+Target deterministic-core convergence:
+
+```text
+SourceObservation
+-> DiscoveryEvidence
+-> CandidateToken
+-> UniverseBuildResult
+-> DataQualityV1
+-> CQDSnapshotV1
+-> ConstructedSignalSetV1
+-> ScoreCardV1
+-> pattern / policy / decision / execution
+```
+
+Truthful status:
+
+- `SourceObservation` through `ScoreCardV1` builders exist
+- the engine/runtime authority path is still driven by the older ingest/signal/risk flow
+- convergence between those two paths is not complete
 
 ## Canonical Docs
 
-- [`render.yaml`](render.yaml)
-- [`governance/SoT.md`](governance/SoT.md)
-- [`docs/bobbyexecution/README.md`](docs/bobbyexecution/README.md)
-- [`bot/README.md`](bot/README.md)
-- [`RENDER_DEPLOYMENT.md`](RENDER_DEPLOYMENT.md)
-- [`docs/bobbyexecution/operator_deploy_runbook.md`](docs/bobbyexecution/operator_deploy_runbook.md)
-- [`docs/bobbyexecution/production_readiness_checklist.md`](docs/bobbyexecution/production_readiness_checklist.md)
-- [`docs/bobbyexecution/recovery_and_upgrade_runbook.md`](docs/bobbyexecution/recovery_and_upgrade_runbook.md)
-- [`docs/bobbyexecution/live_test_runbook.md`](docs/bobbyexecution/live_test_runbook.md)
-- [`docs/bobbyexecution/incident_and_killswitch_runbook.md`](docs/bobbyexecution/incident_and_killswitch_runbook.md)
-- [`docs/bobbyexecution/trading_execution_protocol.md`](docs/bobbyexecution/trading_execution_protocol.md)
-- [`docs/bobbyexecution/market_data_reliability_protocol.md`](docs/bobbyexecution/market_data_reliability_protocol.md)
-- [`docs/bobbyexecution/risk_and_chaos_governance.md`](docs/bobbyexecution/risk_and_chaos_governance.md)
-- [`docs/bobbyexecution/runtime_observability_protocol.md`](docs/bobbyexecution/runtime_observability_protocol.md)
-- [`docs/secure-signer-boundary.md`](docs/secure-signer-boundary.md)
-- [`signer/README.md`](signer/README.md)
-- [`docs/architecture/master-trading-bot-intelligence-spec.md`](docs/architecture/master-trading-bot-intelligence-spec.md)
-- [`docs/trading/trading-edge_chaos-scenarios.md`](docs/trading/trading-edge_chaos-scenarios.md)
-
-## Fast Start
-
-1. Copy [`.env.example`](.env.example) to `.env` in the repo root.
-2. Load the env values into the shell that will run the bot. The Node entrypoints read `process.env` directly and do not auto-load `.env`.
-   - macOS/Linux: `set -a; . ./.env; set +a`
-   - Windows PowerShell: use the import snippet in [`BOBBYEXECUTION_ENV_HANDBOOK.md`](BOBBYEXECUTION_ENV_HANDBOOK.md) before running `npm run`
-   - Codex App sessions inherit the parent shell, so launch the app after the env is loaded if you want the session to see it
-3. Keep the safe defaults for local work:
-
-   ```bash
-   LIVE_TRADING=false
-   DRY_RUN=true
-   RPC_MODE=stub
-   TRADING_ENABLED=false
-   ```
-
-4. Install dependencies:
-
-   ```bash
-   cd bot
-   npm install
-   ```
-
-5. Check schema readiness if you are pointing at a real Postgres database:
-
-   ```bash
-   cd bot
-   npm run db:status
-   ```
-
-6. If the status is `missing_but_migratable` or `migration_required`, run:
-
-   ```bash
-   cd bot
-   npm run db:migrate
-   ```
-
-7. Run the repo gate (`npm run premerge`, which covers lint, golden tasks, and chaos):
-
-   ```bash
-   npm run premerge
-   ```
-
-8. Build the runtime:
-
-   ```bash
-   npm run build
-   ```
-
-9. Start the API server:
-
-   ```bash
-   npm run start:server
-   ```
-
-10. Check `GET /health` and `GET /kpi/summary` on the public bot service.
-11. Use the private control service or the dashboard proxy routes for control-path testing, and read worker status through `GET /control/status` or `GET /control/runtime-status`.
-12. If you are testing live trading, start the signer service from [`signer/README.md`](signer/README.md), then set `SIGNER_MODE=remote` and `SIGNER_URL` before enabling `LIVE_TRADING=true`.
-
-## Runtime Surfaces
-
-- `GET /health`
-- `GET /kpi/summary`
-- `GET /kpi/decisions`
-- `GET /kpi/adapters`
-- `GET /kpi/metrics`
-- Public bot surface is read-only for mutations and no longer exposes runtime replay or incident routes.
-- Private control service read surfaces:
-  - `GET /control/status`
-  - `GET /control/runtime-config`
-  - `GET /control/runtime-status`
-  - `GET /control/restart-alerts`
-- Privileged mutations now live on the private control service:
-  - `POST /emergency-stop`
-  - `POST /control/pause`
-  - `POST /control/resume`
-  - `POST /control/halt`
-  - `POST /control/reset`
-  - `POST /control/mode`
-  - `POST /control/runtime-config`
-  - `POST /control/reload`
-  - `POST /control/restart-worker`
-  - `POST /control/restart-alerts/:id/acknowledge`
-  - `POST /control/restart-alerts/:id/resolve`
-- `GET /control/history`
-
-The dashboard now calls the private control service through server-side proxy routes. Control routes require `x-control-token` or `Authorization: Bearer <token>` on the control service. Missing tokens fail closed with `403`.
-
-Restart-required config changes can now open durable restart alerts when worker convergence stalls or fails. Operators acknowledge an alert to record investigation, and resolve it only when the underlying condition has cleared or an explicit governed manual resolution is justified.
-
-Selected restart alerts can also notify an external server-side webhook through the private control plane. The webhook URL and token live only in Render service env vars on the control service, and notification delivery is rate-limited so repeated alert polling does not spam operators. Canonical alert state remains the Postgres source of truth even when notification delivery fails.
-
-Notification policy is intentionally narrow: critical alert openings, critical escalations, repeated-failure summaries, and recovery notifications after a previously notified alert resolves can leave the control plane. Warning-only alerts stay local by default, acknowledgements remain local-only, and the webhook sink is deduped per alert/event/sink with a cooldown window so retries and poll loops do not spam downstream receivers. The payload is compact and structured: environment, worker target, severity, reason code, summary, restart request id, requested/applied versions, worker heartbeat age, recommended action, and an operator path hint.
-
-The notification layer now supports multiple server-side destinations. The routing policy can target primary, secondary, and staging webhooks with destination-specific cooldowns, recovery flags, and formatter profiles. Generic JSON remains the base payload, while Slack-compatible formatting is only a thin presentation layer on top of the same generic webhook transport. Operators can inspect destination-level status, failure reasons, and suppression reasons in the private control plane; browser clients still never see notification secrets.
-
-The private control plane also exposes a read-only delivery journal and compact destination summary at `GET /control/restart-alert-deliveries` and `GET /control/restart-alert-deliveries/summary`. These views are derived from the durable restart-alert event stream and are intended for troubleshooting destination outages, cooldown behavior, and flapping or misconfigured webhooks.
-
-`GET /control/restart-alert-deliveries/trends` adds a bounded 24h vs 7d comparison slice on top of the same history. It reports compact per-destination counts, health hints, trend hints, and recent send/failure timestamps so operators can spot degrading or inactive destinations without reading raw journal rows. The trend view is read-only and non-authoritative: it never mutates restart state or replaces the underlying event history.
-
-Trend rows can also be used as bookmarkable drilldowns: selecting a destination writes a bounded journal slice into the URL, including the destination, preserved safe filter context, and the 24h or 7d window. Clearing drilldown removes the trend-specific URL state and returns to broader journal browsing. Malformed URL values are normalized or ignored, and all reads still flow through the dashboard server-side proxy.
-
-When any bounded journal or drilldown state is present, the control page also shows a small `Copy drilldown URL` action. It copies the current normalized dashboard URL, so operators can share the same bounded slice without using the address bar manually. The copied link remains read-only and never includes control-plane secrets or private-control service URLs.
+- `docs/01_architecture/README.md`
+- `docs/02_pipeline/README.md`
+- `docs/03_skill_plane/README.md`
+- `docs/04_sidecars/README.md`
+- `docs/05_governance/README.md`
+- `docs/06_journal_replay/README.md`
+- `docs/codex-workflow-consumer.md`
+- `docs/repo-specific-canonical-sources.md`
 
 ## Repo Layout
 
 ```text
-/
-├─ governance/   canonical governance layer
-├─ docs/         operational and architecture docs
-├─ bot/          active TypeScript runtime
-├─ signer/       standalone remote signer service
-├─ ops/          team artifacts and internal process docs
-├─ packages/     skill manifests and instructions
-└─ dor-bot/      legacy Python reference tree
+bot/        deterministic runtime, control plane, server, contracts
+dashboard/  operator UI and server-side control proxy
+signer/     remote signing boundary for live trading
+packages/   local skill manifests and instructions
+docs/       canonical repository documentation
+governance/ local governance overlays and agent rules
+dor-bot/    legacy Python subtree
 ```
+
+## Verification
+
+Run from `bot/`:
+
+```bash
+npm install
+npm run lint
+npm test
+npm run premerge
+npm run build
+```
+
+Verified command truth:
+
+- `npm run premerge` currently resolves to `npm run lint && npm test`
+- live mode additionally depends on remote-signer, real RPC, and control posture gates
+
+## Next Read
+
+- architecture: `docs/01_architecture/README.md`
+- authority and fail-closed rules: `docs/05_governance/README.md`
+- replay and artifact chain: `docs/06_journal_replay/README.md`

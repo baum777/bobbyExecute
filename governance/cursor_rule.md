@@ -34,7 +34,8 @@ After reading the SoT, you MUST ensure the following are loaded:
 - `ops/agent-team/team_findings.md`
 - `ops/agent-team/team_progress.md`
 - `ops/agent-team/team_decisions.md`
-- `docs/bobbyexecution/README.md`
+- `README.md`
+- `docs/05_governance/README.md`
 
 ---
 
@@ -115,4 +116,4 @@ If any required file is missing, inconsistent, or approval is required but not g
 
 - Canonical SoT: [`governance/SoT.md`](SoT.md)
 - Repo path rules: [`governance/file_path.md`](file_path.md)
-- BobbyExecution navigation: [`docs/bobbyexecution/README.md`](../docs/bobbyexecution/README.md)
+- BobbyExecute architecture: [`docs/01_architecture/README.md`](../docs/01_architecture/README.md)
