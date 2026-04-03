@@ -4,7 +4,7 @@
  * MAPPED from postgres-action-logger.ts - in-memory for tests, extensible for Postgres.
  * Wave 4: FileSystemActionLogger for persistent audit logs (JSONL).
  * Decision-history truth note (PR-M0-01): action logs are derived support only.
- * Canonical decision history is the runtime cycle summary `decisionEnvelope`.
+ * Canonical decision history is the runtime cycle summary `decisionEnvelope`; action logs are never canonical truth.
  */
 import { appendFile, readFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";

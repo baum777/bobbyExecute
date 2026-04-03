@@ -3,7 +3,8 @@
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: memory | Last Updated: 2026-03-04
  * Wave 4: storagePath flush - persist journal to disk when path set.
  * @deprecated legacy non-canonical compatibility surface.
- * Retained temporarily for migration/test support only; no new production callers.
+ * Zero-authority residue only. Retained temporarily for migration/test support only; no new production callers.
+ * No canonical decision-history authority.
  */
 import { compress as snappyCompress, uncompress as snappyUncompress } from "snappyjs";
 import { appendFile, readFile, mkdir } from "node:fs/promises";
@@ -35,7 +36,8 @@ const DATA_QUALITY_CHANGE_THRESHOLD = 0.04;
 
 /**
  * @deprecated legacy non-canonical compatibility surface.
- * Retained temporarily for migration/test support only; no new production callers.
+ * Zero-authority residue only. Retained temporarily for migration/test support only;
+ * no new production callers, no canonical decision-history authority.
  */
 export class MemoryDB {
   private snapshot: MemorySnapshot | null = null;

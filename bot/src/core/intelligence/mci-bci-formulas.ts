@@ -1,4 +1,11 @@
 /**
+ * Compatibility-only legacy MCI/BCI helper bridge.
+ * @deprecated legacy migration surface from the pre-authority scorecard/signalpack lineage.
+ * Zero-authority residue only. Not part of the canonical BobbyExecute v2 authority path.
+ * Retained temporarily for migration/test support only; no new production callers,
+ * no canonical decision-history authority.
+ */
+/**
  * MCI/BCI/Hybrid Formeln - age-adjusted, double-penalty protected.
  * Version: 1.1.0 | Owner: Kimi Swarm | Layer: core/intelligence | Last Updated: 2026-03-05
  * Changes: Hybrid weights updated to 0.55/0.45 per Target Architecture

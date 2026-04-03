@@ -2,7 +2,8 @@
  * Tool Router with permission enforcement.
  * EXTRACTED from OrchestrAI_Labs packages/agent-runtime/src/execution/tool-router.ts
  * @deprecated legacy non-canonical compatibility surface.
- * Retained temporarily for migration/test support only; no new production callers.
+ * Zero-authority residue only. Retained temporarily for migration/test support only;
+ * no new production callers, no canonical decision-history authority.
  */
 import type { AgentProfile, ToolRef } from "./contracts/agent.js";
 import { enforcePermission } from "../governance/policy-engine.js";
@@ -32,7 +33,8 @@ export interface ToolHandler {
 
 /**
  * @deprecated legacy non-canonical compatibility surface.
- * Retained temporarily for migration/test support only; no new production callers.
+ * Zero-authority residue only. Retained temporarily for migration/test support only;
+ * no new production callers, no canonical decision-history authority.
  */
 export class ToolRouter {
   constructor(private readonly handlers: Record<string, ToolHandler>) {}

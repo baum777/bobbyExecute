@@ -168,7 +168,7 @@ export interface RuntimeCycleSummary {
   stage: string;
   blocked: boolean;
   blockedReason?: string;
-  /** Primary canonical decision-history artifact for this cycle (when produced by Engine / coordinator). */
+  /** Primary canonical decision-history artifact for this cycle; sole canonical decision-history truth for persistence/projection semantics. */
   decisionEnvelope?: DecisionEnvelope;
   decisionOccurred: boolean;
   signalOccurred: boolean;
@@ -194,9 +194,9 @@ export interface RuntimeCycleSummary {
   verification?: RuntimeCycleVerificationEvidence;
   degradedState?: RuntimeCycleDegradedState;
   adapterHealth?: RuntimeCycleAdapterHealthSnapshot;
-  /** Shadow-only deterministic parity scaffold; derived support only and never authority-canonical. */
+  /** Shadow-only deterministic parity scaffold; derived support only and never authority-canonical. Provenance/support context only, not canonical decision history. */
   shadowArtifactChain?: RuntimeCycleShadowArtifactChainSummary;
-  /** Canonical upstream authority chain after PR-M1-02 cutover. */
+  /** Canonical upstream authority chain after PR-M1-02 cutover. Provenance/support context only, not canonical decision history. */
   authorityArtifactChain?: RuntimeCycleAuthorityArtifactChainSummary;
   incidentIds: string[];
 }

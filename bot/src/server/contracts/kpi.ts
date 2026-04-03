@@ -221,7 +221,7 @@ export interface HealthResponse {
   };
 }
 
-/** How a KPI value was produced (for operator honesty; never silent about derivation). */
+/** How a KPI value was produced (for operator honesty; never silent about derivation). Canonical decision history lives in the runtime cycle summary `decisionEnvelope` only. */
 export type KpiMetricProvenance =
   | "wired"
   | "derived"
@@ -317,16 +317,16 @@ export interface KpiDecision {
   confidence: number;
   reasons: string[];
   /**
-   * canonical = runtime cycle summary + decision envelope (primary).
-   * derived = action log projection (legacy compatibility only).
+   * canonical = runtime cycle summary `decisionEnvelope` only.
+   * derived = action log projection only (legacy compatibility only).
    */
   provenanceKind: "canonical" | "derived";
   source: "runtime_cycle_summary" | "action_log_projection";
-  /** Present when provenanceKind is canonical. */
+  /** Present when provenanceKind is canonical and sourced from the runtime cycle summary `decisionEnvelope`. */
   executionMode?: "dry" | "paper" | "live";
   decisionHash?: string;
   schemaVersion?: string;
-  /** PR-C1: from decision.envelope.v3 only (not reconstructed). */
+  /** PR-C1: from decision.envelope.v3 only (not reconstructed; never from action-log projection). */
   reasonClass?: KpiDecisionReasonClass;
   sources?: string[];
   freshness?: {
@@ -385,7 +385,7 @@ export interface KpiDecisionAdvisoryResponse {
   enabled: boolean;
   canonical: import("../../core/contracts/decision-envelope.js").DecisionEnvelope | null;
   advisory: KpiAdvisoryLLMResponseBody | null;
-  /** Optional second provider output when `compare=true`; never merged into truth. */
+  /** Optional second provider output when `compare=true`; never merged into truth or canonical decision history. */
   advisorySecondary?: KpiAdvisoryLLMResponseBody | null;
   audits: KpiAdvisoryAuditEntry[];
   message?: string;

@@ -2,7 +2,8 @@
  * Orchestrator - 7-Phasen Extended Pipeline.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: core | Last Updated: 2026-03-04
  * @deprecated legacy non-canonical compatibility surface.
- * Retained temporarily for migration/test support only; no new production callers.
+ * Zero-authority residue only. Retained temporarily for migration/test support only; no new production callers.
+ * No canonical decision-history authority.
  */
 import type { Clock } from "./clock.js";
 import { SystemClock } from "./clock.js";
@@ -100,7 +101,8 @@ export interface OrchestratorConfig {
 
 /**
  * @deprecated legacy non-canonical compatibility surface.
- * Retained temporarily for migration/test support only; no new production callers.
+ * Zero-authority residue only. Retained temporarily for migration/test support only;
+ * no new production callers, no canonical decision-history authority.
  */
 export class Orchestrator {
   private readonly clock: Clock;

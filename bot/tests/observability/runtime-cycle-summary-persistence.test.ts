@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { FileSystemRuntimeCycleSummaryWriter } from "../../src/persistence/runtime-cycle-summary-repository.js";
+import { buildDecisionEnvelopeFixtureSet } from "../fixtures/decision-envelope.fixtures.js";
 
 describe("Runtime cycle summary persistence", () => {
   let tempDir: string;
@@ -17,6 +18,7 @@ describe("Runtime cycle summary persistence", () => {
 
   it("writes blocked and successful cycle summaries durably", async () => {
     const writer = new FileSystemRuntimeCycleSummaryWriter(join(tempDir, "runtime-cycles.jsonl"));
+    const fixtures = await buildDecisionEnvelopeFixtureSet();
 
     await writer.append({
       cycleTimestamp: "2026-03-17T00:00:00.000Z",
@@ -28,6 +30,7 @@ describe("Runtime cycle summary persistence", () => {
       stage: "ingest",
       blocked: true,
       blockedReason: "PAPER_INGEST_BLOCKED:stale",
+      decisionEnvelope: fixtures.denyEnvelope,
       decisionOccurred: false,
       signalOccurred: false,
       riskOccurred: false,
@@ -48,6 +51,7 @@ describe("Runtime cycle summary persistence", () => {
       advanced: true,
       stage: "monitor",
       blocked: false,
+      decisionEnvelope: fixtures.allowEnvelope,
       decisionOccurred: true,
       signalOccurred: true,
       riskOccurred: true,
@@ -117,6 +121,42 @@ describe("Runtime cycle summary persistence", () => {
           scoreCardBuildStatus: "built",
         },
       },
+      authorityArtifactChain: {
+        artifactMode: "authority",
+        derivedOnly: false,
+        nonAuthoritative: false,
+        authorityInfluence: true,
+        canonicalDecisionHistory: false,
+        chainVersion: "authority_artifact_chain.v1",
+        status: "built",
+        inputRefs: ["runtime_trace:trace-1", "runtime_mode:paper"],
+        evidenceRefs: ["discovery:evidence:trace-1"],
+        decision: {
+          blocked: false,
+          direction: "buy",
+          confidence: 0.77,
+          tradeIntentId: "trace-1-intent",
+        },
+        artifacts: {
+          sourceObservationCount: 2,
+          sourceObservationRefs: ["market:m1", "wallet:w1"],
+          discoveryEvidenceRef: "discovery:evidence:trace-1",
+          discoveryEvidenceHash: "discovery-hash-trace-1",
+          dataQualityStatus: "pass",
+          dataQualityReasonCodes: [],
+          dataQualityMissingCriticalFields: [],
+          dataQualityStaleSources: [],
+          dataQualityCrossSourceConfidence: 0.89,
+          cqdHash: "cqd-hash-trace-1",
+          cqdAnomalyFlags: [],
+          constructedSignalSetPayloadHash: "constructed-hash-trace-1",
+          constructedSignalSetBuildStatus: "built",
+          scoreCardPayloadHash: "score-hash-trace-1",
+          scoreCardBuildStatus: "built",
+          scoreComposite: 0.74,
+          scoreConfidence: 0.7,
+        },
+      },
       incidentIds: [],
     });
 
@@ -127,6 +167,7 @@ describe("Runtime cycle summary persistence", () => {
     expect(summaries[1].paperExecutionProduced).toBe(true);
     expect(summaries[1].verificationMode).toBe("paper-simulated");
     expect(summaries[1].execution?.mode).toBe("paper");
+    expect(summaries[1].decisionEnvelope?.schemaVersion).toBe("decision.envelope.v3");
     expect(summaries[1].shadowArtifactChain?.artifactMode).toBe("shadow");
     expect(summaries[1].shadowArtifactChain?.derivedOnly).toBe(true);
     expect(summaries[1].shadowArtifactChain?.parity.oldAuthority.tradeIntentId).toBe("trace-1-intent");
@@ -134,6 +175,11 @@ describe("Runtime cycle summary persistence", () => {
       "discovery-hash-trace-1"
     );
     expect(summaries[1].shadowArtifactChain?.artifacts.cqdHash).toBe("cqd-hash-trace-1");
+    expect(summaries[1].authorityArtifactChain?.artifactMode).toBe("authority");
+    expect(summaries[1].authorityArtifactChain?.derivedOnly).toBe(false);
+    expect(summaries[1].authorityArtifactChain?.authorityInfluence).toBe(true);
+    expect(summaries[1].authorityArtifactChain?.canonicalDecisionHistory).toBe(false);
+    expect(summaries[1].authorityArtifactChain?.decision.blocked).toBe(false);
     await expect(writer.getByTraceId("trace-1")).resolves.toEqual(summaries[1]);
   });
 });

@@ -8,6 +8,7 @@
  * Sidecars remain out of the authority path. The chain may still use internal
  * deterministic bridge artifacts required by existing builders, but it never
  * delegates authority to legacy scoring/signal modules.
+ * Provenance/support context only, not canonical decision history.
  */
 import { hashDecision } from "../core/determinism/hash.js";
 import type { MarketSnapshot } from "../core/contracts/market.js";

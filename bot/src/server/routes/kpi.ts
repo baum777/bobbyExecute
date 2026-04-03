@@ -42,6 +42,7 @@ function mapHealthToStatus(h: AdapterHealth): KpiAdapter["status"] {
 }
 
 function cycleSummaryToKpiDecision(cycle: RuntimeRecentCycleSummary): KpiDecision | null {
+  // Canonical projection: runtime cycle summary `decisionEnvelope` only.
   const env = cycle.decisionEnvelope;
   if (!env || env.schemaVersion !== "decision.envelope.v3") {
     return null;
@@ -67,6 +68,7 @@ function cycleSummaryToKpiDecision(cycle: RuntimeRecentCycleSummary): KpiDecisio
 }
 
 function actionToKpiDecision(entry: ActionLogEntry, index: number): KpiDecision {
+  // Legacy derived projection: action log support only, never canonical decision history.
   const action =
     entry.blocked === true ? "block" : entry.skillBlockReason ? "abort" : "allow";
   const inputPayload = entry.input as {

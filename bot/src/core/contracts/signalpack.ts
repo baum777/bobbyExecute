@@ -1,6 +1,8 @@
 /**
  * SignalPack - Aggregierte Signale aus Quellen.
  * @deprecated migration target: `intelligence/signals/contracts/constructed-signal-set.v1.ts`.
+ * Zero-authority residue only. Compatibility-only legacy contract surface; not part
+ * of the canonical BobbyExecute v2 authority path.
  * Legacy non-surviving lineage; not canonical future path.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: core/contracts | Last Updated: 2026-03-04
  */

@@ -1,3 +1,9 @@
+/**
+ * Core contracts compatibility barrel.
+ * @deprecated compatibility-only legacy barrel.
+ * Zero-authority residue only. Not part of the canonical BobbyExecute v2 authority path.
+ * Retained temporarily for migration/test support only; no new production callers.
+ */
 export * from "./agent.js";
 export * from "./dataquality.js";
 export * from "./decision-envelope.js";

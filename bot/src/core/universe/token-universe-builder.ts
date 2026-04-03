@@ -1,6 +1,8 @@
 /**
  * M5: Token Universe Builder - MAX/MIN limits, trending/volume split.
  * @deprecated migration target: deterministic pre-authority `intelligence/universe` lineage.
+ * Zero-authority residue only. Compatibility-only legacy bridge; not part of the
+ * canonical BobbyExecute v2 authority path.
  * Legacy non-surviving lineage; not canonical future path.
  */
 import type { NormalizedTokenV1, TokenUniverseV1 } from "../contracts/tokenuniverse.js";
@@ -25,7 +27,7 @@ export interface RawTokenInput {
  * Reduced: MAX=30 MIN=20, Full: MAX=100 MIN=30.
  * Trending/volume split 50/50.
  * @deprecated migration target: `intelligence/universe/build-universe-result.ts`.
- * Transitional compatibility surface only; do not add new callers.
+ * Transitional zero-authority compatibility surface only; do not add new callers.
  */
 export function buildTokenUniverse(
   rawTokens: RawTokenInput[],

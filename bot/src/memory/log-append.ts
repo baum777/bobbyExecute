@@ -2,7 +2,8 @@
  * Memory Log Append - Append-only mit SHA-256 Hash-Chain.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: memory | Last Updated: 2026-03-04
  * @deprecated legacy non-canonical compatibility surface.
- * Retained temporarily for migration/test support only; no new production callers.
+ * Zero-authority residue only. Retained temporarily for migration/test support only; no new production callers.
+ * No canonical decision-history authority.
  */
 import { sha256 } from "../core/determinism/hash.js";
 import { canonicalize } from "../core/determinism/canonicalize.js";
@@ -26,7 +27,8 @@ export interface LogAck {
 
 /**
  * @deprecated legacy non-canonical compatibility surface.
- * Retained temporarily for migration/test support only; no new production callers.
+ * Zero-authority residue only. Retained temporarily for migration/test support only;
+ * no new production callers, no canonical decision-history authority.
  */
 export class MemoryLog {
   private entries: LogEntry[] = [];

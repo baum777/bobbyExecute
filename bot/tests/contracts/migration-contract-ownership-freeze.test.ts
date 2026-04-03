@@ -82,7 +82,104 @@ describe("migration contract ownership freeze", () => {
 
     expect(runtimeCycleRepo).toContain("Primary canonical decision-history artifact");
     expect(runtimeCycleRepo).toContain("decisionEnvelope?: DecisionEnvelope");
+    expect(runtimeCycleRepo).toContain("sole canonical decision-history truth");
+    expect(runtimeCycleRepo).toContain("Provenance/support context only, not canonical decision history.");
     expect(actionLog).toContain("action logs are derived support only");
-    expect(actionLog).toContain("Canonical decision history is the runtime cycle summary `decisionEnvelope`");
+    expect(actionLog).toContain("Canonical decision history is the runtime cycle summary `decisionEnvelope`; action logs are never canonical truth.");
+  });
+
+  it("keeps decision-history surfaces classified as canonical, derived, and provenance context only", () => {
+    const surfaces = [
+      {
+        path: "persistence/runtime-cycle-summary-repository.ts",
+        classification: "canonical decision-history",
+        why: "Runtime cycle summaries are the sole canonical decision-history home.",
+        markers: [
+          "Primary canonical decision-history artifact for this cycle; sole canonical decision-history truth for persistence/projection semantics.",
+          "Provenance/support context only, not canonical decision history.",
+          "decisionEnvelope?: DecisionEnvelope",
+        ],
+      },
+      {
+        path: "runtime/shadow-artifact-chain.ts",
+        classification: "shadow/provenance context",
+        why: "Shadow parity artifacts are derived-only provenance and never canonical decision history.",
+        markers: [
+          "Derived-only parity scaffold; never authority-canonical.",
+          "Provenance/support context only, not canonical decision history.",
+        ],
+      },
+      {
+        path: "runtime/authority-artifact-chain.ts",
+        classification: "shadow/provenance context",
+        why: "Authority artifact-chain summaries are provenance/support context and not the canonical decision-history record.",
+        markers: [
+          "Provenance/support context only, not canonical decision history.",
+          "delegates authority to legacy scoring/signal modules.",
+        ],
+      },
+      {
+        path: "observability/action-log.ts",
+        classification: "derived projection/support",
+        why: "Action logs are derived audit support only and never canonical decision history.",
+        markers: [
+          "action logs are derived support only",
+          "Canonical decision history is the runtime cycle summary `decisionEnvelope`; action logs are never canonical truth.",
+        ],
+      },
+      {
+        path: "server/contracts/kpi.ts",
+        classification: "derived projection/support",
+        why: "KPI decisions are runtime-summary projections or legacy action-log projections, not a competing truth source.",
+        markers: [
+          "canonical = runtime cycle summary `decisionEnvelope` only.",
+          "derived = action log projection only (legacy compatibility only).",
+          "Present when provenanceKind is canonical and sourced from the runtime cycle summary `decisionEnvelope`.",
+          "Optional second provider output when `compare=true`; never merged into truth or canonical decision history.",
+        ],
+      },
+      {
+        path: "server/routes/kpi.ts",
+        classification: "derived projection/support",
+        why: "KPI routes project canonical cycle summaries and legacy action-log support, but do not define decision truth.",
+        markers: [
+          "Canonical projection: runtime cycle summary `decisionEnvelope` only.",
+          "Legacy derived projection: action log support only, never canonical decision history.",
+        ],
+      },
+      {
+        path: "core/contracts/journal.ts",
+        classification: "derived projection/support",
+        why: "Journal entries are append-only audit support, not the canonical decision-history record.",
+        markers: [
+          "Derived audit support only; never canonical decision history.",
+          "Journal entry - append-only audit log.",
+        ],
+      },
+      {
+        path: "persistence/journal-repository.ts",
+        classification: "derived projection/support",
+        why: "Journal persistence remains a fail-closed audit trail and does not claim canonical decision truth.",
+        markers: [
+          "Derived audit trail only; never canonical decision history.",
+          "Derived audit log only; canonical decision history lives in runtime cycle summaries.",
+        ],
+      },
+    ] as const;
+    const allowedClassifications = [
+      "canonical decision-history",
+      "derived projection/support",
+      "shadow/provenance context",
+      "compatibility residue / non-canonical",
+    ] as const;
+
+    for (const surface of surfaces) {
+      const text = readSrc(surface.path);
+      expect(surface.why, `${surface.path} must state why it is non-canonical`).toBeTruthy();
+      expect(allowedClassifications).toContain(surface.classification);
+      for (const marker of surface.markers) {
+        expect(text, `${surface.path} is missing marker: ${marker}`).toContain(marker);
+      }
+    }
   });
 });

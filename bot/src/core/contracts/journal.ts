@@ -1,5 +1,6 @@
 /**
  * Journal entry - append-only audit log.
+ * Derived audit support only; never canonical decision history.
  * PROPOSED for onchain trading bot.
  */
 import { z } from "zod";

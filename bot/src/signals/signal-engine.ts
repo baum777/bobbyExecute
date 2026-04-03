@@ -2,8 +2,9 @@
  * Signal Engine - compatibility-only trade-intent bridge from scores + policy.
  * Normalized planning package: blocks on low data quality (completeness < 0.7).
  * @deprecated compatibility-only migration surface for legacy parity fixtures.
- * Not part of the canonical BobbyExecute v2 authority path.
- * Retained temporarily for migration parity and test-only compatibility.
+ * Zero-authority residue only. Not part of the canonical BobbyExecute v2 authority path.
+ * Retained temporarily for migration parity and test-only compatibility; no new
+ * authority, execution, or canonical decision-history role.
  */
 import type { MarketSnapshot } from "../core/contracts/market.js";
 import type { ScoreCard } from "../core/contracts/scorecard.js";
@@ -31,7 +32,7 @@ export type SignalOutput =
 /**
  * Generate trade intent from scores. Blocks when data quality < 0.7.
  * @deprecated compatibility-only migration surface for legacy parity fixtures.
- * Not part of the canonical BobbyExecute v2 authority path.
+ * Zero-authority residue only. Not part of the canonical BobbyExecute v2 authority path.
  * Do not add new callers outside the frozen compatibility/test allowlist.
  */
 export function runSignalEngine(input: SignalInput): SignalOutput {
