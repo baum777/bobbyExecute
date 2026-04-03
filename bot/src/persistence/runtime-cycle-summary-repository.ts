@@ -40,6 +40,124 @@ export interface RuntimeCycleAdapterHealthSnapshot {
   unhealthyAdapterIds: string[];
 }
 
+export type RuntimeShadowArtifactStatus = "built" | "blocked" | "error" | "skipped";
+export type RuntimeShadowArtifactFailureStage =
+  | "input_intake"
+  | "source_observation"
+  | "discovery_evidence"
+  | "candidate_token"
+  | "universe_build_result"
+  | "data_quality"
+  | "cqd_snapshot"
+  | "constructed_signal_set"
+  | "score_card";
+
+export type RuntimeAuthorityArtifactStatus = "built" | "blocked" | "error" | "skipped";
+export type RuntimeAuthorityArtifactFailureStage =
+  | "input_intake"
+  | "source_observation"
+  | "discovery_evidence"
+  | "candidate_token"
+  | "universe_build_result"
+  | "data_quality"
+  | "cqd_snapshot"
+  | "constructed_signal_set"
+  | "score_card";
+
+export interface RuntimeCycleShadowArtifactChainSummary {
+  artifactMode: "shadow";
+  derivedOnly: true;
+  nonAuthoritative: true;
+  authorityInfluence: false;
+  canonicalDecisionHistory: false;
+  chainVersion: "shadow_artifact_chain.v1";
+  status: RuntimeShadowArtifactStatus;
+  failureStage?: RuntimeShadowArtifactFailureStage;
+  failureReason?: string;
+  inputRefs: string[];
+  evidenceRefs: string[];
+  parity: {
+    oldAuthority: {
+      blocked: boolean;
+      blockedReason?: string;
+      signalDirection?: string;
+      signalConfidence?: number;
+      tradeIntentId?: string;
+    };
+    shadowDerived: {
+      blocked: boolean;
+      qualityStatus?: "pass" | "degraded" | "fail";
+      scoreComposite?: number | null;
+      scoreConfidence?: number | null;
+      cqdHash?: string;
+    };
+    deltas: {
+      blockedMismatch: boolean;
+      confidenceDelta: number | null;
+    };
+  };
+  artifacts: {
+    sourceObservationCount: number;
+    sourceObservationRefs: string[];
+    staleSources: string[];
+    discoveryEvidenceRef?: string;
+    discoveryEvidenceHash?: string;
+    qualityStatus?: "pass" | "degraded" | "fail";
+    qualityReasonCodes?: string[];
+    qualityMissingCriticalFields?: string[];
+    qualityStaleSources?: string[];
+    qualityCrossSourceConfidence?: number;
+    cqdHash?: string;
+    cqdAnomalyFlags?: string[];
+    cqdStageError?: string;
+    constructedSignalSetPayloadHash?: string;
+    constructedSignalSetBuildStatus?: "built" | "degraded" | "invalidated";
+    scoreCardPayloadHash?: string;
+    scoreCardBuildStatus?: "built" | "degraded" | "invalidated";
+  };
+}
+
+export interface RuntimeCycleAuthorityArtifactChainSummary {
+  artifactMode: "authority";
+  derivedOnly: false;
+  nonAuthoritative: false;
+  authorityInfluence: true;
+  canonicalDecisionHistory: false;
+  chainVersion: "authority_artifact_chain.v1";
+  status: RuntimeAuthorityArtifactStatus;
+  failureStage?: RuntimeAuthorityArtifactFailureStage;
+  failureReason?: string;
+  inputRefs: string[];
+  evidenceRefs: string[];
+  decision: {
+    blocked: boolean;
+    blockedReason?: string;
+    direction?: string;
+    confidence?: number;
+    tradeIntentId?: string;
+  };
+  artifacts: {
+    sourceObservationCount: number;
+    sourceObservationRefs: string[];
+    discoveryEvidenceRef?: string;
+    discoveryEvidenceHash?: string;
+    dataQualityStatus?: "pass" | "degraded" | "fail";
+    dataQualityReasonCodes?: string[];
+    dataQualityMissingCriticalFields?: string[];
+    dataQualityStaleSources?: string[];
+    dataQualityCrossSourceConfidence?: number;
+    cqdHash?: string;
+    cqdAnomalyFlags?: string[];
+    cqdStageError?: string;
+    constructedSignalSetPayloadHash?: string;
+    constructedSignalSetBuildStatus?: "built" | "degraded" | "invalidated";
+    scoreCardPayloadHash?: string;
+    scoreCardBuildStatus?: "built" | "degraded" | "invalidated";
+    scoreComposite?: number | null;
+    scoreConfidence?: number | null;
+  };
+}
+
 export interface RuntimeCycleSummary {
   cycleTimestamp: string;
   traceId: string;
@@ -50,7 +168,7 @@ export interface RuntimeCycleSummary {
   stage: string;
   blocked: boolean;
   blockedReason?: string;
-  /** Primary canonical decision artifact for this cycle (when produced by Engine / coordinator). */
+  /** Primary canonical decision-history artifact for this cycle (when produced by Engine / coordinator). */
   decisionEnvelope?: DecisionEnvelope;
   decisionOccurred: boolean;
   signalOccurred: boolean;
@@ -76,6 +194,10 @@ export interface RuntimeCycleSummary {
   verification?: RuntimeCycleVerificationEvidence;
   degradedState?: RuntimeCycleDegradedState;
   adapterHealth?: RuntimeCycleAdapterHealthSnapshot;
+  /** Shadow-only deterministic parity scaffold; derived support only and never authority-canonical. */
+  shadowArtifactChain?: RuntimeCycleShadowArtifactChainSummary;
+  /** Canonical upstream authority chain after PR-M1-02 cutover. */
+  authorityArtifactChain?: RuntimeCycleAuthorityArtifactChainSummary;
   incidentIds: string[];
 }
 

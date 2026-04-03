@@ -12,10 +12,12 @@
 /
 ├─ governance/              canonical governance layer (SoT, cursor rule, path rules)
 ├─ docs/
-│  ├─ bobbyexecution/       BobbyExecution operational docs (navigation, protocols, audit)
-│  ├─ trading/              trading chaos deep reference
-│  ├─ architecture/         architecture blueprints
-│  └─ operations/           operations guides (action handbook, PR template, secrets)
+│  ├─ 01_architecture/      system architecture and layer boundaries
+│  ├─ 02_pipeline/          stage-by-stage pipeline truth
+│  ├─ 03_skill_plane/       MCP skill-plane definition and current wiring status
+│  ├─ 04_sidecars/          shadow sidecar boundaries
+│  ├─ 05_governance/        authority and fail-closed rules
+│  └─ 06_journal_replay/    artifact, replay, and provenance model
 ├─ bot/                     TypeScript production codebase (src/, tests/)
 ├─ ops/agent-team/          governance and team artifacts (plan, findings, progress, decisions)
 ├─ packages/skills/         skill manifests and instructions
@@ -131,4 +133,4 @@ Every PR must include:
 
 - Canonical SoT: [`governance/SoT.md`](SoT.md)
 - Agent rules: [`governance/cursor_rule.md`](cursor_rule.md)
-- BobbyExecution navigation: [`docs/bobbyexecution/README.md`](../docs/bobbyexecution/README.md)
+- BobbyExecute architecture: [`docs/01_architecture/README.md`](../docs/01_architecture/README.md)

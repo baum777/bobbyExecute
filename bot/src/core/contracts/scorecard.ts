@@ -1,5 +1,7 @@
 /**
  * ScoreCard - MCI/BCI/Hybrid Scores (age-adjusted, double-penalty protected).
+ * @deprecated migration target: deterministic pre-authority score-card contract owner.
+ * Legacy non-surviving lineage; not canonical future path.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: core/contracts | Last Updated: 2026-03-04
  */
 import { z } from "zod";

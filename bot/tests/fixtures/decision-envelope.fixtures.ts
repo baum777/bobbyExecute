@@ -73,7 +73,7 @@ export async function buildDecisionEnvelopeFixtureSet(): Promise<DecisionEnvelop
     quoteToken: "USDC",
     priceUsd: 100,
     volume24h: 1_000,
-    liquidity: 100_000,
+    liquidity: 1_000_000,
     freshnessMs: 0,
     status: "ok",
   };
@@ -83,8 +83,16 @@ export async function buildDecisionEnvelopeFixtureSet(): Promise<DecisionEnvelop
     timestamp,
     source: "moralis",
     walletAddress: "11111111111111111111111111111111",
-    balances: [],
-    totalUsd: 1_000,
+    balances: [
+      {
+        mint: "So11111111111111111111111111111111111111112",
+        symbol: "SOL",
+        decimals: 9,
+        amount: "1",
+        amountUsd: 100,
+      },
+    ],
+    totalUsd: 100,
   };
 
   const signal = { direction: "buy" as const, confidence: 0.91 };

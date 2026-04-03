@@ -3,15 +3,13 @@
   "repoRoot": ".",
   "runtimePolicyDocs": [
     "AGENTS.md",
-    "docs/codex-workflow-consumer.md",
-    "docs/repo-specific-canonical-sources.md",
     "governance/SoT.md",
     "governance/cursor_rule.md",
     "governance/file_path.md",
-    "docs/bobbyexecution/README.md",
-    "docs/bobbyexecution/risk_and_chaos_governance.md",
-    "docs/bobbyexecution/runtime_observability_protocol.md",
-    "ops/agent-team/autonomy_policy.md"
+    "docs/codex-workflow-consumer.md",
+    "docs/repo-specific-canonical-sources.md",
+    "docs/05_governance/README.md",
+    "docs/06_journal_replay/README.md"
   ],
   "runtimeConfigFiles": [
     "render.yaml",
@@ -21,34 +19,28 @@
     "dashboard/package.json"
   ],
   "controlSurfaceFiles": [
-    "docs/bobbyexecution/incident_and_killswitch_runbook.md",
-    "docs/bobbyexecution/operator_deploy_runbook.md",
-    "docs/bobbyexecution/recovery_and_upgrade_runbook.md",
-    "docs/bobbyexecution/live_test_runbook.md",
-    "docs/bobbyexecution/runtime_observability_protocol.md"
+    "docs/05_governance/README.md",
+    "bot/src/server/routes/control.ts",
+    "bot/src/control/run.ts"
   ],
   "killSwitchFiles": [
-    "docs/bobbyexecution/incident_and_killswitch_runbook.md",
+    "docs/05_governance/README.md",
     "governance/SoT.md",
-    "docs/bobbyexecution/risk_and_chaos_governance.md"
+    "bot/src/governance/kill-switch.ts"
   ],
   "approvalBoundaryFiles": [
     "governance/SoT.md",
     "governance/cursor_rule.md",
     "governance/file_path.md",
-    "ops/agent-team/policy_approval_rules.yaml",
-    "ops/agent-team/review-request.md",
-    "docs/bobbyexecution/production_readiness_checklist.md"
+    "docs/05_governance/README.md"
   ],
   "postureOrModeDefinitions": [
     "governance/SoT.md",
-    "docs/bobbyexecution/production_readiness_checklist.md",
-    "docs/bobbyexecution/runtime_observability_protocol.md"
+    "docs/05_governance/README.md"
   ],
   "healthOrStatusSurfaceFiles": [
-    "docs/bobbyexecution/runtime_observability_protocol.md",
-    "docs/bobbyexecution/incident_and_killswitch_runbook.md",
-    "docs/bobbyexecution/production_readiness_checklist.md"
+    "docs/05_governance/README.md",
+    "docs/06_journal_replay/README.md"
   ],
   "optionalEnvReferenceFiles": [
     ".env.example",
@@ -60,5 +52,5 @@
     "dist",
     "coverage"
   ],
-  "notes": "Consumer-local runtime policy inputs for governance, control routes, and fail-closed posture. This contract is not a live-readiness contract."
+  "notes": "Consumer-local runtime-policy sources updated to the canonical governance and journal/replay docs."
 }

@@ -2,6 +2,7 @@
  * Pre-authority typed artifact.
  * Repo-native UniverseBuildResult line.
  * Wave bundle term `UniverseBuildResultV1` maps here.
+ * Ownership freeze (PR-M0-01): single owner for `UniverseBuildResult` is this file.
  */
 import { z } from "zod";
 

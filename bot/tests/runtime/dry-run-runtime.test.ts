@@ -41,7 +41,7 @@ function createMarketSnapshot(traceId: string, freshnessMs = 0) {
     quoteToken: "USD",
     priceUsd: 100,
     volume24h: 1_000,
-    liquidity: 50_000,
+    liquidity: 1_000_000,
     freshnessMs,
     status: "ok" as const,
   };
@@ -188,8 +188,16 @@ describe("DryRunRuntime (phase-2)", () => {
         timestamp: new Date().toISOString(),
         source: "moralis",
         walletAddress: TEST_CONFIG.walletAddress,
-        balances: [],
-        totalUsd: 0,
+        balances: [
+          {
+            mint: "So11111111111111111111111111111111111111112",
+            symbol: "SOL",
+            decimals: 9,
+            amount: "1",
+            amountUsd: 100,
+          },
+        ],
+        totalUsd: 100,
       }),
     });
 
@@ -222,7 +230,7 @@ describe("DryRunRuntime (phase-2)", () => {
       quoteToken: "USD",
       priceUsd: 100,
       volume24h: 100,
-      liquidity: 1000,
+      liquidity: 1_000_000,
       freshnessMs: 0,
       status: "ok",
     });
@@ -237,8 +245,16 @@ describe("DryRunRuntime (phase-2)", () => {
         timestamp: new Date().toISOString(),
         source: "moralis",
         walletAddress: TEST_CONFIG.walletAddress,
-        balances: [],
-        totalUsd: 0,
+        balances: [
+          {
+            mint: "So11111111111111111111111111111111111111112",
+            symbol: "SOL",
+            decimals: 9,
+            amount: "1",
+            amountUsd: 100,
+          },
+        ],
+        totalUsd: 100,
       }),
       cycleSummaryWriter,
     });
@@ -275,6 +291,54 @@ describe("DryRunRuntime (phase-2)", () => {
       mode: "paper-simulated",
       reason: "PAPER_MODE_SIMULATED_VERIFICATION",
     });
+    expect(summaries[0].shadowArtifactChain).toBeDefined();
+    expect(summaries[0].shadowArtifactChain?.artifactMode).toBe("shadow");
+    expect(summaries[0].shadowArtifactChain?.derivedOnly).toBe(true);
+    expect(summaries[0].shadowArtifactChain?.nonAuthoritative).toBe(true);
+    expect(summaries[0].shadowArtifactChain?.authorityInfluence).toBe(false);
+    expect(summaries[0].shadowArtifactChain?.canonicalDecisionHistory).toBe(false);
+    expect(summaries[0].shadowArtifactChain?.parity.oldAuthority.tradeIntentId).toBe(
+      summaries[0].tradeIntentId
+    );
+    expect(summaries[0].shadowArtifactChain?.inputRefs).toContain("market:m1");
+    expect(summaries[0].shadowArtifactChain?.inputRefs).toContain("wallet:w1");
+    expect(summaries[0].authorityArtifactChain).toBeDefined();
+    expect(summaries[0].authorityArtifactChain?.artifactMode).toBe("authority");
+    expect(summaries[0].authorityArtifactChain?.derivedOnly).toBe(false);
+    expect(summaries[0].authorityArtifactChain?.nonAuthoritative).toBe(false);
+    expect(summaries[0].authorityArtifactChain?.authorityInfluence).toBe(true);
+    expect(summaries[0].authorityArtifactChain?.chainVersion).toBe("authority_artifact_chain.v1");
+    expect(summaries[0].authorityArtifactChain?.decision.blocked).toBe(false);
+
+    await runtime.stop();
+  });
+
+  it("emits shadow artifact parity data in dry runtime cycles without changing authority outputs", async () => {
+    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
+    const runtime = new DryRunRuntime(TEST_CONFIG, {
+      loopIntervalMs: 20,
+      cycleSummaryWriter,
+    });
+
+    await runtime.start();
+
+    const summaries = await cycleSummaryWriter.list();
+    expect(summaries).toHaveLength(1);
+
+    const summary = summaries[0];
+    expect(summary.mode).toBe("dry");
+    expect(summary.decisionOccurred).toBe(true);
+    expect(summary.tradeIntentId).toBeDefined();
+    expect(summary.shadowArtifactChain).toBeDefined();
+    expect(summary.shadowArtifactChain?.artifactMode).toBe("shadow");
+    expect(summary.shadowArtifactChain?.derivedOnly).toBe(true);
+    expect(summary.shadowArtifactChain?.authorityInfluence).toBe(false);
+    expect(summary.shadowArtifactChain?.parity.oldAuthority.blocked).toBe(summary.blocked);
+    expect(summary.shadowArtifactChain?.parity.oldAuthority.tradeIntentId).toBe(summary.tradeIntentId);
+    expect(summary.authorityArtifactChain).toBeDefined();
+    expect(summary.authorityArtifactChain?.artifactMode).toBe("authority");
+    expect(summary.authorityArtifactChain?.authorityInfluence).toBe(true);
+    expect(summary.authorityArtifactChain?.decision.blocked).toBe(false);
 
     await runtime.stop();
   });
@@ -291,8 +355,16 @@ describe("DryRunRuntime (phase-2)", () => {
         timestamp: new Date().toISOString(),
         source: "moralis",
         walletAddress: TEST_CONFIG.walletAddress,
-        balances: [],
-        totalUsd: 0,
+        balances: [
+          {
+            mint: "So11111111111111111111111111111111111111112",
+            symbol: "SOL",
+            decimals: 9,
+            amount: "1",
+            amountUsd: 100,
+          },
+        ],
+        totalUsd: 100,
       }),
     });
 
@@ -340,6 +412,10 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(summaries[0].advanced).toBe(false);
     expect(summaries[0].executionOccurred).toBe(false);
     expect(summaries[0].incidentIds).toHaveLength(1);
+    expect(summaries[0].shadowArtifactChain).toBeDefined();
+    expect(summaries[0].shadowArtifactChain?.status).toBe("skipped");
+    expect(summaries[0].shadowArtifactChain?.failureStage).toBe("input_intake");
+    expect(summaries[0].shadowArtifactChain?.parity.oldAuthority.blocked).toBe(true);
 
     await runtime.stop();
   });
@@ -410,7 +486,7 @@ describe("DryRunRuntime (phase-2)", () => {
         quoteToken: "USD",
         priceUsd: 101,
         volume24h: 500,
-        liquidity: 5_000,
+        liquidity: 1_000_000,
         freshnessMs: 0,
         status: "ok",
       }),
@@ -420,8 +496,16 @@ describe("DryRunRuntime (phase-2)", () => {
         timestamp: new Date().toISOString(),
         source: "moralis",
         walletAddress: TEST_CONFIG.walletAddress,
-        balances: [],
-        totalUsd: 0,
+        balances: [
+          {
+            mint: "So11111111111111111111111111111111111111112",
+            symbol: "SOL",
+            decimals: 9,
+            amount: "1",
+            amountUsd: 100,
+          },
+        ],
+        totalUsd: 100,
       }),
       cycleSummaryWriter,
       incidentRecorder: new RepositoryIncidentRecorder(incidentRepo),
@@ -497,8 +581,16 @@ describe("DryRunRuntime (phase-2)", () => {
         timestamp: new Date().toISOString(),
         source: "moralis",
         walletAddress: TEST_CONFIG.walletAddress,
-        balances: [],
-        totalUsd: 0,
+        balances: [
+          {
+            mint: "So11111111111111111111111111111111111111112",
+            symbol: "SOL",
+            decimals: 9,
+            amount: "1",
+            amountUsd: 100,
+          },
+        ],
+        totalUsd: 100,
       }),
       cycleSummaryWriter,
       incidentRecorder: new RepositoryIncidentRecorder(incidentRepo),
@@ -622,8 +714,16 @@ describe("DryRunRuntime (phase-2)", () => {
         timestamp: new Date().toISOString(),
         source: "moralis",
         walletAddress: TEST_CONFIG.walletAddress,
-        balances: [],
-        totalUsd: 0,
+        balances: [
+          {
+            mint: "So11111111111111111111111111111111111111112",
+            symbol: "SOL",
+            decimals: 9,
+            amount: "1",
+            amountUsd: 100,
+          },
+        ],
+        totalUsd: 100,
       }),
       incidentRecorder: new RepositoryIncidentRecorder(incidentRepo),
     });
@@ -720,6 +820,9 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(replay?.incidents).toHaveLength(1);
     expect(replay?.incidents[0].details?.traceId).toBe(summary.traceId);
     expect(replay?.journal).toEqual([]);
+    expect(replay?.summary.shadowArtifactChain).toBeDefined();
+    expect(replay?.summary.shadowArtifactChain?.artifactMode).toBe("shadow");
+    expect(replay?.summary.shadowArtifactChain?.derivedOnly).toBe(true);
 
     await runtime.stop();
   });

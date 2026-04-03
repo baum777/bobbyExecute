@@ -54,6 +54,25 @@ function initialLiveControlState(): PersistedLiveControlState {
   };
 }
 
+async function removeDirectoryWithRetry(path: string, attempts = 5): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await rm(path, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const code =
+        typeof error === "object" && error !== null && "code" in error
+          ? String((error as { code?: string }).code)
+          : "";
+      const retryable = code === "ENOTEMPTY" || code === "EBUSY" || code === "EPERM";
+      if (!retryable || attempt === attempts - 1) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+}
+
 describe("restart safety", () => {
   let tempDir: string;
   let originalEnv: NodeJS.ProcessEnv;
@@ -89,7 +108,7 @@ describe("restart safety", () => {
     configureLiveControlRepository(undefined);
     resetConfigCache();
     process.env = originalEnv;
-    await rm(tempDir, { recursive: true, force: true });
+    await removeDirectoryWithRetry(tempDir);
   });
 
   it("restores halted, disarmed, manual rearm, daily loss, and idempotency state after restart", async () => {
@@ -126,7 +145,7 @@ describe("restart safety", () => {
           quoteToken: "USDC",
           priceUsd: 150,
           volume24h: 1000,
-          liquidity: 0.5,
+          liquidity: 1_000_000,
           freshnessMs: 0,
           status: "ok",
         },
@@ -177,7 +196,7 @@ describe("restart safety", () => {
           quoteToken: "USDC",
           priceUsd: 151,
           volume24h: 1000,
-          liquidity: 0.5,
+          liquidity: 1_000_000,
           freshnessMs: 0,
           status: "ok",
         },

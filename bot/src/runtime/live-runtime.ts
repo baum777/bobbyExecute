@@ -4,7 +4,6 @@ import type { Clock } from "../core/clock.js";
 import { SystemClock } from "../core/clock.js";
 import type { MarketSnapshot } from "../core/contracts/market.js";
 import type { WalletSnapshot } from "../core/contracts/wallet.js";
-import type { SignalPack } from "../core/contracts/signalpack.js";
 import type { TradeIntent, ExecutionReport, RpcVerificationReport } from "../core/contracts/trade.js";
 import { Engine } from "../core/engine.js";
 import type { EngineState } from "../core/engine.js";
@@ -73,10 +72,7 @@ import { createIngestHandler, type IngestAgentConfig } from "../agents/ingest.ag
 import { createExecutionHandler, type ExecutionHandlerDeps } from "../agents/execution.agent.js";
 import { createRpcClient, type RpcClient } from "../adapters/rpc-verify/client.js";
 import { createSignerFromConfig, type Signer } from "../adapters/signer/index.js";
-import { runScoringEngine } from "../scoring/scoring-engine.js";
-import { recognizePatterns } from "../patterns/pattern-engine.js";
 import { runRiskEngine } from "../risk/risk-engine.js";
-import { runSignalEngine } from "../signals/signal-engine.js";
 import { createCanonicalDecisionAuthority, type DecisionCoordinator } from "../core/decision/index.js";
 import { type RuntimeController } from "./controller.js";
 import {
@@ -86,6 +82,11 @@ import {
   type RuntimeStatus,
 } from "./dry-run-runtime.js";
 import { assertLiveTradingPrerequisites, assertRuntimePolicyAuthority } from "../config/safety.js";
+import { buildRuntimeShadowArtifactChain } from "./shadow-artifact-chain.js";
+import {
+  buildRuntimeAuthorityArtifactChain,
+  type RuntimeAuthorityArtifactResolution,
+} from "./authority-artifact-chain.js";
 
 const DEFAULT_LIVE_TOKEN_ID = "So11111111111111111111111111111111111111112";
 const RECENT_CYCLE_LIMIT = 10;
@@ -165,32 +166,6 @@ function assertRepositoryKind(name: string, repo: { kind: string }): void {
   }
 }
 
-function buildSignalPack(market: MarketSnapshot, traceId: string, timestamp: string): SignalPack {
-  return {
-    traceId,
-    timestamp,
-    signals: [
-      {
-        source: "paprika",
-        timestamp,
-        poolId: market.poolId,
-        baseToken: market.baseToken,
-        quoteToken: market.quoteToken,
-        priceUsd: market.priceUsd,
-        volume24h: market.volume24h,
-        liquidity: market.liquidity,
-      },
-    ],
-    dataQuality: {
-      completeness: 1,
-      freshness: market.freshnessMs == null ? 1 : Math.max(0, 1 - Math.min(market.freshnessMs, 10_000) / 10_000),
-      sourceReliability: 1,
-      crossSourceConfidence: 1,
-    },
-    sources: ["paprika"],
-  };
-}
-
 function estimateLossUsd(intent: TradeIntent, report: ExecutionReport, priceUsd?: number): number {
   const expected = Number.parseFloat(intent.minAmountOut);
   const actual = Number.parseFloat(report.actualAmountOut ?? intent.minAmountOut);
@@ -245,6 +220,8 @@ function toCycleSummary(input: {
   tradeIntentId?: string;
   execution?: RuntimeCycleSummary["execution"];
   verification?: RuntimeCycleSummary["verification"];
+  shadowArtifactChain?: RuntimeCycleSummary["shadowArtifactChain"];
+  authorityArtifactChain?: RuntimeCycleSummary["authorityArtifactChain"];
   incidentIds: string[];
 }): RuntimeCycleSummary {
   return {
@@ -271,6 +248,8 @@ function toCycleSummary(input: {
     tradeIntentId: input.tradeIntentId,
     execution: input.execution,
     verification: input.verification,
+    shadowArtifactChain: input.shadowArtifactChain,
+    authorityArtifactChain: input.authorityArtifactChain,
     incidentIds: input.incidentIds,
   };
 }
@@ -640,6 +619,7 @@ export class LiveRuntime implements RuntimeController {
     let currentCycleTimestamp = this.clock.now().toISOString();
     let currentCycleTraceId = `runtime-${currentCycleTimestamp}`;
     let currentCycleIntakeOutcome: "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted" = "invalid";
+    let authorityResolution: RuntimeAuthorityArtifactResolution | undefined;
 
     try {
       await this.runtimeConfigManager?.refresh();
@@ -676,6 +656,15 @@ export class LiveRuntime implements RuntimeController {
             executionOccurred: false,
             verificationOccurred: false,
             errorOccurred: false,
+            shadowArtifactChain: buildRuntimeShadowArtifactChain({
+              mode: "live",
+              traceId: currentCycleTraceId,
+              cycleTimestamp: currentCycleTimestamp,
+              oldAuthority: {
+                blocked: true,
+                blockedReason: "RUNTIME_PHASE2_KILL_SWITCH_HALTED",
+              },
+            }),
             incidentIds: [incident.id],
           })
         );
@@ -735,43 +724,34 @@ export class LiveRuntime implements RuntimeController {
         },
         async (market) => {
           const traceId = market.traceId || cycleWallet?.traceId || currentCycleTraceId;
-          const signalPack = buildSignalPack(market, traceId, currentCycleTimestamp);
-          const scoreCard = runScoringEngine({ signalPack, traceId, timestamp: currentCycleTimestamp });
-          const patternResult = recognizePatterns(traceId, currentCycleTimestamp, scoreCard, signalPack);
-          const out = runSignalEngine({
-            market,
-            scoreCard,
-            patternResult,
-            dataQuality: signalPack.dataQuality,
+          if (!cycleWallet) {
+            return { blocked: true, blockedReason: "AUTHORITY_CHAIN_MISSING_WALLET" };
+          }
+          authorityResolution = buildRuntimeAuthorityArtifactChain({
+            mode: "live",
             traceId,
-            timestamp: currentCycleTimestamp,
-            dryRun: false,
-            executionMode: "live",
+            cycleTimestamp: currentCycleTimestamp,
+            market,
+            wallet: cycleWallet,
           });
-          if (out.blocked) {
-            return { blocked: true, blockedReason: out.reason };
+          if (authorityResolution.blocked || !authorityResolution.intent || !authorityResolution.signal) {
+            return { blocked: true, blockedReason: authorityResolution.blockedReason ?? "AUTHORITY_CHAIN_BLOCKED" };
           }
           return {
-            direction: out.intent.tokenOut === "USDC" ? "buy" : "hold",
-            confidence: scoreCard.hybrid,
-            intent: { ...out.intent, executionMode: "live", dryRun: false },
+            direction: authorityResolution.signal.direction,
+            confidence: authorityResolution.signal.confidence,
+            intent: authorityResolution.intent,
           };
         },
-        async (intent, market, wallet) => {
-          const signalPack = buildSignalPack(market, intent.traceId, intent.timestamp);
-          const scoreCard = runScoringEngine({
-            signalPack,
-            traceId: intent.traceId,
-            timestamp: intent.timestamp,
-          });
-          const patternResult = recognizePatterns(intent.traceId, intent.timestamp, scoreCard, signalPack);
+        async (_intent, _market, _wallet) => {
+          if (!authorityResolution?.riskInput) {
+            return {
+              allowed: false,
+              reason: authorityResolution?.blockedReason ?? "AUTHORITY_CHAIN_MISSING_RISK_INPUT",
+            };
+          }
           return runRiskEngine({
-            traceId: intent.traceId,
-            timestamp: intent.timestamp,
-            liquidity: market.liquidity,
-            socialManip: patternResult.patterns.length > 0 ? 0.35 : 0.05,
-            momentumExhaust: Math.max(0, Math.min(1, 1 - scoreCard.hybrid)),
-            structuralWeakness: wallet.balances.length === 0 ? 0.4 : 0.05,
+            ...authorityResolution.riskInput,
           });
         },
         executeWithIdempotency,
@@ -873,6 +853,21 @@ export class LiveRuntime implements RuntimeController {
               reason: this.lastState.rpcVerification.reason,
             }
           : undefined,
+        shadowArtifactChain: buildRuntimeShadowArtifactChain({
+          mode: "live",
+          traceId: this.lastState.traceId,
+          cycleTimestamp: currentCycleTimestamp,
+          market: cycleMarket,
+          wallet: cycleWallet,
+          oldAuthority: {
+            blocked: this.lastState.blocked === true,
+            blockedReason: this.lastState.blockedReason,
+            signalDirection: this.lastState.signal?.direction,
+            signalConfidence: this.lastState.signal?.confidence,
+            tradeIntentId: this.lastState.tradeIntent?.idempotencyKey,
+          },
+        }),
+        authorityArtifactChain: authorityResolution?.summary,
         incidentIds: [],
       });
 
@@ -917,6 +912,21 @@ export class LiveRuntime implements RuntimeController {
           verificationOccurred: false,
           errorOccurred: true,
           error: errorMessage,
+          authorityArtifactChain: authorityResolution?.summary,
+          shadowArtifactChain: buildRuntimeShadowArtifactChain({
+            mode: "live",
+            traceId: currentCycleTraceId,
+            cycleTimestamp: currentCycleTimestamp,
+            market: this.lastState.market,
+            wallet: this.lastState.wallet,
+            oldAuthority: {
+              blocked: true,
+              blockedReason: "RUNTIME_CYCLE_ERROR",
+              signalDirection: this.lastState.signal?.direction,
+              signalConfidence: this.lastState.signal?.confidence,
+              tradeIntentId: this.lastState.tradeIntent?.idempotencyKey,
+            },
+          }),
           incidentIds: [incident.id],
         })
       );

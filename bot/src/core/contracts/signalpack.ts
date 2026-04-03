@@ -1,5 +1,7 @@
 /**
  * SignalPack - Aggregierte Signale aus Quellen.
+ * @deprecated migration target: `intelligence/signals/contracts/constructed-signal-set.v1.ts`.
+ * Legacy non-surviving lineage; not canonical future path.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: core/contracts | Last Updated: 2026-03-04
  */
 import { z } from "zod";

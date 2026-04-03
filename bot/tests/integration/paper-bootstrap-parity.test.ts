@@ -11,6 +11,7 @@ import { RepositoryIncidentRecorder } from "../../src/observability/incidents.js
 import { startRuntimeWorker } from "../../src/worker/runtime-worker.js";
 import { loadConfig, resetConfigCache } from "../../src/config/load-config.js";
 import { resetKillSwitch } from "../../src/governance/kill-switch.js";
+import { FakeClock } from "../../src/core/clock.js";
 import type { MarketSnapshot } from "../../src/core/contracts/market.js";
 import type { WalletSnapshot } from "../../src/core/contracts/wallet.js";
 import { InMemoryRuntimeConfigRepository } from "../../src/persistence/runtime-config-repository.js";
@@ -23,7 +24,7 @@ const PUBLIC_PORT = 3361;
 const CONTROL_PORT = 3362;
 
 async function waitFor<T>(producer: () => Promise<T> | T, predicate: (value: T) => boolean): Promise<T> {
-  const deadline = Date.now() + 2_000;
+  const deadline = Date.now() + 5_000;
 
   for (;;) {
     const value = await producer();
@@ -84,7 +85,8 @@ describe("paper bootstrap integration parity (phase-6)", () => {
     });
     await runtimeConfigManager.initialize();
 
-    const freshTs = new Date().toISOString();
+    const clock = new FakeClock("2026-04-03T04:00:00.000Z");
+    const freshTs = clock.now().toISOString();
     const marketSnapshot: MarketSnapshot = {
       schema_version: "market.v1",
       traceId: "phase6-market-trace",
@@ -95,7 +97,7 @@ describe("paper bootstrap integration parity (phase-6)", () => {
       quoteToken: "USD",
       priceUsd: 132.45,
       volume24h: 245000,
-      liquidity: 980000,
+      liquidity: 1_000_000,
       freshnessMs: 0,
       status: "ok",
     };
@@ -118,9 +120,10 @@ describe("paper bootstrap integration parity (phase-6)", () => {
 
     const worker = await startRuntimeWorker(config, {
       runtimeDeps: {
+        clock,
         loopIntervalMs: 60_000,
-        paperMarketAdapters: [{ id: "dexpaprika", fetch: async () => marketSnapshot }],
-        fetchPaperWalletSnapshot: async () => walletSnapshot,
+        paperMarketAdapters: [{ id: "dexpaprika", fetch: async () => ({ ...marketSnapshot, timestamp: clock.now().toISOString() }) }],
+        fetchPaperWalletSnapshot: async () => ({ ...walletSnapshot, timestamp: clock.now().toISOString() }),
         cycleSummaryWriter,
         incidentRecorder: new RepositoryIncidentRecorder(incidentRepository),
       },

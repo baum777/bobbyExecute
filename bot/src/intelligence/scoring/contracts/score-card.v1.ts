@@ -1,6 +1,7 @@
 /**
  * Pre-decision score card artifact.
  * Derived from constructed signals only; never decision authority.
+ * Ownership freeze (PR-M0-01): single owner for `ScoreCardV1` is this file.
  */
 import { z } from "zod";
 import {

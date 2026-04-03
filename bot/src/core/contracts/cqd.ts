@@ -1,5 +1,6 @@
 /**
  * Repo-native CQDSnapshotV1 contract owner.
+ * Ownership freeze (PR-M0-01): single owner for `CQDSnapshotV1` is this file.
  * Wave bundle term `CQDArtifactV1` maps here.
  * Compact reasoning boundary only, not decision authority.
  */
@@ -32,5 +33,9 @@ export const CQDSnapshotV1Schema = z.object({
   hash: z.string(),
 });
 
+/**
+ * Transitional compatibility alias for legacy package consumers.
+ * Not canonical future path for ownership.
+ */
 export interface CQDSnapshotV1Extended extends CQDSnapshotV1 {}
 export type { CQDSnapshotV1 };

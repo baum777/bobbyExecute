@@ -27,6 +27,7 @@ import {
   FileSystemIdempotencyRepository,
   InMemoryIdempotencyRepository,
 } from "../../src/persistence/idempotency-repository.js";
+import { InMemoryRuntimeCycleSummaryWriter } from "../../src/persistence/runtime-cycle-summary-repository.js";
 import type { PersistedLiveControlState } from "../../src/persistence/live-control-repository.js";
 import type { TradeIntent, ExecutionReport } from "../../src/core/contracts/trade.js";
 
@@ -66,6 +67,25 @@ function makeLiveControlState(): PersistedLiveControlState {
   };
 }
 
+async function removeDirectoryWithRetry(path: string, attempts = 5): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await rm(path, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const code =
+        typeof error === "object" && error !== null && "code" in error
+          ? String((error as { code?: string }).code)
+          : "";
+      const retryable = code === "ENOTEMPTY" || code === "EBUSY" || code === "EPERM";
+      if (!retryable || attempt === attempts - 1) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+}
+
 describe("live runtime path", () => {
   let tempDir: string;
   let originalEnv: NodeJS.ProcessEnv;
@@ -100,11 +120,12 @@ describe("live runtime path", () => {
     configureLiveControlRepository(undefined);
     resetConfigCache();
     process.env = originalEnv;
-    await rm(tempDir, { recursive: true, force: true });
+    await removeDirectoryWithRetry(tempDir);
   });
 
   it("selects live runtime and invokes the execution handler", async () => {
     const executionCalls: TradeIntent[] = [];
+    const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
     const executionHandlerFactory = vi.fn(async () => async (intent: TradeIntent): Promise<ExecutionReport> => {
       executionCalls.push({ ...intent });
       return {
@@ -138,7 +159,7 @@ describe("live runtime path", () => {
           quoteToken: "USDC",
           priceUsd: 150,
           volume24h: 1000,
-          liquidity: 0.5,
+          liquidity: 1_000_000,
           freshnessMs: 0,
           status: "ok",
         },
@@ -163,6 +184,7 @@ describe("live runtime path", () => {
       liveControlRepository: liveControlRepo,
       dailyLossRepository: dailyLossRepo,
       idempotencyRepository: idempotencyRepo,
+      cycleSummaryWriter,
       paperMarketAdapters: [
         {
           id: "bad-paper-adapter",
@@ -184,5 +206,22 @@ describe("live runtime path", () => {
     expect(runtime.getSnapshot().mode).toBe("live");
     expect(runtime.getSnapshot().paperModeActive).toBe(false);
     expect(runtime.getSnapshot().counters.executionCount).toBeGreaterThan(0);
+
+    const summaries = await cycleSummaryWriter.list(10);
+    expect(summaries.length).toBeGreaterThan(0);
+    const summary = summaries[summaries.length - 1];
+    expect(summary.mode).toBe("live");
+    expect(summary.decisionOccurred).toBe(true);
+    expect(summary.shadowArtifactChain).toBeDefined();
+    expect(summary.shadowArtifactChain?.artifactMode).toBe("shadow");
+    expect(summary.shadowArtifactChain?.derivedOnly).toBe(true);
+    expect(summary.shadowArtifactChain?.nonAuthoritative).toBe(true);
+    expect(summary.shadowArtifactChain?.authorityInfluence).toBe(false);
+    expect(summary.shadowArtifactChain?.parity.oldAuthority.tradeIntentId).toBe(summary.tradeIntentId);
+    expect(summary.authorityArtifactChain).toBeDefined();
+    expect(summary.authorityArtifactChain?.artifactMode).toBe("authority");
+    expect(summary.authorityArtifactChain?.derivedOnly).toBe(false);
+    expect(summary.authorityArtifactChain?.authorityInfluence).toBe(true);
+    expect(summary.authorityArtifactChain?.decision.blocked).toBe(false);
   });
 });

@@ -4,8 +4,13 @@
   "canonicalSourceFiles": [
     "README.md",
     "AGENTS.md",
-    "bot/package.json",
-    "dashboard/package.json",
+    "governance/SoT.md",
+    "docs/01_architecture/README.md",
+    "docs/02_pipeline/README.md",
+    "docs/03_skill_plane/README.md",
+    "docs/04_sidecars/README.md",
+    "docs/05_governance/README.md",
+    "docs/06_journal_replay/README.md",
     "docs/codex-workflow-consumer.md",
     "docs/repo-specific-canonical-sources.md",
     ".codex/shared-core-consumer.json"
@@ -15,7 +20,8 @@
     "docs/"
   ],
   "governanceFiles": [
-    "AGENTS.md"
+    "AGENTS.md",
+    "governance/SoT.md"
   ],
   "likelyEntrypoints": [
     "bot/",
@@ -36,5 +42,5 @@
     "coverage",
     ".git"
   ],
-  "notes": "Consumer-local inputs for repo-intake-sot-mapper in bobbyExecute."
+  "notes": "Consumer-local repo-intake sources updated to the canonical 01-06 documentation tree."
 }

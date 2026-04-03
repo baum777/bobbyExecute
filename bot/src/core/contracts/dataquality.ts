@@ -1,5 +1,6 @@
 /**
  * Repo-native DataQualityV1 contract owner.
+ * Ownership freeze (PR-M0-01): single owner for `DataQualityV1` is this file.
  * Wave bundle term `DataQualityReportV1` maps here.
  * Extended for Cross-Source Validation with discrepancy detection and admission gating.
  * Version: 1.1.0 | Owner: Kimi Swarm | Layer: core/contracts | Last Updated: 2026-03-05
