@@ -1,6 +1,7 @@
 /**
  * Pre-authority constructed signal set artifact.
  * Consolidates upper-half observations into deterministic, replay-safe signals.
+ * Ownership freeze (PR-M0-01): single owner for `ConstructedSignalSetV1` is this file.
  */
 import { z } from "zod";
 import { ConstructedSignalV1Schema } from "./constructed-signal.v1.js";

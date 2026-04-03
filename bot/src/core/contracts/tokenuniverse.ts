@@ -1,5 +1,7 @@
 /**
  * Token Universe Contracts - Normalized token identity across multiple sources
+ * @deprecated migration target: `intelligence/universe/contracts/universe-build-result.ts`.
+ * Legacy non-surviving lineage; not canonical future path.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: core/contracts | Last Updated: 2026-03-05
  */
 import { z } from "zod";

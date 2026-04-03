@@ -1,6 +1,8 @@
 /**
  * Orchestrator - 7-Phasen Extended Pipeline.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: core | Last Updated: 2026-03-04
+ * @deprecated migration target: `core/engine.ts` + `runtime/*`.
+ * Legacy non-surviving lineage; not canonical future path.
  */
 import type { Clock } from "./clock.js";
 import { SystemClock } from "./clock.js";
@@ -96,6 +98,10 @@ export interface OrchestratorConfig {
   decisionCoordinator?: DecisionCoordinator;
 }
 
+/**
+ * @deprecated migration target: `core/engine.ts` + `runtime/*`.
+ * Transitional compatibility surface only; do not add new authority-path callers.
+ */
 export class Orchestrator {
   private readonly clock: Clock;
   private readonly dryRun: boolean;

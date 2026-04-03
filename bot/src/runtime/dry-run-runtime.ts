@@ -46,6 +46,7 @@ import {
   stopLiveTestRound,
 } from "./live-control.js";
 import { resetKillSwitch } from "../governance/kill-switch.js";
+import { buildRuntimeShadowArtifactChain } from "./shadow-artifact-chain.js";
 
 export type RuntimeStatus = "idle" | "running" | "paused" | "stopped" | "error";
 
@@ -874,6 +875,15 @@ export class DryRunRuntime {
           errorOccurred: false,
           degradedState: this.getCycleDegradedStateSummary(),
           adapterHealth: this.getCycleAdapterHealthSummary(),
+          shadowArtifactChain: buildRuntimeShadowArtifactChain({
+            mode: this.mode,
+            traceId,
+            cycleTimestamp: now,
+            oldAuthority: {
+              blocked: true,
+              blockedReason: "RUNTIME_PHASE2_KILL_SWITCH_HALTED",
+            },
+          }),
           incidentIds: [incident.id],
         });
         return;
@@ -909,6 +919,15 @@ export class DryRunRuntime {
         this.counters.blockedCount += 1;
         await this.persistCycleSummary({
           ...paperIntake.summary,
+          shadowArtifactChain: buildRuntimeShadowArtifactChain({
+            mode: this.mode,
+            traceId: paperIntake.summary.traceId,
+            cycleTimestamp: paperIntake.summary.cycleTimestamp,
+            oldAuthority: {
+              blocked: true,
+              blockedReason: paperIntake.summary.blockedReason,
+            },
+          }),
           incidentIds: [incident.id],
         });
         return;
@@ -1059,7 +1078,26 @@ export class DryRunRuntime {
       this.counters.decisionCount += 1;
       if (this.lastState.executionReport) this.counters.executionCount += 1;
       if (this.lastState.blocked) this.counters.blockedCount += 1;
-      await this.persistCycleSummary(this.toCycleSummary(this.lastState, currentCycleIntakeOutcome));
+      await this.persistCycleSummary(
+        this.toCycleSummary(
+          this.lastState,
+          currentCycleIntakeOutcome,
+          buildRuntimeShadowArtifactChain({
+            mode: this.mode,
+            traceId: this.lastState.traceId,
+            cycleTimestamp: this.lastCycleAt ?? now,
+            market: this.lastState.market,
+            wallet: this.lastState.wallet,
+            oldAuthority: {
+              blocked: this.lastState.blocked === true,
+              blockedReason: this.lastState.blockedReason,
+              signalDirection: this.lastState.signal?.direction,
+              signalConfidence: this.lastState.signal?.confidence,
+              tradeIntentId: this.lastState.tradeIntent?.idempotencyKey,
+            },
+          })
+        )
+      );
     } catch (error) {
       this.status = "error";
       this.counters.errorCount += 1;
@@ -1145,6 +1183,20 @@ export class DryRunRuntime {
           : undefined,
         degradedState: this.getCycleDegradedStateSummary(),
         adapterHealth: this.getCycleAdapterHealthSummary(),
+        shadowArtifactChain: buildRuntimeShadowArtifactChain({
+          mode: this.mode,
+          traceId,
+          cycleTimestamp: this.lastCycleAt ?? currentCycleTimestamp,
+          market: this.lastState.market,
+          wallet: this.lastState.wallet,
+          oldAuthority: {
+            blocked: true,
+            blockedReason: "RUNTIME_CYCLE_ERROR",
+            signalDirection: this.lastState.signal?.direction,
+            signalConfidence: this.lastState.signal?.confidence,
+            tradeIntentId: this.lastState.tradeIntent?.idempotencyKey,
+          },
+        }),
         incidentIds,
       });
       if (this.intervalRef) {
@@ -1287,7 +1339,11 @@ export class DryRunRuntime {
     };
   }
 
-  private toCycleSummary(state: EngineState, intakeOutcome: RuntimeCycleIntakeOutcome): RuntimeCycleSummary {
+  private toCycleSummary(
+    state: EngineState,
+    intakeOutcome: RuntimeCycleIntakeOutcome,
+    shadowArtifactChain?: RuntimeCycleSummary["shadowArtifactChain"]
+  ): RuntimeCycleSummary {
     return {
       cycleTimestamp: this.lastCycleAt ?? state.timestamp,
       traceId: state.traceId,
@@ -1339,6 +1395,7 @@ export class DryRunRuntime {
         : undefined,
       degradedState: this.getCycleDegradedStateSummary(),
       adapterHealth: this.getCycleAdapterHealthSummary(),
+      shadowArtifactChain,
       incidentIds: [],
     };
   }

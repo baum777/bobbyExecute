@@ -1,9 +1,10 @@
 /**
  * Pre-authority typed artifact.
- * Repo-native CQDSnapshotV1 line.
+ * Repo-native CQDSnapshotV1 line (transitional wrapper).
  * Wave bundle term `CQDArtifactV1` maps here.
+ * Ownership freeze (PR-M0-01): owner is `core/contracts/cqd.ts`.
  *
- * Re-export the core contract owner to avoid parallel shape drift.
+ * Transitional wrapper: re-export the core owner to avoid parallel shape drift.
  */
 export {
   CQDSnapshotV1Schema,

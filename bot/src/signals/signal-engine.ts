@@ -1,6 +1,8 @@
 /**
  * Signal Engine - Trade intent from scores + policy.
  * Normalized planning package: blocks on low data quality (completeness < 0.7).
+ * @deprecated migration target: deterministic pre-authority `intelligence/signals` lineage.
+ * Legacy non-surviving lineage; not canonical future path.
  */
 import type { MarketSnapshot } from "../core/contracts/market.js";
 import type { ScoreCard } from "../core/contracts/scorecard.js";
@@ -27,6 +29,8 @@ export type SignalOutput =
 
 /**
  * Generate trade intent from scores. Blocks when data quality < 0.7.
+ * @deprecated migration target: `intelligence/signals/build-constructed-signal-set.ts`.
+ * Transitional compatibility surface only; do not add new callers outside runtime freeze set.
  */
 export function runSignalEngine(input: SignalInput): SignalOutput {
   const timestamp = input.timestamp ?? new Date().toISOString();

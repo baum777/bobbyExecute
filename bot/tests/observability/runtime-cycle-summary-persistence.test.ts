@@ -69,6 +69,54 @@ describe("Runtime cycle summary persistence", () => {
         mode: "paper-simulated",
         reason: "PAPER_MODE_SIMULATED_VERIFICATION",
       },
+      shadowArtifactChain: {
+        artifactMode: "shadow",
+        derivedOnly: true,
+        nonAuthoritative: true,
+        authorityInfluence: false,
+        canonicalDecisionHistory: false,
+        chainVersion: "shadow_artifact_chain.v1",
+        status: "built",
+        inputRefs: ["runtime_trace:trace-1", "market:m1", "wallet:w1"],
+        evidenceRefs: ["discovery:evidence:trace-1"],
+        parity: {
+          oldAuthority: {
+            blocked: false,
+            signalDirection: "buy",
+            signalConfidence: 0.77,
+            tradeIntentId: "trace-1-intent",
+          },
+          shadowDerived: {
+            blocked: false,
+            qualityStatus: "pass",
+            scoreComposite: 0.74,
+            scoreConfidence: 0.7,
+            cqdHash: "cqd-hash-trace-1",
+          },
+          deltas: {
+            blockedMismatch: false,
+            confidenceDelta: -0.07,
+          },
+        },
+        artifacts: {
+          sourceObservationCount: 2,
+          sourceObservationRefs: ["market:m1", "wallet:w1"],
+          staleSources: [],
+          discoveryEvidenceRef: "discovery:evidence:trace-1",
+          discoveryEvidenceHash: "discovery-hash-trace-1",
+          qualityStatus: "pass",
+          qualityReasonCodes: [],
+          qualityMissingCriticalFields: [],
+          qualityStaleSources: [],
+          qualityCrossSourceConfidence: 0.89,
+          cqdHash: "cqd-hash-trace-1",
+          cqdAnomalyFlags: [],
+          constructedSignalSetPayloadHash: "constructed-hash-trace-1",
+          constructedSignalSetBuildStatus: "built",
+          scoreCardPayloadHash: "score-hash-trace-1",
+          scoreCardBuildStatus: "built",
+        },
+      },
       incidentIds: [],
     });
 
@@ -79,6 +127,13 @@ describe("Runtime cycle summary persistence", () => {
     expect(summaries[1].paperExecutionProduced).toBe(true);
     expect(summaries[1].verificationMode).toBe("paper-simulated");
     expect(summaries[1].execution?.mode).toBe("paper");
+    expect(summaries[1].shadowArtifactChain?.artifactMode).toBe("shadow");
+    expect(summaries[1].shadowArtifactChain?.derivedOnly).toBe(true);
+    expect(summaries[1].shadowArtifactChain?.parity.oldAuthority.tradeIntentId).toBe("trace-1-intent");
+    expect(summaries[1].shadowArtifactChain?.artifacts.discoveryEvidenceHash).toBe(
+      "discovery-hash-trace-1"
+    );
+    expect(summaries[1].shadowArtifactChain?.artifacts.cqdHash).toBe("cqd-hash-trace-1");
     await expect(writer.getByTraceId("trace-1")).resolves.toEqual(summaries[1]);
   });
 });

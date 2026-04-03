@@ -1,5 +1,10 @@
 Pre-authority and deterministic v2 intelligence area.
 
+PR-M0-01 lineage freeze:
+- surviving deterministic pre-authority line: `SourceObservation -> DiscoveryEvidence -> CandidateToken -> UniverseBuildResult -> DataQualityV1 -> CQDSnapshotV1 -> ConstructedSignalSetV1 -> ScoreCardV1`
+- this line is canonical future deterministic pre-authority naming, but is not yet the active runtime authority path
+- non-surviving legacy lineages (`src/signals`, `src/scoring`, `core/universe/token-universe-builder`) are deprecated-in-place and must not gain new callers
+
 Upper-half artifacts become typed validated inputs here before deterministic signal construction, scoring, pattern, sizing, and policy consumers use them.
 W2-01 introduced the first real signal / forensics foundation:
 `SignalPackV1` and `TrendReversalMonitorInputV1` plus deterministic builders.

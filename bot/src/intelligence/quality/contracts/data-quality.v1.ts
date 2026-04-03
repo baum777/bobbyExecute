@@ -1,9 +1,10 @@
 /**
  * Pre-authority typed artifact.
- * Repo-native DataQualityV1 line.
+ * Repo-native DataQualityV1 line (transitional wrapper).
  * Wave bundle term `DataQualityReportV1` maps here.
+ * Ownership freeze (PR-M0-01): owner is `core/contracts/dataquality.ts`.
  *
- * Re-export the core contract owner to avoid parallel shape drift.
+ * Transitional wrapper: re-export the core owner to avoid parallel shape drift.
  */
 export {
   DataQualityStatusSchema,

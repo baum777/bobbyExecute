@@ -86,6 +86,7 @@ import {
   type RuntimeStatus,
 } from "./dry-run-runtime.js";
 import { assertLiveTradingPrerequisites, assertRuntimePolicyAuthority } from "../config/safety.js";
+import { buildRuntimeShadowArtifactChain } from "./shadow-artifact-chain.js";
 
 const DEFAULT_LIVE_TOKEN_ID = "So11111111111111111111111111111111111111112";
 const RECENT_CYCLE_LIMIT = 10;
@@ -245,6 +246,7 @@ function toCycleSummary(input: {
   tradeIntentId?: string;
   execution?: RuntimeCycleSummary["execution"];
   verification?: RuntimeCycleSummary["verification"];
+  shadowArtifactChain?: RuntimeCycleSummary["shadowArtifactChain"];
   incidentIds: string[];
 }): RuntimeCycleSummary {
   return {
@@ -271,6 +273,7 @@ function toCycleSummary(input: {
     tradeIntentId: input.tradeIntentId,
     execution: input.execution,
     verification: input.verification,
+    shadowArtifactChain: input.shadowArtifactChain,
     incidentIds: input.incidentIds,
   };
 }
@@ -676,6 +679,15 @@ export class LiveRuntime implements RuntimeController {
             executionOccurred: false,
             verificationOccurred: false,
             errorOccurred: false,
+            shadowArtifactChain: buildRuntimeShadowArtifactChain({
+              mode: "live",
+              traceId: currentCycleTraceId,
+              cycleTimestamp: currentCycleTimestamp,
+              oldAuthority: {
+                blocked: true,
+                blockedReason: "RUNTIME_PHASE2_KILL_SWITCH_HALTED",
+              },
+            }),
             incidentIds: [incident.id],
           })
         );
@@ -873,6 +885,20 @@ export class LiveRuntime implements RuntimeController {
               reason: this.lastState.rpcVerification.reason,
             }
           : undefined,
+        shadowArtifactChain: buildRuntimeShadowArtifactChain({
+          mode: "live",
+          traceId: this.lastState.traceId,
+          cycleTimestamp: currentCycleTimestamp,
+          market: cycleMarket,
+          wallet: cycleWallet,
+          oldAuthority: {
+            blocked: this.lastState.blocked === true,
+            blockedReason: this.lastState.blockedReason,
+            signalDirection: this.lastState.signal?.direction,
+            signalConfidence: this.lastState.signal?.confidence,
+            tradeIntentId: this.lastState.tradeIntent?.idempotencyKey,
+          },
+        }),
         incidentIds: [],
       });
 
@@ -917,6 +943,20 @@ export class LiveRuntime implements RuntimeController {
           verificationOccurred: false,
           errorOccurred: true,
           error: errorMessage,
+          shadowArtifactChain: buildRuntimeShadowArtifactChain({
+            mode: "live",
+            traceId: currentCycleTraceId,
+            cycleTimestamp: currentCycleTimestamp,
+            market: this.lastState.market,
+            wallet: this.lastState.wallet,
+            oldAuthority: {
+              blocked: true,
+              blockedReason: "RUNTIME_CYCLE_ERROR",
+              signalDirection: this.lastState.signal?.direction,
+              signalConfidence: this.lastState.signal?.confidence,
+              tradeIntentId: this.lastState.tradeIntent?.idempotencyKey,
+            },
+          }),
           incidentIds: [incident.id],
         })
       );
