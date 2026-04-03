@@ -63,6 +63,18 @@ describe("migration parity boundary guards", () => {
       "./memory/index.js": [
         "index.ts",
       ],
+      "../memory/memory-db.js": [
+        "core/orchestrator.ts",
+      ],
+      "../memory/log-append.js": [
+        "core/orchestrator.ts",
+      ],
+      "./memory-db.js": [
+        "memory/index.ts",
+      ],
+      "./log-append.js": [
+        "memory/index.ts",
+      ],
       "./core/universe/token-universe-builder.js": [
         "index.ts",
       ],
@@ -109,6 +121,34 @@ describe("migration parity boundary guards", () => {
     }
   });
 
+  it("blocks new production callers into legacy orchestrator/tool-router/memory surfaces", () => {
+    const allowedLegacyImporters = new Set(["index.ts", "core/orchestrator.ts", "memory/index.ts"]);
+    const forbiddenSpecifierPatterns = [
+      /\/core\/orchestrator\.js$/,
+      /\/core\/tool-router\.js$/,
+      /\/memory\/index\.js$/,
+      /\/memory-db\.js$/,
+      /\/log-append\.js$/,
+    ];
+
+    for (const filePath of walkTsFiles(SRC_ROOT)) {
+      const relPath = toRel(filePath);
+      if (allowedLegacyImporters.has(relPath)) {
+        continue;
+      }
+
+      const imports = parseImports(readFileSync(filePath, "utf8"));
+      for (const specifier of imports) {
+        for (const forbidden of forbiddenSpecifierPatterns) {
+          expect(
+            specifier,
+            `${relPath} must not import legacy orchestrator/tool-router/memory surfaces`
+          ).not.toMatch(forbidden);
+        }
+      }
+    }
+  });
+
   it("keeps package root export surface from widening deprecated future-canonical paths", () => {
     const rootIndex = readSrc("index.ts");
 
@@ -117,6 +157,8 @@ describe("migration parity boundary guards", () => {
     expect(rootIndex).not.toMatch(/export .*"\.\/intelligence\/signals\/build-constructed-signal-set\.js"/);
     expect(rootIndex).not.toMatch(/export .*"\.\/intelligence\/scoring\/build-score-card\.js"/);
     expect(rootIndex).not.toMatch(/export .*"\.\/tests\/migration\/parity-harness\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/memory\/memory-db\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/memory\/log-append\.js"/);
 
     expect(rootIndex.match(/\.\/core\/orchestrator\.js/g)?.length ?? 0).toBe(1);
     expect(rootIndex.match(/\.\/core\/tool-router\.js/g)?.length ?? 0).toBe(1);

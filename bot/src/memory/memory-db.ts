@@ -2,8 +2,8 @@
  * Memory-DB - Iterative Renewed, Compressed, Hybrid.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: memory | Last Updated: 2026-03-04
  * Wave 4: storagePath flush - persist journal to disk when path set.
- * @deprecated migration target: runtime cycle summaries + journal/evidence repositories.
- * Legacy non-surviving lineage; not canonical future path.
+ * @deprecated legacy non-canonical compatibility surface.
+ * Retained temporarily for migration/test support only; no new production callers.
  */
 import { compress as snappyCompress, uncompress as snappyUncompress } from "snappyjs";
 import { appendFile, readFile, mkdir } from "node:fs/promises";
@@ -34,8 +34,8 @@ const RENEWAL_INTERVAL_MS = 50_000;
 const DATA_QUALITY_CHANGE_THRESHOLD = 0.04;
 
 /**
- * @deprecated migration target: runtime cycle summary + journal/evidence repositories.
- * Transitional compatibility surface only; do not add new authority-path callers.
+ * @deprecated legacy non-canonical compatibility surface.
+ * Retained temporarily for migration/test support only; no new production callers.
  */
 export class MemoryDB {
   private snapshot: MemorySnapshot | null = null;

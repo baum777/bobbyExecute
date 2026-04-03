@@ -52,11 +52,11 @@ function findImporters(specifier: string): string[] {
 describe("migration lineage freeze boundaries", () => {
   it("marks deprecated-in-place legacy modules explicitly", () => {
     const deprecatedFiles = new Map<string, string>([
-      ["core/orchestrator.ts", "@deprecated migration target"],
-      ["core/tool-router.ts", "@deprecated migration target"],
-      ["memory/index.ts", "@deprecated migration target"],
-      ["memory/log-append.ts", "@deprecated migration target"],
-      ["memory/memory-db.ts", "@deprecated migration target"],
+      ["core/orchestrator.ts", "no new production callers"],
+      ["core/tool-router.ts", "no new production callers"],
+      ["memory/index.ts", "no new production callers"],
+      ["memory/log-append.ts", "no new production callers"],
+      ["memory/memory-db.ts", "no new production callers"],
       ["signals/signal-engine.ts", "@deprecated compatibility-only"],
       ["scoring/scoring-engine.ts", "@deprecated compatibility-only"],
       ["core/universe/token-universe-builder.ts", "@deprecated migration target"],
@@ -65,6 +65,10 @@ describe("migration lineage freeze boundaries", () => {
     for (const [relPath, marker] of deprecatedFiles) {
       expect(readSrc(relPath), `${relPath} must carry explicit deprecation marker`).toContain(marker);
     }
+
+    expect(readSrc("index.ts")).toContain("legacy non-canonical compatibility export");
+    expect(readSrc("index.ts")).not.toMatch(/export .*"\.\/memory\/memory-db\.js"/);
+    expect(readSrc("index.ts")).not.toMatch(/export .*"\.\/memory\/log-append\.js"/);
   });
 
   it("freezes legacy scoring/signal caller sets (no new callers)", () => {
@@ -97,10 +101,8 @@ describe("migration lineage freeze boundaries", () => {
   it("keeps deprecated root exports explicitly marked and non-canonical", () => {
     const rootIndex = readSrc("index.ts");
 
-    expect(rootIndex).toContain("legacy non-surviving lineage");
-    expect(rootIndex).toContain("@deprecated migration target: `core/engine.ts` + `runtime/*`");
+    expect(rootIndex).toContain("legacy non-canonical compatibility export");
     expect(rootIndex).toContain("@deprecated migration target: `intelligence/universe/build-universe-result.ts`");
-    expect(rootIndex).toContain("runtime cycle summaries + journal/evidence repositories");
     expect(rootIndex).not.toMatch(/export .*"\.\/signals\/signal-engine\.js"/);
     expect(rootIndex).not.toMatch(/export .*"\.\/scoring\/scoring-engine\.js"/);
   });

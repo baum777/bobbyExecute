@@ -1,8 +1,8 @@
 /**
  * Tool Router with permission enforcement.
  * EXTRACTED from OrchestrAI_Labs packages/agent-runtime/src/execution/tool-router.ts
- * @deprecated migration target: explicit runtime authority handlers in `core/engine.ts` + `runtime/*`.
- * Legacy non-surviving lineage; not canonical future path.
+ * @deprecated legacy non-canonical compatibility surface.
+ * Retained temporarily for migration/test support only; no new production callers.
  */
 import type { AgentProfile, ToolRef } from "./contracts/agent.js";
 import { enforcePermission } from "../governance/policy-engine.js";
@@ -31,8 +31,8 @@ export interface ToolHandler {
 }
 
 /**
- * @deprecated migration target: explicit runtime authority handlers in `core/engine.ts` + `runtime/*`.
- * Transitional compatibility surface only; do not add new authority-path callers.
+ * @deprecated legacy non-canonical compatibility surface.
+ * Retained temporarily for migration/test support only; no new production callers.
  */
 export class ToolRouter {
   constructor(private readonly handlers: Record<string, ToolHandler>) {}

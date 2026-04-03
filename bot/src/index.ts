@@ -4,10 +4,10 @@
  * Changes: Added DexScreenerAdapter exports for Milestone 1
  */
 export { Clock, SystemClock, FakeClock } from "./core/clock.js";
-/** @deprecated migration target: `core/engine.ts` + `runtime/*`; legacy non-surviving lineage. */
+/** @deprecated legacy non-canonical compatibility export. Retained temporarily for migration/test support only; no new production callers. */
 export { ToolRouter } from "./core/tool-router.js";
 export { Engine } from "./core/engine.js";
-/** @deprecated migration target: `core/engine.ts` + `runtime/*`; legacy non-surviving lineage. */
+/** @deprecated legacy non-canonical compatibility export. Retained temporarily for migration/test support only; no new production callers. */
 export { Orchestrator } from "./core/orchestrator.js";
 export { hashDecision, hashResult } from "./core/determinism/hash.js";
 export { canonicalize } from "./core/determinism/canonicalize.js";
@@ -63,7 +63,7 @@ export { InMemoryIdempotencyStore } from "./storage/inmemory-kv.js";
 export * from "./eventbus/index.js";
 export * from "./journal-writer/index.js";
 export * from "./config-loader/index.js";
-/** @deprecated migration target: runtime cycle summaries + journal/evidence repositories; legacy non-surviving lineage. */
+/** @deprecated legacy non-canonical compatibility export. Retained temporarily for migration/test support only; no new production callers. */
 export * from "./memory/index.js";
 export { checkHealth, type HealthReport } from "./observability/health.js";
 export { recordLatency, getP95 } from "./observability/metrics.js";

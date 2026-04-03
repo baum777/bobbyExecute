@@ -1,8 +1,8 @@
 /**
  * Orchestrator - 7-Phasen Extended Pipeline.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: core | Last Updated: 2026-03-04
- * @deprecated migration target: `core/engine.ts` + `runtime/*`.
- * Legacy non-surviving lineage; not canonical future path.
+ * @deprecated legacy non-canonical compatibility surface.
+ * Retained temporarily for migration/test support only; no new production callers.
  */
 import type { Clock } from "./clock.js";
 import { SystemClock } from "./clock.js";
@@ -99,8 +99,8 @@ export interface OrchestratorConfig {
 }
 
 /**
- * @deprecated migration target: `core/engine.ts` + `runtime/*`.
- * Transitional compatibility surface only; do not add new authority-path callers.
+ * @deprecated legacy non-canonical compatibility surface.
+ * Retained temporarily for migration/test support only; no new production callers.
  */
 export class Orchestrator {
   private readonly clock: Clock;
@@ -354,10 +354,12 @@ export class Orchestrator {
     }
   }
 
+  /** Compatibility-only inspection hook; does not confer memory authority. */
   getMemoryDb(): MemoryDB {
     return this.memoryDb;
   }
 
+  /** Compatibility-only inspection hook; does not confer memory authority. */
   getMemoryLog(): MemoryLog {
     return this.memoryLog;
   }

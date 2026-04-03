@@ -1,8 +1,8 @@
 /**
  * Memory Log Append - Append-only mit SHA-256 Hash-Chain.
  * Version: 1.0.0 | Owner: Kimi Swarm | Layer: memory | Last Updated: 2026-03-04
- * @deprecated migration target: `persistence/runtime-cycle-summary-repository.ts` + journal repositories.
- * Legacy non-surviving lineage; not canonical future path.
+ * @deprecated legacy non-canonical compatibility surface.
+ * Retained temporarily for migration/test support only; no new production callers.
  */
 import { sha256 } from "../core/determinism/hash.js";
 import { canonicalize } from "../core/determinism/canonicalize.js";
@@ -25,8 +25,8 @@ export interface LogAck {
 }
 
 /**
- * @deprecated migration target: runtime cycle summary + journal persistence surfaces.
- * Transitional compatibility surface only; do not add new authority-path callers.
+ * @deprecated legacy non-canonical compatibility surface.
+ * Retained temporarily for migration/test support only; no new production callers.
  */
 export class MemoryLog {
   private entries: LogEntry[] = [];
