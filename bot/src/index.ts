@@ -1,28 +1,35 @@
 /**
  * Onchain Trading Bot - main entry point.
  * Version: 1.1.0 | Owner: Kimi Swarm | Last Updated: 2026-03-05
- * Changes: Added DexScreenerAdapter exports for Milestone 1
+ * Changes: Root surface narrowed to canonical/survivor exports; legacy compatibility
+ * surfaces remain on direct subpaths only.
  */
+// canonical/survivor root surface only. Legacy compatibility modules are intentionally
+// not re-exported here.
 export { Clock, SystemClock, FakeClock } from "./core/clock.js";
-/** @deprecated legacy non-canonical compatibility export. Retained temporarily for migration/test support only; no new production callers. */
-export { ToolRouter } from "./core/tool-router.js";
 export { Engine } from "./core/engine.js";
-/** @deprecated legacy non-canonical compatibility export. Retained temporarily for migration/test support only; no new production callers. */
-export { Orchestrator } from "./core/orchestrator.js";
 export { hashDecision, hashResult } from "./core/determinism/hash.js";
 export { canonicalize } from "./core/determinism/canonicalize.js";
 
-export * from "./core/contracts/index.js";
 export { RiskBreakdownSchema } from "./core/contracts/riskbreakdown.js";
-/** @deprecated migration target: `intelligence/universe/build-universe-result.ts`; legacy non-surviving lineage. */
-export { buildTokenUniverse, type UniverseBuilderConfig, type RawTokenInput } from "./core/universe/token-universe-builder.js";
+export * from "./core/contracts/agent.js";
+export * from "./core/contracts/dataquality.js";
+export * from "./core/contracts/decision-envelope.js";
+export * from "./core/contracts/decision.js";
+export * from "./core/contracts/decisionresult.js";
+export * from "./core/contracts/intent.js";
+export * from "./core/contracts/journal.js";
+export * from "./core/contracts/market.js";
+export * from "./core/contracts/pattern.js";
+export * from "./core/contracts/trade.js";
+export * from "./core/contracts/wallet.js";
+export * from "./core/contracts/cqd.js";
 export { normalizeToTokenV1 } from "./core/normalize/normalizer.js";
 export {
   validateCrossSource,
   hasDiscrepancy,
   type ValidationResult,
 } from "./core/validate/cross-source-validator.js";
-export * from "./core/intelligence/mci-bci-formulas.js";
 export * from "./governance/policy-engine.js";
 export * from "./governance/tool-permissions.js";
 export * from "./governance/guardrails.js";
@@ -63,8 +70,6 @@ export { InMemoryIdempotencyStore } from "./storage/inmemory-kv.js";
 export * from "./eventbus/index.js";
 export * from "./journal-writer/index.js";
 export * from "./config-loader/index.js";
-/** @deprecated legacy non-canonical compatibility export. Retained temporarily for migration/test support only; no new production callers. */
-export * from "./memory/index.js";
 export { checkHealth, type HealthReport } from "./observability/health.js";
 export { recordLatency, getP95 } from "./observability/metrics.js";
 export { incrementIncident, getIncidentCount } from "./observability/incidents.js";

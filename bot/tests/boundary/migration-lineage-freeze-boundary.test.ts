@@ -66,9 +66,8 @@ describe("migration lineage freeze boundaries", () => {
       expect(readSrc(relPath), `${relPath} must carry explicit deprecation marker`).toContain(marker);
     }
 
-    expect(readSrc("index.ts")).toContain("legacy non-canonical compatibility export");
-    expect(readSrc("index.ts")).not.toMatch(/export .*"\.\/memory\/memory-db\.js"/);
-    expect(readSrc("index.ts")).not.toMatch(/export .*"\.\/memory\/log-append\.js"/);
+    expect(readSrc("index.ts")).toContain("canonical/survivor root surface only");
+    expect(readSrc("index.ts")).not.toContain("legacy non-canonical compatibility export");
   });
 
   it("freezes legacy scoring/signal caller sets (no new callers)", () => {
@@ -98,12 +97,15 @@ describe("migration lineage freeze boundaries", () => {
     }
   });
 
-  it("keeps deprecated root exports explicitly marked and non-canonical", () => {
+  it("keeps deprecated root exports removed from the package root", () => {
     const rootIndex = readSrc("index.ts");
 
-    expect(rootIndex).toContain("legacy non-canonical compatibility export");
-    expect(rootIndex).toContain("@deprecated migration target: `intelligence/universe/build-universe-result.ts`");
-    expect(rootIndex).not.toMatch(/export .*"\.\/signals\/signal-engine\.js"/);
-    expect(rootIndex).not.toMatch(/export .*"\.\/scoring\/scoring-engine\.js"/);
+    expect(rootIndex).toContain("canonical/survivor root surface only");
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/tool-router\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/orchestrator\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/contracts\/index\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/intelligence\/mci-bci-formulas\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/universe\/token-universe-builder\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/memory\/index\.js"/);
   });
 });

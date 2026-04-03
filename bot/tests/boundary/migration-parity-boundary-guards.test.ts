@@ -54,15 +54,9 @@ describe("migration parity boundary guards", () => {
     const expectedImporters: Record<string, string[]> = {
       "../signals/signal-engine.js": [],
       "../scoring/scoring-engine.js": [],
-      "./core/orchestrator.js": [
-        "index.ts",
-      ],
-      "./core/tool-router.js": [
-        "index.ts",
-      ],
-      "./memory/index.js": [
-        "index.ts",
-      ],
+      "./core/orchestrator.js": [],
+      "./core/tool-router.js": [],
+      "./memory/index.js": [],
       "../memory/memory-db.js": [
         "core/orchestrator.ts",
       ],
@@ -75,9 +69,7 @@ describe("migration parity boundary guards", () => {
       "./log-append.js": [
         "memory/index.ts",
       ],
-      "./core/universe/token-universe-builder.js": [
-        "index.ts",
-      ],
+      "./core/universe/token-universe-builder.js": [],
     };
 
     for (const [specifier, importers] of Object.entries(expectedImporters)) {
@@ -122,7 +114,7 @@ describe("migration parity boundary guards", () => {
   });
 
   it("blocks new production callers into legacy orchestrator/tool-router/memory surfaces", () => {
-    const allowedLegacyImporters = new Set(["index.ts", "core/orchestrator.ts", "memory/index.ts"]);
+    const allowedLegacyImporters = new Set(["core/orchestrator.ts", "memory/index.ts"]);
     const forbiddenSpecifierPatterns = [
       /\/core\/orchestrator\.js$/,
       /\/core\/tool-router\.js$/,
@@ -152,18 +144,15 @@ describe("migration parity boundary guards", () => {
   it("keeps package root export surface from widening deprecated future-canonical paths", () => {
     const rootIndex = readSrc("index.ts");
 
-    expect(rootIndex).not.toMatch(/export .*"\.\/signals\/signal-engine\.js"/);
-    expect(rootIndex).not.toMatch(/export .*"\.\/scoring\/scoring-engine\.js"/);
-    expect(rootIndex).not.toMatch(/export .*"\.\/intelligence\/signals\/build-constructed-signal-set\.js"/);
-    expect(rootIndex).not.toMatch(/export .*"\.\/intelligence\/scoring\/build-score-card\.js"/);
-    expect(rootIndex).not.toMatch(/export .*"\.\/tests\/migration\/parity-harness\.js"/);
-    expect(rootIndex).not.toMatch(/export .*"\.\/memory\/memory-db\.js"/);
-    expect(rootIndex).not.toMatch(/export .*"\.\/memory\/log-append\.js"/);
-
-    expect(rootIndex.match(/\.\/core\/orchestrator\.js/g)?.length ?? 0).toBe(1);
-    expect(rootIndex.match(/\.\/core\/tool-router\.js/g)?.length ?? 0).toBe(1);
-    expect(rootIndex.match(/\.\/memory\/index\.js/g)?.length ?? 0).toBe(1);
-    expect(rootIndex.match(/\.\/core\/universe\/token-universe-builder\.js/g)?.length ?? 0).toBe(1);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/tool-router\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/orchestrator\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/contracts\/index\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/intelligence\/mci-bci-formulas\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/universe\/token-universe-builder\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/memory\/index\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/contracts\/scorecard\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/contracts\/signalpack\.js"/);
+    expect(rootIndex).not.toMatch(/export .*"\.\/core\/contracts\/tokenuniverse\.js"/);
   });
 
   it("prevents runtime source from importing migration parity harness fixtures", () => {
