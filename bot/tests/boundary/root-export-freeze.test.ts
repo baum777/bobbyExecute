@@ -141,6 +141,11 @@ describe("package root export freeze", () => {
     for (const specifier of LEGACY_ROOT_SPECIFIERS) {
       expect(rootIndex, `${specifier} must not be re-exported from the package root`).not.toContain(specifier);
     }
+
+    expect(rootIndex, "runtime sidecar packaging must stay off the package root").not.toContain(
+      "./runtime/sidecar/"
+    );
+    expect(rootIndex, "mcp packaging must stay off the package root").not.toContain("./mcp/");
   });
 
   it("keeps production src off the package root barrel", () => {
