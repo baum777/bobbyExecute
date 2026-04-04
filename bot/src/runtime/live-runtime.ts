@@ -15,6 +15,7 @@ import { FileSystemIncidentRepository } from "../persistence/incident-repository
 import {
   FileSystemRuntimeCycleSummaryWriter,
   type RuntimeCycleSummary,
+  type RuntimeDecisionHistoryRole,
   type RuntimeCycleSummaryWriter,
 } from "../persistence/runtime-cycle-summary-repository.js";
 import {
@@ -217,6 +218,7 @@ function toCycleSummary(input: {
   error?: string;
   decision?: RuntimeCycleSummary["decision"];
   decisionEnvelope?: import("../core/contracts/decision-envelope.js").DecisionEnvelope;
+  decisionHistoryRole?: RuntimeDecisionHistoryRole;
   tradeIntentId?: string;
   execution?: RuntimeCycleSummary["execution"];
   verification?: RuntimeCycleSummary["verification"];
@@ -245,6 +247,7 @@ function toCycleSummary(input: {
     error: input.error,
     decision: input.decision,
     decisionEnvelope: input.decisionEnvelope,
+    decisionHistoryRole: input.decisionHistoryRole ?? "canonical",
     tradeIntentId: input.tradeIntentId,
     execution: input.execution,
     verification: input.verification,

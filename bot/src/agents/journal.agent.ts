@@ -1,5 +1,5 @@
 /**
- * Journal agent - append-only audit logging.
+ * Journal agent - append-only evidence relay.
  * PROPOSED - integrates with ActionLogger and JournalWriter.
  */
 import type { ActionLogger } from "../observability/action-log.js";

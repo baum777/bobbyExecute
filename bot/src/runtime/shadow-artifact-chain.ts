@@ -1,7 +1,7 @@
 /**
  * Runtime shadow artifact chain (PR-M1-01).
  * Derived-only parity scaffold; never authority-canonical.
- * Provenance/support context only, not canonical decision history.
+ * Sidecar-safe replay/enrichment surface; Provenance/support context only, not canonical decision history.
  */
 import type { MarketSnapshot } from "../core/contracts/market.js";
 import type { WalletSnapshot } from "../core/contracts/wallet.js";

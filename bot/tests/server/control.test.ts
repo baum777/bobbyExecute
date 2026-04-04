@@ -107,6 +107,54 @@ function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
         consecutiveCycles: 0,
         recoveryCount: 2,
       },
+      recentHistory: {
+        recentCycleCount: 1,
+        cycleOutcomes: { success: 1, blocked: 0, error: 0 },
+        attemptsByMode: { dry: 0, paper: 1, live: 0 },
+        refusalCounts: {},
+        failureStageCounts: {},
+        verificationHealth: { passed: 1, failed: 0, failureReasons: {} },
+        incidentCounts: {},
+        controlActions: [],
+        stateTransitions: [],
+        recentCycles: [
+          {
+            traceId: "trace-worker-1",
+            cycleTimestamp: "2026-03-27T11:59:30.000Z",
+            mode: "paper",
+            outcome: "success",
+            stage: "monitor",
+            blocked: false,
+            intakeOutcome: "ok",
+            executionOccurred: false,
+            verificationOccurred: true,
+            decisionOccurred: true,
+            errorOccurred: false,
+            decisionHistoryRole: "canonical",
+            decisionEnvelope: {
+              schemaVersion: "decision.envelope.v3",
+              entrypoint: "engine",
+              flow: "trade",
+              executionMode: "paper",
+              traceId: "trace-worker-1",
+              stage: "monitor",
+              blocked: false,
+              reasonClass: "SUCCESS",
+              sources: ["fixture"],
+              freshness: {
+                marketAgeMs: 0,
+                walletAgeMs: 0,
+                maxAgeMs: 60_000,
+                observedAt: "2026-03-27T11:59:30.000Z",
+              },
+              evidenceRef: {},
+              decisionHash: "a".repeat(64),
+              resultHash: "b".repeat(64),
+            },
+          },
+        ],
+        recentIncidents: [],
+      },
     },
     metrics: {
       cycleCount: 12,
@@ -271,7 +319,9 @@ describe("control routes", () => {
         requestedMode: "observe",
         appliedMode: "observe",
       },
-    });
+      });
+    expect(body.runtime).not.toHaveProperty("decisionHistoryRole");
+    expect(body.runtime.recentHistory?.recentCycles[0].decisionHistoryRole).toBe("canonical");
   });
 
   it("applies kill-switch and config mutations without a live runtime object", async () => {

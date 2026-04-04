@@ -1,3 +1,8 @@
+/**
+ * Trend reversal monitor runner.
+ * Sidecar-safe observational runner: replay/enrichment/watchlist only, never authority-canonical.
+ * Emits observations, not approvals, blocks, or control decisions.
+ */
 import type { JournalWriter } from "../../journal-writer/writer.js";
 import type { WatchCandidate } from "../../discovery/contracts/watch-candidate.js";
 import type { WatchCandidateRegistry } from "../../discovery/watch-candidate-registry.js";

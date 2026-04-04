@@ -1,5 +1,6 @@
 /**
  * Execution repository - stores execution and refusal evidence for replay/audit.
+ * Append-only evidence / provenance context only; never canonical decision history.
  * Wave 7: upgraded from best-effort in-memory storage to durable JSONL persistence.
  */
 import { appendFile, mkdir, readFile } from "node:fs/promises";

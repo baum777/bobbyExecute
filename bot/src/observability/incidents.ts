@@ -1,5 +1,6 @@
 /**
  * Incident counters + runtime incident recorder.
+ * Append-only provenance context only; never canonical decision history.
  */
 import type {
   IncidentRecord,

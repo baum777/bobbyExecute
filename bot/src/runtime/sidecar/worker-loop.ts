@@ -1,3 +1,8 @@
+/**
+ * Sidecar worker loop.
+ * Observational, enrichment/watchlist-oriented only; non-authoritative and replay-safe.
+ * No execution, approval, control, signer, policy, risk, or canonical decision-history authority.
+ */
 import type { JournalWriter } from "../../journal-writer/writer.js";
 import type { WatchCandidate } from "../../discovery/contracts/watch-candidate.js";
 import { WatchCandidateRegistry } from "../../discovery/watch-candidate-registry.js";

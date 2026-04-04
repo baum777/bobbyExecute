@@ -1,5 +1,6 @@
 /**
- * GET /kpi/* - KPI endpoints for Dashboard (Wave 3 P0).
+ * GET /kpi/* - derived KPI projections and legacy action-log support only.
+ * Canonical decision history remains in runtime cycle summary records.
  */
 import type { FastifyPluginAsync } from "fastify";
 import type {

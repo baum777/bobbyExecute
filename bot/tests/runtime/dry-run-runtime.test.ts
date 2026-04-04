@@ -328,6 +328,7 @@ describe("DryRunRuntime (phase-2)", () => {
     const summary = summaries[0];
     expect(summary.mode).toBe("dry");
     expect(summary.decisionOccurred).toBe(true);
+    expect(summary.decisionHistoryRole).toBe("canonical");
     expect(summary.tradeIntentId).toBeDefined();
     expect(summary.shadowArtifactChain).toBeDefined();
     expect(summary.shadowArtifactChain?.artifactMode).toBe("shadow");
@@ -815,7 +816,9 @@ describe("DryRunRuntime (phase-2)", () => {
     const replay = await runtime.getCycleReplay(summary.traceId);
 
     expect(replay).not.toBeNull();
+    expect(replay).not.toHaveProperty("decisionHistoryRole");
     expect(replay?.summary).toEqual(summary);
+    expect(replay?.summary.decisionHistoryRole).toBe("canonical");
     expect(replay?.summary.outcome).toBe("blocked");
     expect(replay?.incidents).toHaveLength(1);
     expect(replay?.incidents[0].details?.traceId).toBe(summary.traceId);

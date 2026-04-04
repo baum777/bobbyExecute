@@ -1,3 +1,7 @@
+/**
+ * Incident repository - append-only operational evidence.
+ * Derived provenance/support context only; never canonical decision history.
+ */
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname } from "node:path";

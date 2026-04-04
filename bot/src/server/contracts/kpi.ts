@@ -98,6 +98,7 @@ export interface RuntimeLiveControl {
 }
 
 export interface RuntimeRecentHistory {
+  /** Derived runtime-history projection; recent cycle entries may embed canonical records, but the container is not canonical decision history. */
   recentCycleCount: number;
   cycleOutcomes: Record<"success" | "blocked" | "error", number>;
   attemptsByMode: Record<"dry" | "paper" | "live", number>;
@@ -121,6 +122,7 @@ export interface RuntimeRecentHistory {
     type: string;
     message: string;
   }>;
+  /** Embedded runtime cycle summaries; each item may be canonical, while the array itself remains a derived projection. */
   recentCycles: Array<{
     traceId: string;
     cycleTimestamp: string;
@@ -162,6 +164,7 @@ export interface HealthResponse {
   botStatus?: "running" | "paused" | "stopped";
   worker?: import("../../persistence/runtime-visibility-repository.js").RuntimeWorkerVisibility;
   killSwitch?: { halted: boolean; reason?: string; triggeredAt?: string };
+  /** Derived runtime visibility projection; embedded recent cycle records may be canonical, but this container is not canonical decision history. */
   runtime?: {
     status: "idle" | "running" | "paused" | "stopped" | "error";
     mode: "dry" | "paper" | "live";
@@ -245,6 +248,7 @@ export interface KpiSummaryResponse {
     tradesToday: KpiMetricProvenance;
   };
   worker?: import("../../persistence/runtime-visibility-repository.js").RuntimeWorkerVisibility;
+  /** Derived KPI/runtime projection; embedded recent cycle records may be canonical, but this container is not canonical decision history. */
   runtime?: {
     mode: "dry" | "paper" | "live";
     paperModeActive: boolean;
@@ -381,6 +385,7 @@ export interface KpiAdvisoryAuditEntry {
 }
 
 export interface KpiDecisionAdvisoryResponse {
+  /** Derived advisory projection; only `canonical` may hold the canonical decision envelope, and the container is not canonical decision history. */
   traceId: string;
   enabled: boolean;
   canonical: import("../../core/contracts/decision-envelope.js").DecisionEnvelope | null;

@@ -23,6 +23,7 @@ import {
   type RuntimeCycleDegradedState,
   type RuntimeCycleIntakeOutcome,
   type RuntimeCycleOutcome,
+  type RuntimeDecisionHistoryRole,
   type RuntimeCycleSummary,
   type RuntimeCycleSummaryWriter,
 } from "../persistence/runtime-cycle-summary-repository.js";
@@ -85,6 +86,8 @@ export interface RuntimeRecentCycleSummary {
   verificationOccurred: boolean;
   decisionOccurred: boolean;
   errorOccurred: boolean;
+  /** Canonical decision-history projection carried forward from the runtime cycle summary. */
+  decisionHistoryRole: RuntimeDecisionHistoryRole;
   /** Canonical decision envelope when the cycle was produced by Engine (all modes). */
   decisionEnvelope?: import("../core/contracts/decision-envelope.js").DecisionEnvelope;
   authorityArtifactChain?: import("../persistence/runtime-cycle-summary-repository.js").RuntimeCycleAuthorityArtifactChainSummary;
@@ -108,6 +111,7 @@ export interface RuntimeRecentIncidentSummary {
   details?: IncidentRecord["details"];
 }
 
+/** Derived runtime-summary projection; embedded cycle records may be canonical, but the container is not canonical decision history. */
 export interface RuntimeReviewSummary {
   recentCycleCount: number;
   cycleOutcomes: Record<RuntimeCycleOutcome, number>;
@@ -264,6 +268,7 @@ export function buildRuntimeReviewSummary(
       verificationOccurred: summary.verificationOccurred,
       decisionOccurred: summary.decisionOccurred,
       errorOccurred: summary.errorOccurred,
+      decisionHistoryRole: summary.decisionHistoryRole,
       decisionEnvelope: summary.decisionEnvelope,
       authorityArtifactChain: summary.authorityArtifactChain,
       decision: summary.decision,
@@ -305,6 +310,7 @@ export interface RuntimeSnapshot {
   recentHistory?: RuntimeReviewSummary;
 }
 
+/** Derived replay artifact; the relayed summary may be canonical, but the replay container is not canonical decision history. */
 export interface RuntimeCycleReplay {
   traceId: string;
   summary: RuntimeCycleSummary;
@@ -725,6 +731,7 @@ export class DryRunRuntime {
     return buildRuntimeReviewSummary(this.recentCycleSummaries, this.recentIncidents);
   }
 
+  /** Derived replay view for audit/reconstruction; never upgrades the container into canonical decision history. */
   async getCycleReplay(traceId: string): Promise<RuntimeCycleReplay | null> {
     const summary = await this.cycleSummaryWriter.getByTraceId(traceId);
     if (!summary) {
@@ -882,6 +889,7 @@ export class DryRunRuntime {
           verificationOccurred: false,
           paperExecutionProduced: false,
           errorOccurred: false,
+          decisionHistoryRole: "canonical",
           degradedState: this.getCycleDegradedStateSummary(),
           adapterHealth: this.getCycleAdapterHealthSummary(),
           shadowArtifactChain: buildRuntimeShadowArtifactChain({
@@ -1161,6 +1169,7 @@ export class DryRunRuntime {
         paperExecutionProduced: false,
         errorOccurred: true,
         error: errorMessage,
+        decisionHistoryRole: "canonical",
         authorityArtifactChain: authorityResolution?.summary,
         tradeIntentId: this.lastState.tradeIntent?.idempotencyKey,
         execution: this.lastState.executionReport
@@ -1262,6 +1271,7 @@ export class DryRunRuntime {
           verificationOccurred: false,
           paperExecutionProduced: false,
           errorOccurred: false,
+          decisionHistoryRole: "canonical",
           degradedState: this.getCycleDegradedStateSummary(),
           adapterHealth: this.getCycleAdapterHealthSummary(),
           incidentIds: [],
@@ -1294,6 +1304,7 @@ export class DryRunRuntime {
           verificationOccurred: false,
           paperExecutionProduced: false,
           errorOccurred: false,
+          decisionHistoryRole: "canonical",
           degradedState: this.getCycleDegradedStateSummary(),
           adapterHealth: this.getCycleAdapterHealthSummary(),
           incidentIds: [],
@@ -1322,6 +1333,7 @@ export class DryRunRuntime {
           verificationOccurred: false,
           paperExecutionProduced: false,
           errorOccurred: false,
+          decisionHistoryRole: "canonical",
           degradedState: this.getCycleDegradedStateSummary(),
           adapterHealth: this.getCycleAdapterHealthSummary(),
           incidentIds: [],
@@ -1375,6 +1387,7 @@ export class DryRunRuntime {
       verificationMode: state.rpcVerification?.verificationMode,
       errorOccurred: state.error !== undefined,
       error: state.error,
+      decisionHistoryRole: "canonical",
       tradeIntentId: state.tradeIntent?.idempotencyKey,
       execution: state.executionReport
         ? {

@@ -6,6 +6,7 @@ import type { DecisionEnvelope } from "../core/contracts/decision-envelope.js";
 
 export type RuntimeCycleIntakeOutcome = "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
 export type RuntimeCycleOutcome = "success" | "blocked" | "error";
+export type RuntimeDecisionHistoryRole = "canonical";
 
 export interface RuntimeCycleExecutionEvidence {
   success: boolean;
@@ -180,6 +181,8 @@ export interface RuntimeCycleSummary {
   verificationMode?: "rpc" | "paper-simulated";
   errorOccurred: boolean;
   error?: string;
+  /** Canonical decision-history brand for runtime cycle summary persistence/projection. */
+  decisionHistoryRole: RuntimeDecisionHistoryRole;
   decision?: {
     allowed: boolean;
     direction?: string;

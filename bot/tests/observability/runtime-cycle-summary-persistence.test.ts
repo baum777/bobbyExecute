@@ -31,6 +31,7 @@ describe("Runtime cycle summary persistence", () => {
       blocked: true,
       blockedReason: "PAPER_INGEST_BLOCKED:stale",
       decisionEnvelope: fixtures.denyEnvelope,
+      decisionHistoryRole: "canonical",
       decisionOccurred: false,
       signalOccurred: false,
       riskOccurred: false,
@@ -61,6 +62,7 @@ describe("Runtime cycle summary persistence", () => {
       paperExecutionProduced: true,
       verificationMode: "paper-simulated",
       errorOccurred: false,
+      decisionHistoryRole: "canonical",
       tradeIntentId: "trace-1-intent",
       execution: {
         success: true,
@@ -168,6 +170,7 @@ describe("Runtime cycle summary persistence", () => {
     expect(summaries[1].verificationMode).toBe("paper-simulated");
     expect(summaries[1].execution?.mode).toBe("paper");
     expect(summaries[1].decisionEnvelope?.schemaVersion).toBe("decision.envelope.v3");
+    expect(summaries[1].decisionHistoryRole).toBe("canonical");
     expect(summaries[1].shadowArtifactChain?.artifactMode).toBe("shadow");
     expect(summaries[1].shadowArtifactChain?.derivedOnly).toBe(true);
     expect(summaries[1].shadowArtifactChain?.parity.oldAuthority.tradeIntentId).toBe("trace-1-intent");

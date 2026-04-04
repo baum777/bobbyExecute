@@ -33,6 +33,7 @@ export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
       const runtimeSnapshot = visible.runtime;
       const report = checkHealth(circuitBreaker, runtimeSnapshot);
       const uptimeMs = Date.now() - startedAt;
+      // Derived health projection only; embedded runtime cycle summaries remain canonical records when present.
       const killState = runtimeSnapshot?.liveControl?.killSwitchActive
         ? { halted: true, reason: runtimeSnapshot.liveControl.reasonDetail, triggeredAt: runtimeSnapshot.liveControl.lastTransitionAt }
         : undefined;

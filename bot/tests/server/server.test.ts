@@ -143,6 +143,34 @@ describe("Server (Wave 3)", () => {
           timestamp: "2026-03-17T12:00:00.000Z",
           blocked: false,
         },
+        recentHistory: {
+          recentCycleCount: 1,
+          cycleOutcomes: { success: 1, blocked: 0, error: 0 },
+          attemptsByMode: { dry: 0, paper: 1, live: 0 },
+          refusalCounts: {},
+          failureStageCounts: {},
+          verificationHealth: { passed: 1, failed: 0, failureReasons: {} },
+          incidentCounts: {},
+          controlActions: [],
+          stateTransitions: [],
+          recentCycles: [
+            {
+              traceId: "trace-paper",
+              cycleTimestamp: "2026-03-17T12:00:00.000Z",
+              mode: "paper",
+              outcome: "success",
+              stage: "monitor",
+              blocked: false,
+              intakeOutcome: "ok",
+              executionOccurred: false,
+              verificationOccurred: false,
+              decisionOccurred: true,
+              errorOccurred: false,
+              decisionHistoryRole: "canonical",
+            },
+          ],
+          recentIncidents: [],
+        },
         degradedState: {
           active: true,
           consecutiveCycles: 2,
@@ -168,6 +196,8 @@ describe("Server (Wave 3)", () => {
       expect(health.runtime.paperModeActive).toBe(true);
       expect(health.status).toBe("DEGRADED");
       expect(health.runtime.lastEngineStage).toBe("monitor");
+      expect(health.runtime).not.toHaveProperty("decisionHistoryRole");
+      expect(health.runtime.recentHistory?.recentCycles[0].decisionHistoryRole).toBe("canonical");
       expect(health.runtime.degraded).toMatchObject({ active: true, consecutiveCycles: 2 });
       expect(health.runtime.adapterHealth).toMatchObject({ degraded: true, unhealthyAdapterIds: ["primary"] });
 
@@ -176,8 +206,10 @@ describe("Server (Wave 3)", () => {
       const summary = await summaryRes.json();
       expect(summary.runtime.mode).toBe("paper");
       expect(summary.runtime.executionCount).toBe(2);
+      expect(summary.runtime).not.toHaveProperty("decisionHistoryRole");
       expect(summary.runtime.degraded).toMatchObject({ active: true, consecutiveCycles: 2 });
       expect(summary.runtime.adapterHealth).toMatchObject({ degraded: true, unhealthyAdapterIds: ["primary"] });
+      expect(summary.runtime.recentHistory?.recentCycles[0].decisionHistoryRole).toBe("canonical");
     } finally {
       await srv.close();
     }
@@ -242,7 +274,9 @@ describe("Server (Wave 3)", () => {
       const adapters = await adaptersRes.json();
 
       expect(health.status).toBe("DEGRADED");
+      expect(health.runtime).not.toHaveProperty("decisionHistoryRole");
       expect(summary.dataQuality).toBe(0.5);
+      expect(summary.runtime).not.toHaveProperty("decisionHistoryRole");
       expect(adapters.adapters).toEqual([
         {
           id: "primary",
@@ -571,6 +605,7 @@ describe("Server (Wave 3)", () => {
               verificationOccurred: true,
               decisionOccurred: true,
               errorOccurred: false,
+              decisionHistoryRole: "canonical",
               decisionEnvelope: {
                 schemaVersion: "decision.envelope.v3",
                 entrypoint: "engine",

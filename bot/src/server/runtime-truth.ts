@@ -238,6 +238,10 @@ export function buildRuntimeReadiness(runtime?: RuntimeSnapshot): {
   };
 }
 
+/**
+ * Derived projection of canonical runtime cycle summaries for visibility endpoints.
+ * This helper does not create decision truth; it only relays `recentHistory`.
+ */
 export function buildRuntimeHistory(runtime?: RuntimeSnapshot) {
   return runtime?.recentHistory;
 }

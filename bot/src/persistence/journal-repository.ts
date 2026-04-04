@@ -1,13 +1,13 @@
 /**
  * Journal repository - mandatory append for audit trail.
- * Derived audit trail only; never canonical decision history.
+ * Append-only evidence / provenance context only; never canonical decision history.
  * Normalized planning package: blocks pipeline on write failure (fail-closed).
  */
 import type { JournalWriter } from "../journal-writer/writer.js";
 import type { JournalEntry } from "../core/contracts/journal.js";
 
 /**
- * Append journal entry. Derived audit log only; canonical decision history lives in runtime cycle summaries.
+ * Append journal entry. Append-only evidence only; canonical decision history lives in runtime cycle summaries.
  * Throws on failure - mandatory write blocks execution.
  * Do not catch and continue; caller must handle or abort.
  */

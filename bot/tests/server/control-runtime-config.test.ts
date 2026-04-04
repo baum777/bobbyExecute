@@ -100,6 +100,54 @@ function buildVisibilitySnapshot(): RuntimeVisibilitySnapshot {
         requiresRestart: false,
         degraded: false,
       },
+      recentHistory: {
+        recentCycleCount: 1,
+        cycleOutcomes: { success: 1, blocked: 0, error: 0 },
+        attemptsByMode: { dry: 1, paper: 0, live: 0 },
+        refusalCounts: {},
+        failureStageCounts: {},
+        verificationHealth: { passed: 1, failed: 0, failureReasons: {} },
+        incidentCounts: {},
+        controlActions: [],
+        stateTransitions: [],
+        recentCycles: [
+          {
+            traceId: "trace-config",
+            cycleTimestamp: "2026-03-27T11:59:30.000Z",
+            mode: "dry",
+            outcome: "success",
+            stage: "monitor",
+            blocked: false,
+            intakeOutcome: "ok",
+            executionOccurred: false,
+            verificationOccurred: true,
+            decisionOccurred: true,
+            errorOccurred: false,
+            decisionHistoryRole: "canonical",
+            decisionEnvelope: {
+              schemaVersion: "decision.envelope.v3",
+              entrypoint: "engine",
+              flow: "trade",
+              executionMode: "dry",
+              traceId: "trace-config",
+              stage: "monitor",
+              blocked: false,
+              reasonClass: "SUCCESS",
+              sources: ["fixture"],
+              freshness: {
+                marketAgeMs: 0,
+                walletAgeMs: 0,
+                maxAgeMs: 60_000,
+                observedAt: "2026-03-27T11:59:30.000Z",
+              },
+              evidenceRef: {},
+              decisionHash: "c".repeat(64),
+              resultHash: "d".repeat(64),
+            },
+          },
+        ],
+        recentIncidents: [],
+      },
     },
     metrics: {
       cycleCount: 3,
@@ -262,6 +310,8 @@ describe("control runtime-config routes", () => {
         lastHeartbeatAt: "2026-03-27T12:00:00.000Z",
       },
     });
+    expect(statusBody.runtime).not.toHaveProperty("decisionHistoryRole");
+    expect(statusBody.runtime.recentHistory?.recentCycles[0].decisionHistoryRole).toBe("canonical");
   });
 
   it("applies pause, resume, kill switch, reload, and runtime-config changes through the control surface", async () => {

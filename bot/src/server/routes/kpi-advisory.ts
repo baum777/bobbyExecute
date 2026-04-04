@@ -1,6 +1,6 @@
 /**
  * Optional advisory LLM route — loads advisory module only when invoked (dynamic import).
- * Does not affect trading; read-only annotation of canonical v3 decisions.
+ * Derived advisory projection only; canonical decision history remains the runtime cycle summary record.
  */
 import type { FastifyPluginAsync } from "fastify";
 import type { RuntimeSnapshot } from "../../runtime/dry-run-runtime.js";

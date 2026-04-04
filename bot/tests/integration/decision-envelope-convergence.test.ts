@@ -103,12 +103,18 @@ describe("decision envelope convergence", () => {
       expect(decisionEnvelopeSemantics(runtimeState?.decisionEnvelope)).toEqual(expectedSemantics);
       expect(runtimeState?.decisionEnvelope?.entrypoint).toBe("engine");
       expect(runtimeState?.decisionEnvelope?.flow).toBe("trade");
+      expect(replay).not.toHaveProperty("decisionHistoryRole");
       expect(replay?.summary).toEqual(runtime.getSnapshot().lastCycleSummary);
+      expect(replay?.summary.decisionHistoryRole).toBe("canonical");
       expect(replay?.summary.blocked).toBe(false);
       expect(replay?.summary.blockedReason).toBeUndefined();
       expect(replay?.summary.decision?.allowed).toBe(true);
       expect(replay?.summary.executionOccurred).toBe(true);
       expect(replay?.summary.verificationOccurred).toBe(true);
+      expect(replay?.journal.length).toBeGreaterThan(0);
+      expect(
+        replay?.journal.every((entry) => !Object.prototype.hasOwnProperty.call(entry, "decisionHistoryRole"))
+      ).toBe(true);
     } finally {
       await runtime.stop();
     }
@@ -184,13 +190,19 @@ describe("decision envelope convergence", () => {
       expect(decisionEnvelopeSemantics(runtimeState?.decisionEnvelope)).toEqual(expectedSemantics);
       expect(runtimeState?.decisionEnvelope?.entrypoint).toBe("engine");
       expect(runtimeState?.decisionEnvelope?.flow).toBe("trade");
+      expect(replay).not.toHaveProperty("decisionHistoryRole");
       expect(replay?.summary).toEqual(runtime.getSnapshot().lastCycleSummary);
+      expect(replay?.summary.decisionHistoryRole).toBe("canonical");
       expect(replay?.summary.blocked).toBe(true);
       expect(replay?.summary.blockedReason).toBe(fixtures.denyEnvelope.blockedReason);
       expect(replay?.summary.decision?.allowed).toBe(false);
       expect(replay?.summary.decision?.reason).toBe(fixtures.denyEnvelope.blockedReason);
       expect(replay?.summary.executionOccurred).toBe(false);
       expect(replay?.summary.verificationOccurred).toBe(false);
+      expect(replay?.journal.length).toBeGreaterThan(0);
+      expect(
+        replay?.journal.every((entry) => !Object.prototype.hasOwnProperty.call(entry, "decisionHistoryRole"))
+      ).toBe(true);
     } finally {
       await runtime.stop();
     }

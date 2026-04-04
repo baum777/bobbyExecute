@@ -1,5 +1,6 @@
 /**
  * Runtime control routes.
+ * These are derived control/provenance projections; embedded runtime snapshots may contain canonical cycle records, but the containers are not canonical decision history.
  */
 import type { FastifyPluginAsync } from "fastify";
 import { getKillSwitchState } from "../../governance/kill-switch.js";
@@ -87,6 +88,7 @@ export interface ControlRouteDeps {
   getRuntimeSnapshot?: () => RuntimeSnapshot;
 }
 
+/** Derived control mutation projection; visibility context only. */
 export interface ControlResponse {
   success: boolean;
   message: string;
@@ -104,6 +106,7 @@ export interface RuntimeConfigReadResponse {
   document: RuntimeConfigDocument;
 }
 
+/** Derived control/status projection; embedded runtime snapshots are visibility context, not canonical decision history. */
 export interface RuntimeConfigStatusResponse {
   success: true;
   runtime?: RuntimeSnapshot;
@@ -119,6 +122,7 @@ export interface RuntimeConfigStatusResponse {
   liveControl: import("../../runtime/live-control.js").MicroLiveControlSnapshot;
 }
 
+/** Derived control/history projection; provenance/support context only. */
 export interface RuntimeConfigHistoryResponse {
   success: true;
   history: RuntimeConfigHistorySnapshot;
