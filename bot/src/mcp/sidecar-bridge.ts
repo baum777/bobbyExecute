@@ -2,7 +2,7 @@
  * Sidecar-to-MCP bridge.
  * Small, bounded, read-only bridge from sidecar.exposure.v1 into the MCP resource plane.
  * Observational, replay/enrichment, or watchlist-only. Non-authoritative and fail-closed.
- * Wave 5-03 audit/hardening slice: no hidden query, approval, or control semantics.
+ * Wave 5-04 manifest-freeze slice: exact allowlist items are frozen; no feature expansion.
  */
 
 import type { McpResourceDescriptor } from "./manifest.js";
@@ -10,6 +10,7 @@ import {
   assertSidecarExposureOnly,
   SIDECAR_EXPOSURE_MANIFEST,
   SIDECAR_PACKAGE_VERSION,
+  SIDECAR_ALLOWED_SOURCE_MODULES,
   type SidecarExposureManifest,
   type SidecarSurfaceDescriptor,
 } from "../runtime/sidecar/sidecar-exposure.js";
@@ -28,17 +29,28 @@ export interface McpSidecarBridgeResourceDescriptor extends McpResourceDescripto
 export interface McpSidecarBridgeManifest {
   version: typeof MCP_SIDECAR_BRIDGE_VERSION;
   upstreamSidecarPackageVersion: typeof SIDECAR_PACKAGE_VERSION;
+  allowedResourceUris: typeof MCP_SIDECAR_BRIDGE_ALLOWED_RESOURCE_URIS;
+  allowedClassifications: readonly McpSidecarBridgeResourceClassification[];
+  allowedUpstreamSourceModules: typeof SIDECAR_ALLOWED_SOURCE_MODULES;
   resources: readonly McpSidecarBridgeResourceDescriptor[];
 }
 
 const BRIDGE_SOURCE_MODULE = "mcp/sidecar-bridge.ts";
-const BRIDGE_RESOURCE_URIS = [
+export const MCP_SIDECAR_BRIDGE_ALLOWED_RESOURCE_URIS = [
   "bot://mcp/sidecar/posture",
   "bot://mcp/sidecar/surface-map",
   "bot://mcp/sidecar/trend-reversal-monitor-runner",
   "bot://mcp/sidecar/shadow-artifact-chain",
   "bot://mcp/sidecar/sidecar-worker-loop",
 ] as const;
+
+export const MCP_SIDECAR_BRIDGE_ALLOWED_CLASSIFICATIONS = [
+  "safe sidecar observational resource",
+  "safe sidecar replay/enrichment resource",
+  "safe sidecar watchlist-oriented resource",
+] as const;
+
+export const MCP_SIDECAR_BRIDGE_ALLOWED_UPSTREAM_SOURCE_MODULES = SIDECAR_ALLOWED_SOURCE_MODULES;
 
 const BRIDGE_FORBIDDEN_PHRASES = [
   "approval",
@@ -104,7 +116,7 @@ function buildPostureResource(): McpSidecarBridgeResourceDescriptor {
   return {
     kind: "resource",
     classification: "safe sidecar observational resource",
-    uri: BRIDGE_RESOURCE_URIS[0],
+    uri: MCP_SIDECAR_BRIDGE_ALLOWED_RESOURCE_URIS[0],
     title: "Sidecar Bridge Posture",
     description: "Read-only sidecar bridge posture metadata for the bounded MCP exposure layer.",
     mimeType: "text/plain",
@@ -124,7 +136,7 @@ function buildSurfaceMapResource(
   return {
     kind: "resource",
     classification: "safe sidecar observational resource",
-    uri: BRIDGE_RESOURCE_URIS[1],
+    uri: MCP_SIDECAR_BRIDGE_ALLOWED_RESOURCE_URIS[1],
     title: "Sidecar Bridge Surface Map",
     description: "Read-only map of the explicitly bridged sidecar-safe surfaces.",
     mimeType: "text/plain",
@@ -154,6 +166,9 @@ export const MCP_SIDECAR_BRIDGE_RESOURCES = buildMcpSidecarBridgeResources();
 export const MCP_SIDECAR_BRIDGE_MANIFEST: McpSidecarBridgeManifest = {
   version: MCP_SIDECAR_BRIDGE_VERSION,
   upstreamSidecarPackageVersion: SIDECAR_PACKAGE_VERSION,
+  allowedResourceUris: MCP_SIDECAR_BRIDGE_ALLOWED_RESOURCE_URIS,
+  allowedClassifications: MCP_SIDECAR_BRIDGE_ALLOWED_CLASSIFICATIONS,
+  allowedUpstreamSourceModules: MCP_SIDECAR_BRIDGE_ALLOWED_UPSTREAM_SOURCE_MODULES,
   resources: MCP_SIDECAR_BRIDGE_RESOURCES,
 };
 
@@ -164,7 +179,29 @@ export function assertMcpSidecarBridgeOnly(manifest: McpSidecarBridgeManifest): 
   if (manifest.upstreamSidecarPackageVersion !== SIDECAR_PACKAGE_VERSION) {
     throw new Error(`MCP_SIDECAR_BRIDGE_INVALID_UPSTREAM:${manifest.upstreamSidecarPackageVersion}`);
   }
-  if (manifest.resources.length !== BRIDGE_RESOURCE_URIS.length) {
+  if (
+    manifest.allowedResourceUris.length !== MCP_SIDECAR_BRIDGE_ALLOWED_RESOURCE_URIS.length ||
+    manifest.allowedResourceUris.some((uri, index) => uri !== MCP_SIDECAR_BRIDGE_ALLOWED_RESOURCE_URIS[index])
+  ) {
+    throw new Error("MCP_SIDECAR_BRIDGE_INVALID_ALLOWED_RESOURCE_URIS");
+  }
+  if (
+    manifest.allowedClassifications.length !== MCP_SIDECAR_BRIDGE_ALLOWED_CLASSIFICATIONS.length ||
+    manifest.allowedClassifications.some(
+      (classification, index) => classification !== MCP_SIDECAR_BRIDGE_ALLOWED_CLASSIFICATIONS[index]
+    )
+  ) {
+    throw new Error("MCP_SIDECAR_BRIDGE_INVALID_ALLOWED_CLASSIFICATIONS");
+  }
+  if (
+    manifest.allowedUpstreamSourceModules.length !== MCP_SIDECAR_BRIDGE_ALLOWED_UPSTREAM_SOURCE_MODULES.length ||
+    manifest.allowedUpstreamSourceModules.some(
+      (sourceModule, index) => sourceModule !== MCP_SIDECAR_BRIDGE_ALLOWED_UPSTREAM_SOURCE_MODULES[index]
+    )
+  ) {
+    throw new Error("MCP_SIDECAR_BRIDGE_INVALID_ALLOWED_UPSTREAM_SOURCE_MODULES");
+  }
+  if (manifest.resources.length !== MCP_SIDECAR_BRIDGE_ALLOWED_RESOURCE_URIS.length) {
     throw new Error(`MCP_SIDECAR_BRIDGE_INVALID_RESOURCE_COUNT:${manifest.resources.length}`);
   }
 
@@ -172,17 +209,13 @@ export function assertMcpSidecarBridgeOnly(manifest: McpSidecarBridgeManifest): 
     if (resource.kind !== "resource") {
       throw new Error(`MCP_SIDECAR_BRIDGE_INVALID_KIND:${resource.uri}`);
     }
-    if (resource.uri !== BRIDGE_RESOURCE_URIS[index]) {
+    if (resource.uri !== MCP_SIDECAR_BRIDGE_ALLOWED_RESOURCE_URIS[index]) {
       throw new Error(`MCP_SIDECAR_BRIDGE_UNEXPECTED_URI:${resource.uri}`);
     }
     if (resource.sourceModule !== BRIDGE_SOURCE_MODULE) {
       throw new Error(`MCP_SIDECAR_BRIDGE_FORBIDDEN_SOURCE:${resource.uri}:${resource.sourceModule}`);
     }
-    if (
-      resource.classification !== "safe sidecar observational resource" &&
-      resource.classification !== "safe sidecar replay/enrichment resource" &&
-      resource.classification !== "safe sidecar watchlist-oriented resource"
-    ) {
+    if (!MCP_SIDECAR_BRIDGE_ALLOWED_CLASSIFICATIONS.includes(resource.classification)) {
       throw new Error(`MCP_SIDECAR_BRIDGE_INVALID_CLASSIFICATION:${resource.uri}`);
     }
     if (resource.mimeType !== "text/plain") {
