@@ -53,15 +53,18 @@ const ROOT_EXPORT_SURFACE = [
   { specifier: "./adapters/dexscreener/client.js", classification: "canonical/survivor", disposition: "keep" },
   { specifier: "./adapters/dexscreener/types.js", classification: "canonical/survivor", disposition: "keep" },
   { specifier: "./adapters/dexscreener/mapper.js", classification: "canonical/survivor", disposition: "keep" },
-  { specifier: "./core/tool-router.js", classification: "compatibility-only legacy", disposition: "remove-later" },
   { specifier: "./core/orchestrator.js", classification: "compatibility-only legacy", disposition: "remove-later" },
-  { specifier: "./core/contracts/index.js", classification: "compatibility-only legacy", disposition: "remove-later" },
   { specifier: "./core/intelligence/mci-bci-formulas.js", classification: "compatibility-only legacy", disposition: "remove-later" },
   { specifier: "./core/universe/token-universe-builder.js", classification: "compatibility-only legacy", disposition: "remove-later" },
-  { specifier: "./memory/index.js", classification: "compatibility-only legacy", disposition: "remove-later" },
   { specifier: "./core/contracts/scorecard.js", classification: "compatibility-only legacy", disposition: "remove-later" },
   { specifier: "./core/contracts/signalpack.js", classification: "compatibility-only legacy", disposition: "remove-later" },
   { specifier: "./core/contracts/tokenuniverse.js", classification: "compatibility-only legacy", disposition: "remove-later" },
+] as const;
+
+const REMOVED_ROOT_SPECIFIERS = [
+  "./core/tool-router.js",
+  "./core/contracts/index.js",
+  "./memory/index.js",
 ] as const;
 
 const LEGACY_ROOT_SPECIFIERS = ROOT_EXPORT_SURFACE.filter(
@@ -146,6 +149,10 @@ describe("package root export freeze", () => {
       "./runtime/sidecar/"
     );
     expect(rootIndex, "mcp packaging must stay off the package root").not.toContain("./mcp/");
+
+    for (const specifier of REMOVED_ROOT_SPECIFIERS) {
+      expect(rootIndex, `${specifier} must remain removed from the package root`).not.toContain(specifier);
+    }
   });
 
   it("keeps production src off the package root barrel", () => {

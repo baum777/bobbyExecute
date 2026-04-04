@@ -33,7 +33,6 @@ Partially implemented or unwired:
 
 Legacy but still present in code:
 
-- `ToolRouter`
 - `Orchestrator`
 - repo-local `packages/skills/*` manifests and instructions
 
@@ -73,7 +72,7 @@ Parallel non-authority lanes
 ### 2. MCP skill plane
 
 - Intended cognitive layer for typed tools, resources, and prompts.
-- Current repo truth is narrower: local skill manifests exist in `packages/skills/`, and a legacy `ToolRouter` exists in `bot/src/core/tool-router.ts`.
+- Current repo truth is narrower: local skill manifests exist in `packages/skills/`, and the legacy `ToolRouter` was removed in Wave 6-01; remaining direct-subpath residue is fenced.
 - No verified MCP server, transport, resource registry, prompt registry, or cache/routing layer is wired today.
 
 ### 3. Shadow cognitive sidecars

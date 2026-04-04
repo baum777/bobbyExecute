@@ -25,6 +25,37 @@ interface DirectSubpathSurface {
   allowedImporters: string[];
 }
 
+interface DeletedDirectSubpathSurface {
+  path: string;
+  zeroAuthorityClass: "dead/remove-later";
+  whyRemoved: string;
+  patterns: RegExp[];
+}
+
+const DELETED_DIRECT_SUBPATH_SURFACES: DeletedDirectSubpathSurface[] = [
+  {
+    path: "core/tool-router.ts",
+    zeroAuthorityClass: "dead/remove-later",
+    whyRemoved:
+      "No current callers remain; removed in Wave 6-01 after proof-backed deletion scope.",
+    patterns: [/\/core\/tool-router\.js$/],
+  },
+  {
+    path: "memory/index.ts",
+    zeroAuthorityClass: "dead/remove-later",
+    whyRemoved:
+      "No current callers remain; removed in Wave 6-01 after proof-backed deletion scope.",
+    patterns: [/\/memory\/index\.js$/],
+  },
+  {
+    path: "core/contracts/index.ts",
+    zeroAuthorityClass: "dead/remove-later",
+    whyRemoved:
+      "No current callers remain; removed in Wave 6-01 after proof-backed deletion scope.",
+    patterns: [/\/core\/contracts\/index\.js$/],
+  },
+];
+
 const DIRECT_SUBPATH_SURFACES: DirectSubpathSurface[] = [
   {
     path: "core/orchestrator.ts",
@@ -46,32 +77,6 @@ const DIRECT_SUBPATH_SURFACES: DirectSubpathSurface[] = [
       "tests/storage/idempotency.test.ts",
       "tests/unit/orchestrator-authority.test.ts",
     ],
-  },
-  {
-    path: "core/tool-router.ts",
-    zeroAuthorityClass: "dead/remove-later",
-    disposition: "remove-later",
-    whyNonAuthoritative:
-      "No current callers remain; this is a dead legacy entry surface kept only for removal sequencing.",
-    markers: [
-      "Zero-authority residue only.",
-      "no new production callers, no canonical decision-history authority.",
-    ],
-    patterns: [/\/core\/tool-router\.js$/],
-    allowedImporters: [],
-  },
-  {
-    path: "memory/index.ts",
-    zeroAuthorityClass: "dead/remove-later",
-    disposition: "remove-later",
-    whyNonAuthoritative:
-      "No current callers remain; this barrel is retained only as a remove-later compatibility stub.",
-    markers: [
-      "Zero-authority residue only.",
-      "Retained temporarily for migration/test support only; no new production callers.",
-    ],
-    patterns: [/\/memory\/index\.js$/],
-    allowedImporters: [],
   },
   {
     path: "memory/memory-db.ts",
@@ -136,19 +141,6 @@ const DIRECT_SUBPATH_SURFACES: DirectSubpathSurface[] = [
       "tests/migration/parity-harness.ts",
       "tests/unit/runtime-truthfulness.test.ts",
     ],
-  },
-  {
-    path: "core/contracts/index.ts",
-    zeroAuthorityClass: "dead/remove-later",
-    disposition: "remove-later",
-    whyNonAuthoritative:
-      "No current callers remain; this barrel is retained only as a remove-later compatibility stub.",
-    markers: [
-      "Zero-authority residue only.",
-      "Not part of the canonical BobbyExecute v2 authority path.",
-    ],
-    patterns: [/\/core\/contracts\/index\.js$/],
-    allowedImporters: [],
   },
   {
     path: "core/intelligence/mci-bci-formulas.ts",
@@ -368,6 +360,19 @@ describe("direct-subpath legacy entry surface freeze", () => {
         expect(fileText, `${entry.path} is missing marker: ${marker}`).toContain(marker);
       }
       expect(entry.whyNonAuthoritative, `${entry.path} must explain why it is non-authoritative`).toBeTruthy();
+    }
+  });
+
+  it("removes proof-backed dead legacy entry surfaces from the source tree", () => {
+    for (const entry of DELETED_DIRECT_SUBPATH_SURFACES) {
+      expect(
+        existsSync(resolve(SRC_ROOT, entry.path)),
+        `${entry.path} should be deleted after Wave 6-01 proof-backed removal`
+      ).toBe(false);
+      expect(entry.whyRemoved, `${entry.path} must explain why it was removed`).toContain(
+        "proof-backed deletion scope"
+      );
+      expect(findImporters(entry.patterns), `${entry.path} must have zero current callers`).toEqual([]);
     }
   });
 

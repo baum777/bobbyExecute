@@ -63,12 +63,8 @@ describe("migration parity boundary guards", () => {
       "../memory/log-append.js": [
         "core/orchestrator.ts",
       ],
-      "./memory-db.js": [
-        "memory/index.ts",
-      ],
-      "./log-append.js": [
-        "memory/index.ts",
-      ],
+      "./memory-db.js": [],
+      "./log-append.js": [],
       "./core/universe/token-universe-builder.js": [],
     };
 
@@ -114,7 +110,7 @@ describe("migration parity boundary guards", () => {
   });
 
   it("blocks new production callers into legacy orchestrator/tool-router/memory surfaces", () => {
-    const allowedLegacyImporters = new Set(["core/orchestrator.ts", "memory/index.ts"]);
+    const allowedLegacyImporters = new Set(["core/orchestrator.ts"]);
     const forbiddenSpecifierPatterns = [
       /\/core\/orchestrator\.js$/,
       /\/core\/tool-router\.js$/,

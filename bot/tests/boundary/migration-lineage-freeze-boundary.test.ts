@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 const SRC_ROOT = resolve(process.cwd(), "src");
@@ -53,8 +53,6 @@ describe("migration lineage freeze boundaries", () => {
   it("marks deprecated-in-place legacy modules explicitly", () => {
     const deprecatedFiles = new Map<string, string>([
       ["core/orchestrator.ts", "no new production callers"],
-      ["core/tool-router.ts", "no new production callers"],
-      ["memory/index.ts", "no new production callers"],
       ["memory/log-append.ts", "no new production callers"],
       ["memory/memory-db.ts", "no new production callers"],
       ["signals/signal-engine.ts", "@deprecated compatibility-only"],
@@ -68,6 +66,21 @@ describe("migration lineage freeze boundaries", () => {
 
     expect(readSrc("index.ts")).toContain("canonical/survivor root surface only");
     expect(readSrc("index.ts")).not.toContain("legacy non-canonical compatibility export");
+  });
+
+  it("confirms proof-backed dead legacy surfaces were deleted", () => {
+    const deletedFiles = [
+      "core/tool-router.ts",
+      "core/contracts/index.ts",
+      "memory/index.ts",
+    ];
+
+    for (const relPath of deletedFiles) {
+      expect(
+        existsSync(resolve(SRC_ROOT, relPath)),
+        `${relPath} should be deleted after proof-backed removal`
+      ).toBe(false);
+    }
   });
 
   it("freezes legacy scoring/signal caller sets (no new callers)", () => {
