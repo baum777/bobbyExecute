@@ -3,7 +3,7 @@
  * @deprecated migration target: deterministic pre-authority `intelligence/universe` lineage.
  * Legacy non-surviving lineage; not canonical future path.
  */
-import type { NormalizedTokenV1, TokenUniverseV1 } from "../contracts/tokenuniverse.js";
+import type { NormalizedTokenV1 } from "../contracts/normalized-token.js";
 
 export type UniverseMode = "reduced" | "full";
 
@@ -20,6 +20,18 @@ export interface RawTokenInput {
   liquidity?: number;
 }
 
+interface TokenUniverseBuildResult {
+  schema_version: "token_universe.v1";
+  timestamp: string;
+  mode: UniverseMode;
+  tokens: NormalizedTokenV1[];
+  stats: {
+    total_count: number;
+    by_source: Record<string, number>;
+    avg_confidence: number;
+  };
+}
+
 /**
  * Build TokenUniverseV1 from raw tokens with MIN/MAX enforcement.
  * Reduced: MAX=30 MIN=20, Full: MAX=100 MIN=30.
@@ -31,7 +43,7 @@ export function buildTokenUniverse(
   rawTokens: RawTokenInput[],
   config: UniverseBuilderConfig,
   timestamp: string
-): TokenUniverseV1 {
+): TokenUniverseBuildResult {
   const limits = config.mode === "reduced" ? REDUCED_LIMITS : FULL_LIMITS;
 
   const sorted = [...rawTokens].sort((a, b) => {

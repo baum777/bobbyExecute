@@ -124,6 +124,25 @@ describe("migration parity boundary guards", () => {
     expect(rootIndex.match(/\.\/core\/universe\/token-universe-builder\.js/g)?.length ?? 0).toBe(1);
   });
 
+  it("keeps the core contracts barrel free of token-universe residue", async () => {
+    const coreContracts = await import("@bot/core/contracts/index.js");
+
+    expect(Object.keys(coreContracts)).not.toContain("TokenUniverseV1Schema");
+    expect(Object.keys(coreContracts)).not.toContain("NormalizedTokenV1Schema");
+    expect(Object.keys(coreContracts)).not.toContain("SourceMappingV1Schema");
+    expect(Object.keys(coreContracts)).not.toContain("generateCanonicalId");
+    expect(Object.keys(coreContracts)).not.toContain("calculateTokenConfidence");
+    expect(Object.keys(coreContracts)).not.toContain("ScoreCardSchema");
+    expect(Object.keys(coreContracts)).not.toContain("SignalPackSchema");
+  });
+
+  it("keeps the package root from re-exporting scorecard and signalpack barrel owners", async () => {
+    const rootExports = await import("@bot/index.js");
+
+    expect(Object.keys(rootExports)).not.toContain("ScoreCardSchema");
+    expect(Object.keys(rootExports)).not.toContain("SignalPackSchema");
+  });
+
   it("prevents runtime source from importing migration parity harness fixtures", () => {
     const srcFiles = walkTsFiles(SRC_ROOT);
 

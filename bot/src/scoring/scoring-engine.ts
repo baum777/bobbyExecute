@@ -5,13 +5,15 @@
  * Not part of the canonical BobbyExecute v2 authority path.
  * Retained temporarily for migration parity and test-only compatibility.
  */
-import { computeScoreCard } from "../core/intelligence/mci-bci-formulas.js";
-import type { ScoreCard } from "../core/contracts/scorecard.js";
-import type { SignalPack } from "../core/contracts/signalpack.js";
+import {
+  computeScoreCard,
+  type MciBciScoreCard,
+  type MciBciSignalPack,
+} from "../core/intelligence/mci-bci-formulas.js";
 import { createTraceId } from "../observability/trace-id.js";
 
 export interface ScoringInput {
-  signalPack: SignalPack;
+  signalPack: MciBciSignalPack;
   traceId?: string;
   timestamp?: string;
 }
@@ -22,7 +24,7 @@ export interface ScoringInput {
  * Not part of the canonical BobbyExecute v2 authority path.
  * Do not add new callers outside the frozen compatibility/test allowlist.
  */
-export function runScoringEngine(input: ScoringInput): ScoreCard {
+export function runScoringEngine(input: ScoringInput): MciBciScoreCard {
   const timestamp = input.timestamp ?? new Date().toISOString();
   const traceId = input.traceId ?? createTraceId({ timestamp, prefix: "score" });
   return computeScoreCard(traceId, timestamp, input.signalPack);

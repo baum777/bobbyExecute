@@ -5,13 +5,13 @@ import { describe, expect, it } from "vitest";
 import { Orchestrator } from "../../src/core/orchestrator.js";
 import { FakeClock } from "../../src/core/clock.js";
 import type { IntentSpec } from "../../src/core/contracts/intent.js";
-import type { SignalPack } from "../../src/core/contracts/signalpack.js";
+import type { TestSignalPack } from "../fixtures/mci-bci-test-shapes.js";
 
 describe("E2E full pipeline (Wave 7)", () => {
   it("orchestrator runs full pipeline: research -> chaos_gate -> focused_tx", async () => {
     const orchestrator = new Orchestrator({ dryRun: true });
 
-    const research = async (_intent: IntentSpec): Promise<SignalPack> => ({
+    const research = async (_intent: IntentSpec): Promise<TestSignalPack> => ({
       traceId: "e2e-trace",
       timestamp: "2026-03-06T12:00:00.000Z",
       sources: ["moralis"],
@@ -52,7 +52,7 @@ describe("E2E full pipeline (Wave 7)", () => {
   it("pipeline reaches focused_tx and memory db has journal", async () => {
     const orchestrator = new Orchestrator({ dryRun: true });
 
-    const research = async (): Promise<SignalPack> => ({
+    const research = async (): Promise<TestSignalPack> => ({
       traceId: "e2e-hash",
       timestamp: new Date().toISOString(),
       sources: ["moralis"],

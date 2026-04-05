@@ -3,14 +3,14 @@ import { runScoringEngine } from "../../src/scoring/scoring-engine.js";
 import { runSignalEngine } from "../../src/signals/signal-engine.js";
 import { runExecution } from "../../src/execution/execution-engine.js";
 import { fetchMarketWithFallback, type MarketAdapterFetch } from "../../src/adapters/orchestrator/adapter-orchestrator.js";
-import type { SignalPack } from "../../src/core/contracts/signalpack.js";
 import type { MarketSnapshot } from "../../src/core/contracts/market.js";
 import type { PatternResult } from "../../src/core/contracts/pattern.js";
 import type { TradeIntent } from "../../src/core/contracts/trade.js";
+import type { TestSignalPack } from "../fixtures/mci-bci-test-shapes.js";
 
 const now = "2026-03-17T12:00:00.000Z";
 
-const signalPack: SignalPack = {
+const signalPack: TestSignalPack = {
   traceId: "score-trace",
   timestamp: now,
   sources: ["moralis", "dexscreener"],

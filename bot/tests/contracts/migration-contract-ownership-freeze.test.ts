@@ -70,10 +70,11 @@ describe("migration contract ownership freeze", () => {
     expect(cqdWrapper).not.toContain("z.object(");
   });
 
-  it("marks legacy overlapping contract families as deprecated in-place", () => {
+  it("marks surviving legacy overlapping contract families as deprecated and keeps token-universe removed", () => {
     expect(readSrc("core/contracts/scorecard.ts")).toContain("@deprecated migration target");
     expect(readSrc("core/contracts/signalpack.ts")).toContain("@deprecated migration target");
-    expect(readSrc("core/contracts/tokenuniverse.ts")).toContain("@deprecated migration target");
+    expect(findConstOwners("TokenUniverseV1Schema")).toEqual([]);
+    expect(walkTsFiles(SRC_ROOT).map(toRel)).not.toContain("core/contracts/tokenuniverse.ts");
   });
 
   it("keeps decision-history truth explicit: cycle summaries canonical, action logs derived", () => {

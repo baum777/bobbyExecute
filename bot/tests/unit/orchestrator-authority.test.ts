@@ -3,7 +3,7 @@ import { FakeClock } from "../../src/core/clock.js";
 import { Orchestrator } from "../../src/core/orchestrator.js";
 import type { DecisionCoordinator } from "../../src/core/contracts/decision-envelope.js";
 import type { IntentSpec } from "../../src/core/contracts/intent.js";
-import type { SignalPack } from "../../src/core/contracts/signalpack.js";
+import type { TestSignalPack } from "../fixtures/mci-bci-test-shapes.js";
 
 function makeIntentSpec(): IntentSpec {
   return {
@@ -15,7 +15,7 @@ function makeIntentSpec(): IntentSpec {
   };
 }
 
-function makeSignalPack(): SignalPack {
+function makeSignalPack(): TestSignalPack {
   return {
     traceId: "trace-1",
     timestamp: "2026-03-17T12:00:00.000Z",

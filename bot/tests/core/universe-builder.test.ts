@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { buildTokenUniverse } from "@bot/core/universe/token-universe-builder.js";
-import type { NormalizedTokenV1 } from "@bot/core/contracts/tokenuniverse.js";
+import type { NormalizedTokenV1 } from "@bot/core/contracts/normalized-token.js";
 
 const now = new Date().toISOString();
 

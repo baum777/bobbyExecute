@@ -2,7 +2,7 @@ import { hashDecision } from "../determinism/hash.js";
 import type { DecisionResult } from "../contracts/decisionresult.js";
 import type { PatternResult } from "../contracts/pattern.js";
 import type { RiskBreakdown } from "../contracts/riskbreakdown.js";
-import type { ScoreCard } from "../contracts/scorecard.js";
+import type { MciBciScoreCard } from "../intelligence/mci-bci-formulas.js";
 
 /**
  * Derived decision view for orchestrator lifecycle consumers.
@@ -11,7 +11,7 @@ import type { ScoreCard } from "../contracts/scorecard.js";
 export function deriveDecisionResult(
   traceId: string,
   timestamp: string,
-  scoreCard: ScoreCard,
+  scoreCard: MciBciScoreCard,
   patternResult: PatternResult,
   riskBreakdown?: RiskBreakdown
 ): DecisionResult {

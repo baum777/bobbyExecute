@@ -5,9 +5,9 @@ import { describe, expect, it, afterEach } from "vitest";
 import { Orchestrator } from "../../src/core/orchestrator.js";
 import { triggerKillSwitch, resetKillSwitch } from "../../src/governance/kill-switch.js";
 import type { IntentSpec } from "../../src/core/contracts/intent.js";
-import type { SignalPack } from "../../src/core/contracts/signalpack.js";
+import type { TestSignalPack } from "../fixtures/mci-bci-test-shapes.js";
 
-const researchOk = async (): Promise<SignalPack> => ({
+const researchOk = async (): Promise<TestSignalPack> => ({
   traceId: "fc-trace",
   timestamp: new Date().toISOString(),
   sources: ["moralis"],
@@ -24,7 +24,7 @@ const researchOk = async (): Promise<SignalPack> => ({
 });
 
 /** Single strong signal so scorecard yields decision=allow (fail-closed paths must exercise allow). */
-const researchAllow = async (): Promise<SignalPack> => ({
+const researchAllow = async (): Promise<TestSignalPack> => ({
   traceId: "fc-trace-allow",
   timestamp: new Date().toISOString(),
   sources: ["moralis"],

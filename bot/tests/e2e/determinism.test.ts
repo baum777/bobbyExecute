@@ -6,14 +6,14 @@ import { Orchestrator } from "../../src/core/orchestrator.js";
 import { FakeClock } from "../../src/core/clock.js";
 import { hashDecision } from "../../src/core/determinism/hash.js";
 import type { IntentSpec } from "../../src/core/contracts/intent.js";
-import type { SignalPack } from "../../src/core/contracts/signalpack.js";
+import type { TestSignalPack } from "../fixtures/mci-bci-test-shapes.js";
 
 describe("E2E determinism (Wave 7)", () => {
   it("same input yields same decision", async () => {
     const clock = new FakeClock("2026-03-06T12:00:00.000Z");
     const orchestrator = new Orchestrator({ dryRun: true, clock });
 
-    const signalPack: SignalPack = {
+    const signalPack: TestSignalPack = {
       traceId: "det-trace",
       timestamp: clock.now().toISOString(),
       sources: ["moralis"],

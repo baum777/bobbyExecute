@@ -4,16 +4,33 @@
  */
 import { sha256 } from "../core/determinism/hash.js";
 import { canonicalize } from "../core/determinism/canonicalize.js";
-import type { ScoreCard } from "../core/contracts/scorecard.js";
-import type { SignalPack } from "../core/contracts/signalpack.js";
+import type {
+  MciBciScoreCard,
+  MciBciSignal,
+  MciBciSignalPack,
+} from "../core/intelligence/mci-bci-formulas.js";
 import type { PatternResult, PatternId, PatternEvidence } from "../core/contracts/pattern.js";
 import { PATTERN_IDS } from "../core/contracts/pattern.js";
+
+type PatternScoreCard = MciBciScoreCard;
+
+interface PatternSignal extends MciBciSignal {
+  source: string;
+  volume24h?: number;
+  liquidity?: number;
+}
+
+interface PatternSignalPack {
+  signals: readonly PatternSignal[];
+  sources: readonly string[];
+  dataQuality: MciBciSignalPack["dataQuality"];
+}
 
 export function recognizePatterns(
   traceId: string,
   timestamp: string,
-  scoreCard: ScoreCard,
-  signalPack: SignalPack
+  scoreCard: PatternScoreCard,
+  signalPack: PatternSignalPack
 ): PatternResult {
   const patterns: PatternId[] = [];
   const flags: string[] = [];
@@ -79,41 +96,41 @@ function addEvidence(evidence: PatternEvidence[], id: string, payload: unknown):
   evidence.push({ id: `ev-${id}-${hash.slice(0, 12)}`, hash });
 }
 
-function velocityLiquidityDivergence(scoreCard: ScoreCard, signalPack: SignalPack): boolean {
+function velocityLiquidityDivergence(scoreCard: PatternScoreCard, signalPack: PatternSignalPack): boolean {
   const hasVolume = signalPack.signals.some((s) => (s.volume24h ?? 0) > 0);
   const hasLiquidity = signalPack.signals.some((s) => (s.liquidity ?? 0) > 0);
   return hasVolume && !hasLiquidity && scoreCard.hybrid > 0.5;
 }
 
-function bundleSybilCluster(signalPack: SignalPack): boolean {
+function bundleSybilCluster(signalPack: PatternSignalPack): boolean {
   return signalPack.signals.length >= 5 && signalPack.sources.length >= 3;
 }
 
-function narrativeShift(signalPack: SignalPack): boolean {
+function narrativeShift(signalPack: PatternSignalPack): boolean {
   const xSources = signalPack.sources.filter((s) => s.startsWith("x_tl"));
   return xSources.length >= 2 && signalPack.signals.length >= 4;
 }
 
-function smartMoneyFakeout(scoreCard: ScoreCard): boolean {
+function smartMoneyFakeout(scoreCard: PatternScoreCard): boolean {
   const divergence = Math.abs(scoreCard.mci - scoreCard.bci);
   return divergence > 0.4 && scoreCard.mci * scoreCard.bci < 0;
 }
 
-function earlyPumpRisk(scoreCard: ScoreCard, signalPack: SignalPack): boolean {
+function earlyPumpRisk(scoreCard: PatternScoreCard, signalPack: PatternSignalPack): boolean {
   const avgPrice = signalPack.signals.reduce((s, x) => s + x.priceUsd, 0) / Math.max(1, signalPack.signals.length);
   return scoreCard.hybrid > 0.7 && avgPrice < 0.01;
 }
 
-function sentimentStructuralMismatch(scoreCard: ScoreCard): boolean {
+function sentimentStructuralMismatch(scoreCard: PatternScoreCard): boolean {
   return Math.abs(scoreCard.bci - scoreCard.mci) > 0.5;
 }
 
-function crossSourceAnomaly(signalPack: SignalPack): boolean {
-  const conf = signalPack.dataQuality.crossSourceConfidence ?? signalPack.dataQuality.sourceReliability;
+function crossSourceAnomaly(signalPack: PatternSignalPack): boolean {
+  const conf = signalPack.dataQuality.crossSourceConfidence ?? signalPack.dataQuality.sourceReliability ?? 0;
   return conf < 0.85 && signalPack.signals.length >= 2;
 }
 
-function fragileExpansion(signalPack: SignalPack): boolean {
+function fragileExpansion(signalPack: PatternSignalPack): boolean {
   const withLiquidity = signalPack.signals.filter((s) => (s.liquidity ?? 0) > 0);
   const totalLiq = withLiquidity.reduce((s, x) => s + (x.liquidity ?? 0), 0);
   return signalPack.signals.length > 3 && totalLiq < 10_000;

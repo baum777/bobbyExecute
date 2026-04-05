@@ -5,8 +5,6 @@
  */
 import { DATA_QUALITY_MIN_COMPLETENESS } from "@bot/core/contracts/dataquality.js";
 import { buildTokenUniverse } from "@bot/core/universe/token-universe-builder.js";
-import type { SignalPack } from "@bot/core/contracts/signalpack.js";
-import type { RawSignal } from "@bot/core/contracts/signalpack.js";
 import type { MarketSnapshot } from "@bot/core/contracts/market.js";
 import type { PatternResult } from "@bot/core/contracts/pattern.js";
 import { runScoringEngine } from "@bot/scoring/scoring-engine.js";
@@ -24,6 +22,7 @@ import {
 import { buildTrendReversalObservationV1 } from "@bot/intelligence/forensics/trend-reversal-monitor-worker.js";
 import { buildConstructedSignalSetV1 } from "@bot/intelligence/signals/build-constructed-signal-set.js";
 import { buildScoreCardV1 } from "@bot/intelligence/scoring/build-score-card.js";
+import type { TestSignal, TestSignalPack } from "../fixtures/mci-bci-test-shapes.js";
 import type {
   MigrationParityFixture,
   MigrationParityObservationFixture,
@@ -142,7 +141,7 @@ function withFixedNow<T>(fixedNowMs: number, callback: () => T): T {
 
 function marketSourceToLegacy(
   source: MigrationParityFixture["market"]["source"]
-): RawSignal["source"] {
+): TestSignal["source"] {
   if (source === "dexpaprika") {
     return "paprika";
   }
@@ -155,7 +154,7 @@ function marketSourceToLegacy(
 function observationSourceToLegacy(
   source: MigrationParityObservationFixture["source"],
   fixtureMarketSource: MigrationParityFixture["market"]["source"]
-): RawSignal["source"] {
+): TestSignal["source"] {
   switch (source) {
     case "market":
       return marketSourceToLegacy(fixtureMarketSource);
@@ -223,7 +222,7 @@ function buildSharedArtifacts(fixture: MigrationParityFixture): SharedFixtureArt
   };
 }
 
-function buildLegacyDataQuality(shared: SharedFixtureArtifacts): SignalPack["dataQuality"] {
+function buildLegacyDataQuality(shared: SharedFixtureArtifacts): TestSignalPack["dataQuality"] {
   const completeness = clamp01(shared.evidence.completeness);
   const freshness = shared.sourceObservations.length === 0
     ? 0
@@ -293,7 +292,7 @@ function runLegacyLineage(
     shared.timestampIso
   );
 
-  const legacySignals: RawSignal[] = shared.sourceObservations.map((observation) => {
+  const legacySignals: TestSignal[] = shared.sourceObservations.map((observation) => {
     const matchingFixtureObservation = fixture.observations.find(
       (candidate) =>
         candidate.source === observation.source &&
@@ -314,7 +313,7 @@ function runLegacyLineage(
   });
 
   const legacyDataQuality = buildLegacyDataQuality(shared);
-  const signalPack: SignalPack = {
+  const signalPack: TestSignalPack = {
     traceId: `legacy-signal-pack:${fixture.id}`,
     timestamp: shared.timestampIso,
     signals: legacySignals,

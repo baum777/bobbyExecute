@@ -2,12 +2,11 @@ import { FakeClock } from "../../src/core/clock.js";
 import { createCanonicalDecisionAuthority, type DecisionCoordinator, type DecisionEnvelope, type DecisionStage } from "../../src/core/decision/index.js";
 import type { MarketSnapshot } from "../../src/core/contracts/market.js";
 import type { WalletSnapshot } from "../../src/core/contracts/wallet.js";
-import type { SignalPack } from "../../src/core/contracts/signalpack.js";
-import type { ScoreCard } from "../../src/core/contracts/scorecard.js";
 import type { PatternResult } from "../../src/core/contracts/pattern.js";
 import type { RiskBreakdown } from "../../src/core/contracts/riskbreakdown.js";
 import type { DecisionResult } from "../../src/core/contracts/decisionresult.js";
 import type { TradeIntent, ExecutionReport, RpcVerificationReport } from "../../src/core/contracts/trade.js";
+import type { TestScoreCard, TestSignalPack } from "./mci-bci-test-shapes.js";
 
 export const SHARED_DECISION_TIMESTAMP = "2026-03-17T12:00:00.000Z";
 export const SHARED_DECISION_TRACE_ID = "shared-decision-trace";
@@ -20,8 +19,8 @@ export interface DecisionEnvelopeFixtureSet {
   market: MarketSnapshot;
   wallet: WalletSnapshot;
   signal: { direction: "buy"; confidence: number };
-  signalPack: SignalPack;
-  scoreCard: ScoreCard;
+  signalPack: TestSignalPack;
+  scoreCard: TestScoreCard;
   patternResult: PatternResult;
   riskBreakdown: RiskBreakdown;
   tradeIntent: TradeIntent;
@@ -96,7 +95,7 @@ export async function buildDecisionEnvelopeFixtureSet(): Promise<DecisionEnvelop
   };
 
   const signal = { direction: "buy" as const, confidence: 0.91 };
-  const signalPack: SignalPack = {
+  const signalPack: TestSignalPack = {
     traceId,
     timestamp,
     signals: [
@@ -118,7 +117,7 @@ export async function buildDecisionEnvelopeFixtureSet(): Promise<DecisionEnvelop
     sources: ["paprika"],
   };
 
-  const scoreCard: ScoreCard = {
+  const scoreCard: TestScoreCard = {
     traceId,
     timestamp,
     mci: 0.7,

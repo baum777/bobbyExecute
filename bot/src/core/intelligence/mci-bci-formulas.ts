@@ -3,8 +3,34 @@
  * Version: 1.1.0 | Owner: Kimi Swarm | Layer: core/intelligence | Last Updated: 2026-03-05
  * Changes: Hybrid weights updated to 0.55/0.45 per Target Architecture
  */
-import type { SignalPack } from "../contracts/signalpack.js";
-import type { ScoreCard } from "../contracts/scorecard.js";
+// Local shape-only bridge so this formulas file stays off the frozen core-contract owners.
+export interface MciBciSignal {
+  timestamp: string;
+  priceUsd: number;
+}
+
+export interface MciBciSignalPack {
+  signals: readonly MciBciSignal[];
+  dataQuality: {
+    completeness: number;
+    freshness: number;
+    sourceReliability?: number;
+    crossSourceConfidence?: number;
+  };
+}
+
+export interface MciBciScoreCard {
+  traceId: string;
+  timestamp: string;
+  mci: number;
+  bci: number;
+  hybrid: number;
+  crossSourceConfidenceScore: number;
+  ageAdjusted: boolean;
+  doublePenaltyApplied: boolean;
+  version: string;
+  decisionHash?: string;
+}
 
 const AGE_DECAY_FACTOR = 0.01;
 const DOUBLE_PENALTY_THRESHOLD = 0.3;
@@ -53,7 +79,7 @@ export function computeHybrid(
 /**
  * Cross-Source Confidence aus SignalPack.
  */
-export function computeCrossSourceConfidence(signalPack: SignalPack): number {
+export function computeCrossSourceConfidence(signalPack: MciBciSignalPack): number {
   const n = signalPack.signals.length;
   if (n === 0) return 0;
   const q = signalPack.dataQuality;
@@ -72,8 +98,8 @@ export function computeCrossSourceConfidence(signalPack: SignalPack): number {
 export function computeScoreCard(
   traceId: string,
   timestamp: string,
-  signalPack: SignalPack
-): ScoreCard {
+  signalPack: MciBciSignalPack
+): MciBciScoreCard {
   const n = signalPack.signals.length;
   const baseMci = computeBaseMci(signalPack);
 
@@ -112,7 +138,7 @@ export function computeScoreCard(
   };
 }
 
-function computeBaseMci(signalPack: SignalPack): number {
+function computeBaseMci(signalPack: MciBciSignalPack): number {
   if (signalPack.signals.length < 2) {
     return signalPack.signals.length === 1 && signalPack.signals[0].priceUsd > 0 ? 0.5 : 0;
   }
@@ -127,13 +153,13 @@ function computeBaseMci(signalPack: SignalPack): number {
   return clamp(momentum, -1, 1);
 }
 
-function computeCrossSourceVariance(signalPack: SignalPack): number {
-  const prices = signalPack.signals.map((s) => s.priceUsd).filter((p) => p > 0);
+function computeCrossSourceVariance(signalPack: MciBciSignalPack): number {
+  const prices = signalPack.signals.map((signal: MciBciSignal) => signal.priceUsd).filter((price: number) => price > 0);
   if (prices.length < 2) return 0;
-  const mean = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+  const mean = prices.reduce((sum: number, price: number) => sum + price, 0) / prices.length;
   if (mean <= 0) return 0;
   const variance =
-    prices.reduce((sum, p) => sum + (p - mean) * (p - mean), 0) / prices.length;
+    prices.reduce((sum: number, price: number) => sum + (price - mean) * (price - mean), 0) / prices.length;
   const stdDev = Math.sqrt(variance);
   return clamp(stdDev / mean, 0, 1);
 }

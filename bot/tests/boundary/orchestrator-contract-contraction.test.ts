@@ -4,8 +4,10 @@ import { dirname, resolve } from "node:path";
 
 const SRC_ROOT = resolve(process.cwd(), "src");
 const TEST_ROOT = resolve(process.cwd(), "tests");
-const TOKEN_UNIVERSE_SOURCE = resolve(SRC_ROOT, "core/contracts/tokenuniverse.ts");
-const TOKEN_UNIVERSE_SOURCE_JS = TOKEN_UNIVERSE_SOURCE.replace(/\.ts$/, ".js");
+const SCORECARD_SOURCE = resolve(SRC_ROOT, "core/contracts/scorecard.ts");
+const SCORECARD_SOURCE_JS = SCORECARD_SOURCE.replace(/\.ts$/, ".js");
+const SIGNALPACK_SOURCE = resolve(SRC_ROOT, "core/contracts/signalpack.ts");
+const SIGNALPACK_SOURCE_JS = SIGNALPACK_SOURCE.replace(/\.ts$/, ".js");
 
 function walkTsFiles(root: string): string[] {
   const entries = readdirSync(root);
@@ -48,7 +50,8 @@ function resolveImportTarget(filePath: string, specifier: string): string | null
   }
 
   if (specifier.startsWith(".")) {
-    const resolved = resolve(dirname(filePath), specifier);
+    const normalized = specifier.endsWith(".js") ? specifier.replace(/\.js$/, ".ts") : specifier;
+    const resolved = resolve(dirname(filePath), normalized);
     if (resolved.endsWith(".ts") || resolved.endsWith(".js")) {
       return resolved;
     }
@@ -85,37 +88,37 @@ function findImporters(root: string, targetPaths: string[]): string[] {
     .sort();
 }
 
-describe("removed token-universe residue inventory", () => {
-  it("confirms token-universe residue has been removed", () => {
-    expect(statExists(TOKEN_UNIVERSE_SOURCE)).toBe(false);
-    expect(statExists(TOKEN_UNIVERSE_SOURCE_JS)).toBe(false);
+describe("orchestrator legacy contract contraction", () => {
+  it("removes the orchestrator and decision projection from scorecard and signalpack owners", () => {
+    const scorecardImporters = findImporters(SRC_ROOT, [SCORECARD_SOURCE, SCORECARD_SOURCE_JS]);
+    const signalpackImporters = findImporters(SRC_ROOT, [SIGNALPACK_SOURCE, SIGNALPACK_SOURCE_JS]);
 
-    const srcImporters = findImporters(SRC_ROOT, [TOKEN_UNIVERSE_SOURCE, TOKEN_UNIVERSE_SOURCE_JS]);
-    const testImporters = findImporters(TEST_ROOT, [TOKEN_UNIVERSE_SOURCE, TOKEN_UNIVERSE_SOURCE_JS]);
+    expect(scorecardImporters).not.toContain("core/orchestrator.ts");
+    expect(scorecardImporters).not.toContain("core/decision/decision-result-derivation.ts");
+    expect(signalpackImporters).not.toContain("core/orchestrator.ts");
 
-    expect(srcImporters).toEqual([]);
-    expect(testImporters).toEqual([]);
+    expect(readFileSync(resolve(SRC_ROOT, "core/orchestrator.ts"), "utf8")).not.toContain(
+      "./contracts/scorecard.js"
+    );
+    expect(readFileSync(resolve(SRC_ROOT, "core/orchestrator.ts"), "utf8")).not.toContain(
+      "./contracts/signalpack.js"
+    );
+    expect(readFileSync(resolve(SRC_ROOT, "core/decision/decision-result-derivation.ts"), "utf8")).not.toContain(
+      "../contracts/scorecard.js"
+    );
   });
 
-  it("keeps source callers detached from the removed token-universe contract", () => {
-    const sourceFiles = [
-      "core/universe/token-universe-builder.ts",
-      "adapters/dexscreener/mapper.ts",
-      "core/normalize/normalizer.ts",
-      "core/validate/cross-source-validator.ts",
-      "intelligence/quality/build-data-quality.ts",
-    ];
+  it("keeps the remaining scorecard and signalpack residue test-only where still justified", () => {
+    const scorecardTestImporters = findImporters(TEST_ROOT, [SCORECARD_SOURCE, SCORECARD_SOURCE_JS]);
+    const signalpackTestImporters = findImporters(TEST_ROOT, [SIGNALPACK_SOURCE, SIGNALPACK_SOURCE_JS]);
 
-    for (const relPath of sourceFiles) {
-      const text = readFileSync(resolve(SRC_ROOT, relPath), "utf8");
-      expect(text).not.toContain("../contracts/tokenuniverse.js");
-      expect(text).not.toContain("@bot/core/contracts/tokenuniverse.js");
-    }
-
-    const builderText = readFileSync(
-      resolve(SRC_ROOT, "core/universe/token-universe-builder.ts"),
-      "utf8"
-    );
-    expect(builderText).toContain("../contracts/normalized-token.js");
+    expect(scorecardTestImporters).toEqual([
+      "contracts/contracts-bootstrap.test.ts",
+      "golden-tasks/golden-tasks-extended.test.ts",
+    ]);
+    expect(signalpackTestImporters).toEqual([
+      "contracts/contracts-bootstrap.test.ts",
+      "golden-tasks/golden-tasks-extended.test.ts",
+    ]);
   });
 });

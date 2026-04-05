@@ -7,7 +7,7 @@
 import type { Clock } from "./clock.js";
 import { SystemClock } from "./clock.js";
 import { hashDecision, hashResult } from "./determinism/hash.js";
-import { computeScoreCard } from "./intelligence/mci-bci-formulas.js";
+import { computeScoreCard, type MciBciScoreCard, type MciBciSignalPack } from "./intelligence/mci-bci-formulas.js";
 import { recognizePatterns } from "../patterns/pattern-engine.js";
 import { MemoryDB } from "../memory/memory-db.js";
 import { MemoryLog } from "../memory/log-append.js";
@@ -28,8 +28,6 @@ import {
   type IdempotencyStore,
   IDEMPOTENCY_REPLAY_BLOCK,
 } from "../storage/idempotency-store.js";
-import type { SignalPack } from "./contracts/signalpack.js";
-import type { ScoreCard } from "./contracts/scorecard.js";
 import type { DecisionResult } from "./contracts/decisionresult.js";
 import type { PatternResult } from "./contracts/pattern.js";
 import { aggregateRisk } from "./risk/global-risk.js";
@@ -39,6 +37,22 @@ import { computeMomentumExhaustRisk } from "./risk/momentum-exhaust-risk.js";
 import { computeStructuralWeaknessRisk } from "./risk/structural-weakness-risk.js";
 import type { RiskBreakdown } from "./contracts/riskbreakdown.js";
 import { deriveDecisionResult } from "./decision/decision-result-derivation.js";
+
+interface OrchestratorSignal {
+  timestamp: string;
+  priceUsd: number;
+  source: string;
+  volume24h?: number;
+  liquidity?: number;
+}
+
+interface OrchestratorSignalPack {
+  traceId: string;
+  timestamp: string;
+  signals: readonly OrchestratorSignal[];
+  dataQuality: MciBciSignalPack["dataQuality"];
+  sources: readonly string[];
+}
 
 export type OrchestratorPhase =
   | "research"
@@ -55,8 +69,8 @@ export interface OrchestratorState {
   timestamp: string;
   decisionEnvelope?: DecisionEnvelope;
   intentSpec?: IntentSpec;
-  signalPack?: SignalPack;
-  scoreCard?: ScoreCard;
+  signalPack?: OrchestratorSignalPack;
+  scoreCard?: MciBciScoreCard;
   patternResult?: PatternResult;
   riskBreakdown?: RiskBreakdown;
   decisionResult?: DecisionResult;
@@ -69,7 +83,7 @@ export interface OrchestratorState {
 }
 
 export interface ResearchHandler {
-  (intent: IntentSpec): Promise<SignalPack>;
+  (intent: IntentSpec): Promise<OrchestratorSignalPack>;
 }
 
 export interface SecretsVaultHandler {
@@ -133,8 +147,8 @@ export class Orchestrator {
       intentSpec,
     };
     const replayMode = process.env.REPLAY_MODE === "true";
-    let signalPack: SignalPack | undefined;
-    let scoreCard: ScoreCard | undefined;
+    let signalPack: OrchestratorSignalPack | undefined;
+    let scoreCard: MciBciScoreCard | undefined;
     let patternResult: PatternResult | undefined;
     let riskBreakdown: RiskBreakdown | undefined;
     let decisionResult: DecisionResult | undefined;
@@ -192,7 +206,12 @@ export class Orchestrator {
                 throw new Error("ORCHESTRATOR_COORDINATOR_MISSING_REASONING_STATE");
               }
 
-              patternResult = recognizePatterns(context.traceId, context.timestamp, scoreCard, signalPack);
+              patternResult = recognizePatterns(
+                context.traceId,
+                context.timestamp,
+                scoreCard,
+                signalPack
+              );
               state.patternResult = patternResult;
 
               riskBreakdown = computeRiskBreakdown(context.traceId, context.timestamp, signalPack, scoreCard);
@@ -366,8 +385,8 @@ export class Orchestrator {
 function computeRiskBreakdown(
   traceId: string,
   timestamp: string,
-  signalPack: SignalPack,
-  scoreCard: ScoreCard
+  signalPack: OrchestratorSignalPack,
+  scoreCard: MciBciScoreCard
 ): RiskBreakdown {
   const liq = signalPack.signals.reduce((s, x) => s + (x.liquidity ?? 0), 0) || 10000;
   const vol = signalPack.signals.reduce((s, x) => s + (x.volume24h ?? 0), 0) || 1000;

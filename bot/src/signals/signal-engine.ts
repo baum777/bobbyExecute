@@ -6,7 +6,7 @@
  * Retained temporarily for migration parity and test-only compatibility.
  */
 import type { MarketSnapshot } from "../core/contracts/market.js";
-import type { ScoreCard } from "../core/contracts/scorecard.js";
+import type { MciBciScoreCard } from "../core/intelligence/mci-bci-formulas.js";
 import type { PatternResult } from "../core/contracts/pattern.js";
 import type { TradeIntent } from "../core/contracts/trade.js";
 import { DATA_QUALITY_MIN_COMPLETENESS } from "../core/contracts/dataquality.js";
@@ -14,7 +14,7 @@ import { createTraceId } from "../observability/trace-id.js";
 
 export interface SignalInput {
   market: MarketSnapshot;
-  scoreCard: ScoreCard;
+  scoreCard: MciBciScoreCard;
   patternResult: PatternResult;
   /** Data quality for fail-closed gate. completeness < 0.7 blocks. */
   dataQuality?: { completeness: number };
