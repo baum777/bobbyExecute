@@ -34,6 +34,10 @@ Consumer-local overlays remain:
 - `docs/repo-specific-canonical-sources.md`
 - the canonical docs under `docs/01_architecture/` through `docs/06_journal_replay/`
 
+Architecture truth tiering is owned by:
+
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/repo-specific-canonical-sources.md`
+
 ## Operator Rule
 
 - read `.codex/shared-core-consumer.json` before using shared-core assets

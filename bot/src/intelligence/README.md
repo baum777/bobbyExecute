@@ -1,29 +1,38 @@
-Pre-authority and deterministic v2 intelligence area.
+# Intelligence Module
 
-PR-M0-01 lineage freeze:
-- surviving deterministic pre-authority line: `SourceObservation -> DiscoveryEvidence -> CandidateToken -> UniverseBuildResult -> DataQualityV1 -> CQDSnapshotV1 -> ConstructedSignalSetV1 -> ScoreCardV1`
-- this line is canonical future deterministic pre-authority naming, but is not yet the active runtime authority path
-- non-surviving legacy lineages (`src/signals`, `src/scoring`, `core/universe/token-universe-builder`) are deprecated-in-place and must not gain new callers
+Scope: typed intelligence and pre-authority/evidence builders.
+Authority: module support doc only; architecture source lives under `docs/`.
 
-Upper-half artifacts become typed validated inputs here before deterministic signal construction, scoring, pattern, sizing, and policy consumers use them.
-W2-01 introduced the first real signal / forensics foundation:
-`SignalPackV1` and `TrendReversalMonitorInputV1` plus deterministic builders.
-W2-02 and later work can consume those inputs, but nothing here is wired into runtime authority yet.
-W2-03 adds `signals/` as the constructed-signal bridge that consolidates upper-half observations into deterministic, pre-authority signals only.
-W3-01 adds `scoring/` as the deterministic reduction bridge from `ConstructedSignalSetV1` to `ScoreCardV1`; it stays pre-decision and non-authoritative.
-`quality/` is the Wave-1 admission gate only; it stops at data-quality truth and does not imply CQD or execution authority.
-`cqd/` is the compact reasoning boundary only; it is hash-stable, replay-ready, and still pre-authority.
+## Purpose
 
-Stage 5.5 reservation:
-- `TrendReversalMonitorWorker` is reserved here as a deterministic, non-LLM, shadow-only observational worker.
-- It comes after `DataQualityV1`, `CQDSnapshotV1`, and the W2-01 signal/forensics foundation.
-- `TrendReversalObservationV1` stays standalone first instead of merging into `SignalPackV1`.
-- Later use must stay shadow-first, journal-first, and non-authoritative until an approved typed bridge exists.
-- `signals/` stays descriptive and does not create decision authority.
-- `scoring/` stays descriptive and does not create decision authority.
-- See [`./forensics/README.md`](./forensics/README.md) and [`../../docs/architecture/trend-reversal-worker-alignment.md`](../../docs/architecture/trend-reversal-worker-alignment.md).
+Describe intelligence-layer responsibilities and boundaries against deterministic runtime authority.
 
-Wave bundle mapping note:
-- `UniverseBuildResultV1` -> `UniverseBuildResult`
-- `DataQualityReportV1` -> `DataQualityV1`
-- `CQDArtifactV1` -> `CQDSnapshotV1`
+## Current Status
+
+- Typed intelligence builders and contracts are active and consumed by runtime authority artifact resolution.
+- This module remains pre-authority/evidence focused.
+- Outputs are deterministic inputs and observational artifacts, not direct execution authority.
+
+## Shared Evidence-Plane Role
+
+This module contributes reusable evidence/intelligence artifacts for the shared evidence plane, including forensics and scoring-adjacent inputs.
+
+## Journal-Memory Relation
+
+- provides observed evidence inputs that may later be compressed into case records
+- does not own casebook truth, derived knowledge truth, or playbook authority
+- inferred/learned artifacts must remain labeled and non-authoritative
+
+## Authority Boundary
+
+- no direct execution trigger
+- no hidden policy override
+- no second decision truth
+
+Canonical decision truth remains runtime cycle-summary `decisionEnvelope`.
+
+## Dependencies
+
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/02_pipeline/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/forensics-evidence-plane.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/05_governance/README.md`

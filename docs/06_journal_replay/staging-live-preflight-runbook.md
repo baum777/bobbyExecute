@@ -223,3 +223,7 @@ The staging rehearsal is acceptable only if all of the following are true:
 ## 10. Next Step
 
 Use this runbook for the next environment-backed staging rehearsal. If the rehearsal passes, continue to the worker start gate only with separate operator approval and separate evidence capture.
+
+
+Historical evidence index: C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/evidence-records-index.md.
+

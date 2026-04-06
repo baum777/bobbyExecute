@@ -1,113 +1,58 @@
 # BobbyExecute MCP Skill Plane
 
-Scope: cognitive tool/resource/prompt layer and its current implementation status.  
-Authority: advisory only. Never trade-decision authority.
+Scope: bounded MCP posture and exposure boundaries.
+Authority: architecture support doc for MCP scope only.
 
-## 1. Objective
+## Purpose
 
-Define the intended MCP skill plane without overstating what is currently wired.
+Document the current MCP boundary without inflating implementation maturity or authority scope.
 
-## 2. Current Truth
+## Current Status
 
-### Implemented
+- MCP is bounded and non-authoritative.
+- Current slice remains resource-oriented and read-only in posture.
+- No execution approvals, control mutations, or live trading actions are exposed through MCP.
 
-- repo-local skill manifests in `packages/skills/**/manifest.json`
-- repo-local skill instructions in `packages/skills/**/instructions.md`
-- legacy `ToolRouter` abstraction in `bot/src/core/tool-router.ts`
+## Target State
 
-### Not verified
+Resource-first with an optional small set of explicitly named read-only tools, only when contract-governed and safe.
 
-- no MCP server entrypoint
-- no tool registry exposed over MCP transport
-- no resource registry
-- no prompt registry
-- no skill-plane cache or routing policy implementation
+## Authority Boundary
 
-### Implication
+- MCP cannot create, mutate, or approve execution authority.
+- MCP cannot become a second decision-history truth source.
+- MCP must be safe to disable without runtime authority impact.
 
-The repository contains local skill descriptors and legacy routing scaffolding, but not a verified live MCP plane.
+## Inputs
 
-## 3. Gaps
+- bounded, typed intelligence and replay-ready read surfaces
+- metadata about provenance, timestamps, and limitations
+- approved derived memory/casebook summaries only (when exposed), never raw mutable notes
 
-- The term "skill" exists in manifests, but those manifests do not by themselves create a working MCP surface.
-- Some skill instructions describe flows that are broader than the code paths currently wired.
-- `ToolRouter` exists, but it is not evidence of a deployed tools/resources/prompts system.
+## Outputs
 
-## 4. Constraints / Non-Goals
+- read-only resources and optionally read-only tool responses
+- normalized, typed bundles with explicit boundary metadata
 
-- The skill plane must never create decision authority.
-- Tool use must stay explicit and traceable.
-- Outputs must be typed and schema-bounded when the plane is implemented.
-- No doc should imply that current skill manifests are already a live MCP server.
+## Canonical Truth Relation
 
-## 5. Reuse of Existing Skills / Tools
+MCP exposes read views only. Canonical decision truth remains runtime cycle-summary `decisionEnvelope`.
 
-Verified reusable repo assets:
+## What This Is Not
 
-- `packages/skills/**/manifest.json`
-- `packages/skills/**/instructions.md`
-- `bot/src/core/tool-router.ts`
-- shared-core consumer overlay docs in `docs/codex-workflow-consumer.md`
+- Not a generic tool router.
+- Not an authority or control plane.
+- Not a permission to expand scope beyond allowlisted read surfaces.
 
-The documentation reuses these verified assets and labels them correctly as partial implementation.
+## Dependencies
 
-## 6. Proposed Implementation
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/05_governance/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/forensics-evidence-plane.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/03_skill_plane/mcp-posture-and-exposure-catalog.md`
 
-## Target plane
+## Deferred Scope
 
-The target MCP skill plane should provide:
-
-- `Tools`: explicit execution endpoints with typed inputs and outputs
-- `Resources`: bounded context retrieval surfaces
-- `Prompts`: named workflows and operator/research playbooks
-
-## Current repo posture
-
-| Surface | Current state | Authority |
-|---|---|---|
-| local skill manifests | implemented | advisory only |
-| local skill instructions | implemented | advisory only |
-| `ToolRouter` | implemented as legacy abstraction | advisory only unless explicitly invoked by deterministic code |
-| MCP server | not verified | none |
-| resources registry | not verified | none |
-| prompts registry | not verified | none |
-| routing/cache policy | not verified | none |
-
-## Cost and routing strategy
-
-Target-state rule set:
-
-- prefer deterministic local transforms before expensive cognitive calls
-- cache by stable input hashes
-- validate every tool output against typed schemas
-- keep LLM calls out of authority paths
-
-Truthful current status:
-
-- this strategy is architectural intent only
-- no verified repo-local implementation of that routing/caching layer was found
-
-## 7. Acceptance Criteria
-
-- advisory-only status is explicit
-- implemented vs unwired surfaces are explicit
-- no MCP capability is claimed without a concrete code path
-
-## 8. Verification / Tests
-
-Verified files:
-
-- `packages/skills/governance/action_handbook_lookup/manifest.json`
-- `packages/skills/intelligence/analyse/manifest.json`
-- `packages/skills/reasoning/pattern_recognizer/manifest.json`
-- `bot/src/core/tool-router.ts`
-- `bot/src/index.ts`
-
-## 9. Risks / Rollback
-
-- Calling the current local-skill manifests a live MCP plane would be false.
-- Treating skill outputs as implicit execution approval would violate advisory isolation.
-
-## 10. Next Step
-
-Implement a real MCP surface only if the repo needs tools/resources/prompts at runtime; otherwise keep the current local skill descriptors clearly non-authoritative.
+- OAuth/session complexity.
+- write-capable tool surfaces.
+- approval or execution mutation routes.
+- mutation of casebook, playbook, or prior validation state.

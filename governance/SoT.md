@@ -1,26 +1,39 @@
 # BobbyExecute Governance Source Of Truth
 
-Scope: repository-local governance entrypoint.  
-Authority: authoritative for governance entrypoint selection; detailed governance rules live in `docs/05_governance/README.md`.
+Scope: repository-local governance entrypoint.
+Authority: authoritative for governance source selection and hard boundary language.
 
 ## Purpose
 
-This file prevents dual truth between older governance notes and the current documentation set.
+Prevent dual truth and keep one deterministic authority path with explicit non-authoritative companion planes.
 
 ## Canonical Governance Documents
 
-- `docs/05_governance/README.md`
-- `docs/01_architecture/README.md`
-- `docs/02_pipeline/README.md`
-- `docs/06_journal_replay/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/05_governance/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/01_architecture/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/02_pipeline/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/repo-specific-canonical-sources.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/journal-memory-casebook-architecture.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/journal-memory-validation-gates.md`
+
+## Four-Plane Governance Lock
+
+- Deterministic Authority Plane: only decision and execution authority.
+- Shared Forensics / Intelligence Evidence Plane: contract-first and non-authoritative.
+- Workflow Consumer Plane: Meta Fetch Engine, Low Cap Hunter (optional), Shadow Intelligence; all non-authoritative.
+- Bounded MCP Skill Plane: read-only posture, non-authoritative, unchanged in this slice.
 
 ## Hard Governance Summary
 
-- only the deterministic core may create decision authority
-- MCP skill-plane surfaces are advisory only
-- shadow sidecars are advisory only
+- only the deterministic authority plane may create decision authority
+- canonical decision-history truth is runtime cycle summary `decisionEnvelope`
+- MCP and sidecars are non-authoritative
 - fail-closed behavior is mandatory on ambiguous or stale critical state
 - critical artifacts must be serializable, replayable, and traceable
+- no second decision truth may be introduced
+- decision-time truth must remain separated from outcome-time and review-time learning
+- learned priors require explicit validation/review gating before deterministic use
 
 ## Migration Freeze (PR-M0-01)
 

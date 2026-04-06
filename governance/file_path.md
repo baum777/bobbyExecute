@@ -17,7 +17,9 @@
 │  ├─ 03_skill_plane/       MCP skill-plane definition and current wiring status
 │  ├─ 04_sidecars/          shadow sidecar boundaries
 │  ├─ 05_governance/        authority and fail-closed rules
-│  └─ 06_journal_replay/    artifact, replay, and provenance model
+│  ├─ 06_journal_replay/    artifact, replay, and provenance model
+│  ├─ architecture/         shared architecture support docs (4-plane, evidence, workflows)
+│  └─ glossary/             terminology lock docs
 ├─ bot/                     TypeScript production codebase (src/, tests/)
 ├─ ops/agent-team/          governance and team artifacts (plan, findings, progress, decisions)
 ├─ packages/skills/         skill manifests and instructions
@@ -134,3 +136,4 @@ Every PR must include:
 - Canonical SoT: [`governance/SoT.md`](SoT.md)
 - Agent rules: [`governance/cursor_rule.md`](cursor_rule.md)
 - BobbyExecute architecture: [`docs/01_architecture/README.md`](../docs/01_architecture/README.md)
+- Canonical source map: [`docs/repo-specific-canonical-sources.md`](../docs/repo-specific-canonical-sources.md)

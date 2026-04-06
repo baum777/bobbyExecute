@@ -1,167 +1,113 @@
 # BobbyExecute Architecture
 
-Scope: full system architecture and authority boundaries.  
-Authority: authoritative for architectural terminology and layer separation.
+Scope: system architecture boundaries and role separation.
+Authority: canonical architecture document.
 
-## 1. Objective
+## Purpose
 
-Define BobbyExecute as a layered system with one decision authority:
+Define the active architecture using a four-plane model with one deterministic authority path.
 
-```text
-deterministic core + MCP skill plane + shadow cognitive sidecars
-```
+## Current Status (Active Today)
 
-## 2. Current Truth
+- Deterministic runtime authority uses typed authority artifact resolution in live and dry runtimes (`buildRuntimeAuthorityArtifactChain`).
+- Runtime cycle summaries persist canonical `decisionEnvelope` decision-history artifacts.
+- Sidecar and advisory surfaces exist but are non-authoritative.
+- MCP posture is bounded, prompt/resource oriented, and non-authoritative.
 
-### Implemented
+## Target State
 
-- deterministic runtime authority in `bot/src/core/engine.ts`
-- runtime entrypoints in `bot/src/server/run.ts`, `bot/src/control/run.ts`, and `bot/src/worker/run.ts`
-- typed pre-authority contracts in `bot/src/discovery/` and `bot/src/intelligence/`
-- control-plane and dashboard read/write surfaces
-- shadow sidecar loop in `bot/src/runtime/sidecar/worker-loop.ts`
-- remote signer boundary in `bot/src/adapters/signer/` and `signer/`
+Maintain one authority plane while expanding a reusable non-authoritative evidence plane consumed by three workflow consumers.
 
-### Implemented but non-authoritative
+The journal-memory overlay extends this with non-authoritative casebook/knowledge/playbook layers that remain downstream of raw journal truth.
 
-- `DataQualityV1`, `CQDSnapshotV1`, `ConstructedSignalSetV1`, and `ScoreCardV1` builders
-- advisory LLM decision annotation route
-- trend-reversal observation worker and watch-candidate registry
-- dashboard KPI projections and control summaries
+## Architecture Planes
 
-### Not yet wired
+### 1. Deterministic Authority Plane
 
-- use of the newer pre-authority artifact chain as the active runtime decision input
-- a real MCP server for tools/resources/prompts
-- any LLM influence on scoring, policy, or execution authority
+Responsibilities:
+- deterministic decision and execution flow
+- risk/policy/decision/execution verification
+- canonical cycle summaries and decision artifacts
 
-### Legacy
+Constraints:
+- fail-closed on missing/invalid critical state
+- no LLM authority
+- no sidecar or MCP authority leakage
 
-- `bot/src/core/orchestrator.ts`
-- `bot/src/core/tool-router.ts`
-- repo-local skill manifests in `packages/skills/`
+### 2. Shared Forensics / Intelligence Evidence Plane
 
-Legacy does not mean authoritative.
+Responsibilities:
+- produce typed, provenance-aware, replayable evidence bundles
+- preserve evidence references for downstream consumers
+- keep journal-first records for replay and audit
 
-## 3. Gaps
+Boundary:
+- observational only; does not execute trades or mutate authority decisions
 
-- The target deterministic-core chain exists as contracts/builders but is not yet the authority pipeline end to end.
-- The repo has local skill descriptors, not a verified MCP plane.
-- Some operator surfaces remain mixed canonical and derived truth.
-- Naming drift remains in code: `Engine`, `Orchestrator`, and `ToolRouter` predate the current model.
+### 3. Workflow Consumer Plane
 
-## 4. Constraints / Non-Goals
+Consumers:
+- `Meta Fetch Engine`: strategic intelligence snapshots/watchlist context
+- `Low Cap Hunter`: optional opportunistic scanner
+- `Shadow Intelligence`: ongoing monitoring and transition tracking
 
-- No LLM output may create or override decision authority.
-- No second scoring or policy path may exist outside the deterministic core.
-- No documentation may describe a feature as wired unless a concrete code path exists.
-- This document does not claim unrestricted live-trading readiness.
+Boundary:
+- consume evidence/intelligence outputs only
+- do not become authority
 
-## 5. Reuse of Existing Skills / Tools
+### 4. Bounded MCP Skill Plane
 
-Verified reusable repo assets used for this architecture map:
+Current slice posture:
+- bounded, read-only, non-authoritative
+- unchanged for current forensics slice
+- safe to disable entirely without authority impact
 
-- shared-core consumer manifest in `.codex/shared-core-consumer.json`
-- consumer overlays in `docs/codex-workflow-consumer.md` and `docs/repo-specific-canonical-sources.md`
-- repo-native contract owners under `bot/src/discovery/`, `bot/src/intelligence/`, and `bot/src/core/contracts/`
+Future direction:
+- resource-first with limited read-only tools only if explicitly governed
 
-The architecture rewrite reuses those verified surfaces. It does not invent a new contract layer.
+## Authority Boundary
 
-## 6. Proposed Implementation Model
+- Only the deterministic authority plane may create decision/execution authority.
+- No second decision-history truth is permitted.
+- Sidecars and MCP surfaces remain non-authoritative.
+- Journal-memory layers are non-authoritative unless promoted through explicit deterministic contracts.
+- Decision-time truth must remain isolated from outcome-time and review-time interpretations.
 
-### Deterministic core
+## Inputs
 
-Authoritative layer.
+- market/wallet/runtime state
+- typed discovery/intelligence artifacts
+- control-plane runtime posture state
 
-```text
-SourceObservation
--> DiscoveryEvidence
--> CandidateToken
--> UniverseBuildResult
--> DataQualityV1
--> CQDSnapshotV1
--> ConstructedSignalSetV1
--> ScoreCardV1
--> pattern / policy / decision / execution
-```
+## Outputs
 
-Rules:
+- canonical decision artifacts (`decisionEnvelope`)
+- execution and verification evidence
+- runtime cycle summaries
+- non-authoritative evidence bundles and monitoring views
 
-- deterministic
-- replayable
-- fail-closed
-- journal-first
-- no LLM influence
+## Canonical Truth Relation
 
-Current code truth:
+- Canonical decision-history truth: runtime cycle summary `decisionEnvelope`.
+- Derived/operator projections must be labeled derived and non-canonical.
 
-- contracts/builders exist from `SourceObservation` through `ScoreCardV1`
-- active runtime authority still uses the older `ingest -> signal -> risk -> chaos -> execute -> verify -> journal -> monitor` engine flow
-- convergence is incomplete
+## What This Is Not
 
-### MCP skill plane
+- Not a tool catalog or runbook.
+- Not a claim that all workflow consumers are fully wired.
+- Not permission for MCP/sidecar control or execution mutation.
 
-Advisory and cognitive layer.
+## Dependencies
 
-Intended model:
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/repo-specific-canonical-sources.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/02_pipeline/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/05_governance/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/forensics-evidence-plane.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/workflow-consumers.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/journal-memory-casebook-architecture.md`
 
-- tools for explicit execution
-- resources for bounded context retrieval
-- prompts for named workflows
+## Deferred Scope
 
-Current code truth:
-
-- local skill manifests and instructions exist in `packages/skills/`
-- `ToolRouter` exists as legacy scaffolding
-- no verified MCP server or transport is present
-
-Therefore the MCP skill plane is an architectural target with partial local building blocks, not a live authority plane.
-
-### Shadow cognitive sidecars
-
-Advisory-only layer.
-
-Current components:
-
-- LLM watch-candidate discovery parsing
-- deterministic `TrendReversalMonitorWorker`
-- sidecar worker loop and watch registry
-- optional advisory decision explanation route
-
-Prohibited:
-
-- decision creation
-- score mutation
-- policy override
-- execution trigger
-
-## 7. Acceptance Criteria
-
-- one decision authority is explicit
-- deterministic core is separated from skill-plane and sidecar surfaces
-- advisory surfaces are labeled non-authoritative
-- implemented versus unwired surfaces are distinguished
-- legacy names do not create false authority
-
-## 8. Verification / Tests
-
-Repository evidence used:
-
-- `bot/src/core/engine.ts`
-- `bot/src/runtime/create-runtime.ts`
-- `bot/src/runtime/live-runtime.ts`
-- `bot/src/discovery/contracts/*.ts`
-- `bot/src/intelligence/**/contracts/*.ts`
-- `bot/src/runtime/sidecar/worker-loop.ts`
-- `bot/src/server/routes/kpi-advisory.ts`
-- `packages/skills/**/manifest.json`
-
-## 9. Risks / Rollback
-
-- If future docs claim the MCP plane is live before a real server exists, dual truth returns.
-- If future docs treat dashboard projections as canonical metrics without provenance, operator confidence becomes inflated again.
-- If pre-authority builders are described as runtime authority before integration, the architecture becomes ambiguous.
-
-## 10. Next Step
-
-Converge the active runtime authority path onto the newer deterministic artifact chain without opening any parallel decision path.
+- Any authority changes outside deterministic runtime contracts.
+- Any MCP mutation/control surfaces.
+- Any second canonical decision-history surface.

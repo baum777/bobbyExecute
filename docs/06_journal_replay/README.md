@@ -1,124 +1,78 @@
 # BobbyExecute Journal And Replay
 
-Scope: artifact chain, replay posture, provenance rules, and learning constraints.  
-Authority: authoritative for journal/replay terminology. Not a runtime mutation surface.
+Scope: artifact classes, replay boundaries, and provenance discipline.
+Authority: canonical replay/journal terminology document.
 
-## 1. Objective
+## Purpose
 
-Describe the canonical artifact chain that preserves replayability and auditability.
+Define canonical versus derived artifacts and replay obligations across authority and evidence planes.
 
-## 2. Current Truth
+## Current Status
 
-Implemented durable or append-only artifacts include:
+- Runtime and persistence produce canonical authority artifacts, including cycle summaries with `decisionEnvelope`.
+- Sidecar and evidence outputs are journaled as non-authoritative records.
+- Historical preflight evidence docs exist and are indexed separately.
 
-- journal entries
-- action logs
-- runtime cycle summaries
-- incident records
-- execution evidence
-- runtime visibility snapshots
-- sidecar journals
+## Target State
 
-Implemented replay-related code exists in runtime controllers and repositories.
+Maintain a journal-first model where canonical authority artifacts and non-authoritative evidence artifacts remain distinct but traceable.
 
-Not verified:
+## Artifact Classes
 
-- a public replay API route currently exposed from the server
-- any online learning loop that feeds live behavior back into authority logic
+### Canonical Authority Artifacts
 
-## 3. Gaps
+- decision envelope in runtime cycle summaries
+- execution and verification evidence
+- incident and runtime-critical persistence artifacts
 
-- replay capability exists in code, but public replay exposure is not a documented server surface today
-- some historical docs described richer replay/learning posture than the verified server routes support
+### Non-Authoritative Evidence Artifacts
 
-## 4. Constraints / Non-Goals
+- forensic evidence bundles
+- watchlist/state-transition summaries
+- sidecar observation journals
 
-- no artifact mutation masquerading as replay
-- no live learning authority
-- no unjournaled critical decision step
+### Derived Views
 
-## 5. Reuse of Existing Skills / Tools
+- dashboard projections
+- convenience summaries built from canonical/evidence artifacts
 
-Verified repo assets:
+### Casebook / Knowledge / Playbook Layers (Non-Authoritative)
 
-- `bot/src/journal-writer/`
-- `bot/src/persistence/journal-repository.ts`
-- `bot/src/persistence/runtime-cycle-summary-repository.ts`
-- `bot/src/persistence/execution-repository.ts`
-- `bot/src/persistence/incident-repository.ts`
-- `bot/src/persistence/runtime-visibility-repository.ts`
-- `bot/src/runtime/live-runtime.ts`
-- `bot/src/runtime/sidecar/worker-loop.ts`
+- canonical case records (typed compression linked to raw evidence)
+- derived knowledge views (recomputable cross-case interpretations)
+- versioned playbook memory (evidence-linked operational guidance)
 
-## 6. Proposed Implementation
+## Replay Requirements
 
-## Artifact chain
+- Every evidence record must keep provenance and timestamps.
+- Replay views must reference underlying evidence or canonical artifact ids.
+- Derived views must be labeled derived and non-canonical.
+- Decision-time truth, outcome-time truth, and review-time learning must be explicitly partitioned.
+- Freeform notes cannot be promoted as raw replay truth.
 
-```text
-authority cycle
--> decision envelope
--> execution / verification artifacts
--> journal entry
--> cycle summary
--> incident and visibility projections
+## Canonical Truth Relation
 
-sidecar lane
--> watch candidate journal
--> trend observation journal
-```
+Canonical decision-history truth is runtime cycle-summary `decisionEnvelope`.
 
-## Replay posture
+## Operational And Historical Records
 
-| Artifact | Producer | Authority class | Replay value |
-|---|---|---|---|
-| journal entry | engine/runtime/sidecar writers | canonical for recorded step output | high |
-| action log | observability layer | derived support surface | medium |
-| runtime cycle summary | runtime persistence | canonical runtime summary | high |
-| incident record | observability/persistence | canonical incident evidence | high |
-| execution evidence | execution repository | canonical execution evidence | high |
-| runtime visibility snapshot | worker visibility persistence | canonical worker visibility | high |
+- Runbooks/templates are operational guidance only.
+- Dated evidence snapshots are historical records.
+- Historical index: `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/evidence-records-index.md`.
 
-## Learning constraints
+## What This Is Not
 
-Allowed:
+- Not a runtime mutation interface.
+- Not a claim that all replay views are public API surfaces.
 
-- offline analysis
-- replay-based review
-- post-run research
-- advisory synthesis outside authority paths
+## Dependencies
 
-Not allowed:
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/01_architecture/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/02_pipeline/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/forensics-evidence-plane.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/journal-memory-casebook-architecture.md`
 
-- live auto-learning that changes runtime authority without explicit governed implementation
-- sidecar or advisory feedback injected directly into execution decisions
+## Deferred Scope
 
-## 7. Acceptance Criteria
-
-- artifact types are explicit
-- canonical versus derived artifacts are separated
-- replay and learning claims stay bounded to verified code
-
-## 8. Verification / Tests
-
-Verified files:
-
-- `bot/src/journal-writer/writer.ts`
-- `bot/src/persistence/journal-repository.ts`
-- `bot/src/persistence/runtime-cycle-summary-repository.ts`
-- `bot/src/persistence/execution-repository.ts`
-- `bot/src/persistence/runtime-visibility-repository.ts`
-- `bot/src/runtime/live-runtime.ts`
-- `bot/src/intelligence/forensics/trend-reversal-monitor-runner.ts`
-
-## 9. Risks / Rollback
-
-- using action-log projections as canonical decision history would overstate replay fidelity
-- describing offline analysis as live learning would violate governance boundaries
-
-## 10. Next Step
-
-Expose replay surfaces only when the canonical artifact source, route contract, and provenance labels are explicit.
-
-Operator staging rehearsal reference:
-
-- [`staging-live-preflight-runbook.md`](./staging-live-preflight-runbook.md) captures the environment-backed live-preflight procedure, evidence checklist, and fail-closed criteria.
+- Broad public replay API expansion.
+- Any live learning loop that mutates authority without governed contracts.

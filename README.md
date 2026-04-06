@@ -1,147 +1,84 @@
 # BobbyExecute
 
-Scope: repository-level architecture summary.  
-Authority: authoritative for documentation structure and terminology; detailed governance lives in `docs/05_governance/README.md`.
+Scope: repository architecture and operating-truth summary.
+Authority: canonical summary. Detailed boundaries live in `C:/workspace/main_projects/dotBot/bobbyExecute/docs/01_architecture/README.md` and governance docs.
 
-## Objective
+## Purpose
 
-BobbyExecute is a governance-first Solana trading system being converged onto this model:
+BobbyExecute is a governance-first Solana trading system with one deterministic authority path and three explicitly non-authoritative companion planes.
 
-```text
-deterministic core + MCP skill plane + shadow cognitive sidecars
-```
+## Active Today
 
-## Current Truth
+- Runtime authority in live and dry flows builds typed authority artifacts through `buildRuntimeAuthorityArtifactChain`:
+  - `bot/src/runtime/live-runtime.ts`
+  - `bot/src/runtime/dry-run-runtime.ts`
+- Canonical decision-history truth is cycle-summary `decisionEnvelope`:
+  - `bot/src/persistence/runtime-cycle-summary-repository.ts`
+- Premerge gate is green and remains `npm run lint && npm test`.
+- Current primary blocker is environment-backed staging/live-test readiness proof, not repo structure.
 
-Implemented today:
+## Target Architecture (4 Planes)
 
-- a deterministic runtime authority path in `bot/src/core/engine.ts`, `bot/src/runtime/*.ts`, and the control/runtime/server entrypoints
-- typed pre-authority contracts for discovery, data quality, CQD, constructed signals, scoring, and trend-reversal observation
-- a shadow sidecar loop for watch-candidate discovery and trend-reversal monitoring
-- a separate remote signer boundary for live signing
+1. Deterministic Authority Plane
+- Only trade decision/execution authority.
+- Fail-closed, replayable, journal-first.
 
-Implemented but not authoritative:
+2. Shared Forensics / Intelligence Evidence Plane
+- Contract-first, replayable, provenance-aware evidence outputs.
+- Non-authoritative by default.
 
-- dashboard and KPI surfaces
-- advisory LLM explanation route
-- trend-reversal observation worker outputs
+3. Workflow Consumer Plane
+- `Meta Fetch Engine` (strategic intelligence snapshot/watchlist context).
+- `Low Cap Hunter` (optional opportunistic scanner; normally dormant).
+- `Shadow Intelligence` (monitoring and state-transition intelligence).
+- All non-authoritative.
 
-Partially implemented or unwired:
+4. Bounded MCP Skill Plane
+- Bounded and read-only in this slice.
+- Non-authoritative and safe to disable without affecting runtime authority.
 
-- the full deterministic-core convergence from `SourceObservation` through `ScoreCardV1` into runtime authority
-- the MCP skill plane as a real MCP server with tools, resources, prompts, routing, and cache policy
+## Authority Boundary
 
-Legacy but still present in code:
+- Deterministic runtime is the only authority.
+- MCP, sidecars, advisory routes, and dashboard views never create execution authority.
+- No second decision truth is allowed.
 
-- `ToolRouter`
-- `Orchestrator`
-- repo-local `packages/skills/*` manifests and instructions
+## Canonical Truth
 
-These legacy surfaces are not treated as decision authority unless explicitly wired into the deterministic runtime path.
+- Canonical decision-history artifact: `decisionEnvelope` in runtime cycle summaries.
+- Action logs and dashboard projections are derived support surfaces.
 
-## System Model
+## Journal-Memory Overlay
 
-```text
-External sources
-  -> pre-authority discovery artifacts
-     SourceObservation
-     -> DiscoveryEvidence
-     -> CandidateToken
-     -> UniverseBuildResult
-     -> DataQualityV1
-     -> CQDSnapshotV1
-     -> ConstructedSignalSetV1
-     -> ScoreCardV1
-  -> deterministic decision authority
-     policy / risk / decision envelope / execution / verify / journal
+- Raw journal truth is the base evidence layer and is not rewritten retroactively.
+- Casebook, derived knowledge, and playbook memory are non-authoritative unless explicitly promoted through deterministic contracts.
+- Decision-time truth, outcome-time truth, and review-time learning must remain distinct.
+- Freeform notes or unvalidated learned artifacts may not enter execution authority directly.
 
-Parallel non-authority lanes
-  -> MCP skill plane
-  -> shadow cognitive sidecars
-  -> dashboard and advisory views
-```
+## What This Is Not
 
-## Layer Summary
+- Not a claim that MCP is a live authority/control plane.
+- Not a claim that sidecar or forensics outputs can trigger execution directly.
+- Not a claim of live production authorization.
 
-### 1. Deterministic core
+## Repository Map
 
-- Only decision authority.
-- Must stay replayable, fail-closed, and free of LLM influence.
-- Current authority path is the runtime engine flow in `bot/src/core/engine.ts` and `bot/src/runtime/live-runtime.ts`.
-- The newer pre-authority contracts under `bot/src/discovery/` and `bot/src/intelligence/` are implemented but not yet the active authority pipeline.
+- `bot/`: runtime, control, persistence, contracts, adapters
+- `docs/`: architecture, governance, pipeline, replay, runbooks
+- `governance/`: source-of-truth boundary files
+- `signer/`: remote signer boundary
+- `dashboard/`: operator UI and read surfaces
 
-### 2. MCP skill plane
+## Canonical Documentation Entry Points
 
-- Intended cognitive layer for typed tools, resources, and prompts.
-- Current repo truth is narrower: local skill manifests exist in `packages/skills/`, and a legacy `ToolRouter` exists in `bot/src/core/tool-router.ts`.
-- No verified MCP server, transport, resource registry, prompt registry, or cache/routing layer is wired today.
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/repo-specific-canonical-sources.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/01_architecture/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/02_pipeline/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/05_governance/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/journal-memory-casebook-architecture.md`
 
-### 3. Shadow cognitive sidecars
-
-- Advisory only.
-- Includes LLM watch-candidate discovery parsing, deterministic trend-reversal monitoring, replay-oriented observation building, and optional decision annotation.
-- Sidecar outputs cannot create decisions, override scores, or trigger execution.
-
-## Authority Rules
-
-- Only the deterministic runtime path may create decision authority.
-- Dashboard, control, skill, sidecar, and advisory surfaces are never trade-decision authority.
-- Missing, stale, rejected, or inconsistent critical data must block or degrade; it must not silently pass.
-- Critical artifacts must be serializable, replayable, and journalable.
-- Legacy surfaces may exist in code, but they are not canonical merely because they are exported.
-
-## Pipeline Summary
-
-Current authority pipeline:
-
-```text
-ingest -> signal -> risk -> chaos -> execute -> verify -> journal -> monitor
-```
-
-Target deterministic-core convergence:
-
-```text
-SourceObservation
--> DiscoveryEvidence
--> CandidateToken
--> UniverseBuildResult
--> DataQualityV1
--> CQDSnapshotV1
--> ConstructedSignalSetV1
--> ScoreCardV1
--> pattern / policy / decision / execution
-```
-
-Truthful status:
-
-- `SourceObservation` through `ScoreCardV1` builders exist
-- the engine/runtime authority path is still driven by the older ingest/signal/risk flow
-- convergence between those two paths is not complete
-
-## Canonical Docs
-
-- `docs/01_architecture/README.md`
-- `docs/02_pipeline/README.md`
-- `docs/03_skill_plane/README.md`
-- `docs/04_sidecars/README.md`
-- `docs/05_governance/README.md`
-- `docs/06_journal_replay/README.md`
-- `docs/codex-workflow-consumer.md`
-- `docs/repo-specific-canonical-sources.md`
-
-## Repo Layout
-
-```text
-bot/        deterministic runtime, control plane, server, contracts
-dashboard/  operator UI and server-side control proxy
-signer/     remote signing boundary for live trading
-packages/   local skill manifests and instructions
-docs/       canonical repository documentation
-governance/ local governance overlays and agent rules
-dor-bot/    legacy Python subtree
-```
-
-## Verification
+## Verification Commands
 
 Run from `bot/`:
 
@@ -153,13 +90,6 @@ npm run premerge
 npm run build
 ```
 
-Verified command truth:
+## Status Reminder
 
-- `npm run premerge` currently resolves to `npm run lint && npm test`
-- live mode additionally depends on remote-signer, real RPC, and control posture gates
-
-## Next Read
-
-- architecture: `docs/01_architecture/README.md`
-- authority and fail-closed rules: `docs/05_governance/README.md`
-- replay and artifact chain: `docs/06_journal_replay/README.md`
+Current readiness blocker remains staging/live environment proof (`live:preflight` evidence), not an internal authority-migration gap.

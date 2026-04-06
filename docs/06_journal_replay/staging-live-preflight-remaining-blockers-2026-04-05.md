@@ -1,32 +1,21 @@
-# Staging Live-Preflight Remaining Blockers (2026-04-05)
+# Historical Evidence Snapshot: Remaining Blockers (2026-04-05)
 
-## Remaining Missing Inputs
+Status: historical record (non-canonical).  
+Snapshot date: 2026-04-05 UTC.
 
-- `LIVE_TRADING=true`
-- `TRADING_ENABLED=true`
-- `LIVE_TEST_MODE=true`
-- `RPC_MODE=real`
-- `RUNTIME_POLICY_AUTHORITY=ts-env`
-- `WALLET_ADDRESS`
-- `SIGNER_MODE=remote`
-- `SIGNER_URL`
-- `SIGNER_AUTH_TOKEN`
-- `CONTROL_TOKEN`
-- `OPERATOR_READ_TOKEN`
-- `MORALIS_API_KEY`
-- `JUPITER_API_KEY`
-- `RPC_URL`
+This file captures a dated blocker list from one point in time.
 
-## Current Boot-State Status
+## Current Active Sources
 
-- Command: `npm --prefix bot run recovery:worker-state`
-- Result: `status=ready`, `safeBoot=true`
-- `bootCriticalMissing=[]`
-- `bootCriticalInvalid=[]`
+- Runbook: `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook.md`
+- Template: `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-evidence-template.md`
+- Historical index: `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/evidence-records-index.md`
 
-## Exact Next Operator Command Order
+## Snapshot Summary (As Of 2026-04-05)
 
-1. Export required staging env vars and secrets (`LIVE_TRADING`, `TRADING_ENABLED`, `LIVE_TEST_MODE`, `RPC_MODE`, `RUNTIME_POLICY_AUTHORITY`, `WALLET_ADDRESS`, `SIGNER_MODE`, `SIGNER_URL`, `SIGNER_AUTH_TOKEN`, `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, `MORALIS_API_KEY`, `JUPITER_API_KEY`, `RPC_URL`).
-2. Run `npm --prefix bot run recovery:worker-state`.
-3. If `safeBoot=true`, run `npm --prefix bot run live:preflight`.
-4. Record stdout/stderr/exit code and gate decision in `docs/06_journal_replay/staging-live-preflight-evidence-template.md`.
+- Boot-state check at that time: `status=ready`, `safeBoot=true`
+- Live-preflight remained blocked by missing live-mode env/service inputs in that environment
+
+## Boundary Note
+
+This blocker list is historical only and is superseded by newer evidence captures.

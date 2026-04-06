@@ -1,8 +1,29 @@
-Deterministic v2 decision area.
+# Decision Module
 
-This module family is reserved for canonical downstream decision artifacts and tokenized execution authority.
-PR-01 introduces structure only and does not change the current runtime authority path.
+Scope: deterministic downstream decision artifacts and authority boundaries.
+Authority: module support doc only.
 
-The TrendReversalMonitorWorker is not a second decision path.
-Any future worker-derived use here must arrive through approved typed deterministic bridges only.
-It must not directly set `DecisionResult`, `DecisionTokenV1`, `PositionPlan`, `TradeIntent`, policy, risk, or execution authority.
+## Purpose
+
+Anchor decision-layer documentation to canonical runtime authority and decision-history truth.
+
+## Canonical Truth Relation
+
+- Canonical decision-history source: runtime cycle-summary `decisionEnvelope`.
+- This module must not introduce an alternate decision-history artifact.
+
+## Boundary
+
+- no sidecar authority import
+- no MCP authority import
+- no advisory authority import
+- no direct import of unvalidated learned priors
+
+Any future non-authoritative signal usage must pass through approved typed deterministic bridges.
+
+Decision-time truth is owned by deterministic runtime artifacts; outcome-time and review-time learning cannot rewrite historical decision truth.
+
+## Dependencies
+
+- `C:/workspace/main_projects/dotBot/bobbyExecute/governance/SoT.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/05_governance/README.md`

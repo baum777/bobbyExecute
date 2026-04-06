@@ -1,119 +1,82 @@
 # BobbyExecute Pipeline
 
-Scope: stage-by-stage data flow and contract ownership.  
-Authority: authoritative for pipeline boundaries; not itself a runtime control surface.
+Scope: stage ownership, artifact flow, and authority boundaries.
+Authority: canonical pipeline boundary document.
 
-## 1. Objective
+## Purpose
 
-Describe the actual BobbyExecute pipeline in a way that separates:
+Describe the active authority pipeline and its relation to non-authoritative evidence and workflow-consumer flows.
 
-- current authority flow
-- implemented pre-authority contracts
-- planned convergence work
+## Current Status (Active Today)
 
-## 2. Current Truth
+- Live and dry runtimes build typed authority artifacts through `buildRuntimeAuthorityArtifactChain` before deterministic decision flow.
+- Runtime persists canonical `decisionEnvelope` in cycle summaries.
+- Forensics/sidecar outputs exist as observational artifacts and are not authority inputs unless explicitly typed and promoted by deterministic contracts.
 
-### Current authority pipeline
+## Target State
 
-Implemented in `bot/src/core/engine.ts` and the runtime controllers:
+- Keep deterministic authority path singular.
+- Formalize shared evidence-plane producers and consumer-specific views.
+- Preserve replayability/provenance across authority and non-authority outputs.
 
-```text
-ingest -> signal -> risk -> chaos -> execute -> verify -> journal -> monitor
-```
+## Authority Stage Map
 
-### Current pre-authority deterministic-core pipeline
+| Stage | Class | Notes |
+|---|---|---|
+| Input normalization and authority artifact build | authority-prep | typed artifact resolution used by runtime authority path |
+| Deterministic policy/risk/decision | authority | only decision authority path |
+| execution / verify | authority | execution evidence and verification records |
+| cycle summary persistence | authority | canonical `decisionEnvelope` history location |
 
-Implemented as contracts/builders, not yet the active authority flow:
+## Evidence Stage Map (Non-Authoritative)
 
-```text
-SourceObservation
--> DiscoveryEvidence
--> CandidateToken
--> UniverseBuildResult
--> DataQualityV1
--> CQDSnapshotV1
--> ConstructedSignalSetV1
--> ScoreCardV1
-```
+| Stage | Class | Notes |
+|---|---|---|
+| forensics evidence assembly | evidence | provenance-aware, replayable evidence bundles |
+| sidecar monitoring outputs | evidence | observational state-transition signals |
+| workflow consumer snapshots | consumer-derived | strategic/opportunistic/monitoring views |
 
-## 3. Gaps
+## Workflow Consumer Mapping
 
-- The new contract chain is real but not yet the runtime decision input.
-- Pattern, policy, and execution still attach to the older runtime flow.
-- Replay artifacts exist, but there is no verified public replay API route.
+- `Meta Fetch Engine`: consumes evidence bundles to build strategic context and watchlist snapshots.
+- `Low Cap Hunter`: optional consumer of evidence for opportunistic scans.
+- `Shadow Intelligence`: consumes monitoring/evidence for transition tracking and watchlist health.
 
-## 4. Constraints / Non-Goals
+All consumer outputs remain non-authoritative.
 
-- No new parallel decision path.
-- No sidecar or LLM artifact may skip directly into decision/execution.
-- No contract duplication between `core/contracts` and higher-level wrappers.
+## Authority Boundary
 
-## 5. Reuse of Existing Skills / Tools
+- Evidence and consumer flows cannot bypass deterministic policy/risk/decision.
+- MCP and sidecars cannot introduce execution authority.
+- No second canonical decision-history producer is allowed.
 
-This pipeline map reuses verified contract owners instead of redefining them:
+## Replay And Provenance Requirements
 
-- `bot/src/discovery/contracts/`
-- `bot/src/intelligence/universe/contracts/`
-- `bot/src/intelligence/quality/contracts/`
-- `bot/src/intelligence/cqd/contracts/`
-- `bot/src/intelligence/signals/contracts/`
-- `bot/src/intelligence/scoring/contracts/`
-- `bot/src/core/contracts/decision-envelope.ts`
+- Evidence bundles must carry provenance/source metadata and timestamps.
+- State-transition summaries must be traceable to underlying evidence references.
+- Canonical decision truth stays in cycle-summary `decisionEnvelope`; consumer summaries are derived.
+- Decision-time truth must be preserved as captured at runtime, separate from outcome-time updates and review-time learning layers.
 
-## 6. Proposed Implementation
+## Journal-Memory Layer Relation
 
-## Stage Map
+- Raw journal truth (Layer B) is the immutable replay base.
+- Canonical casebook (Layer C), derived knowledge (Layer D), and playbook memory (Layer E) are downstream and non-authoritative in this slice.
+- Any future machine-safe priors must pass explicit validation gates before deterministic consumption.
 
-| Stage | Inputs | Outputs | Authority | Current status |
-|---|---|---|---|---|
-| `SourceObservation` | source payloads | typed source observations | pre-authority | implemented |
-| `DiscoveryEvidence` | observations | grouped evidence bundle | pre-authority | implemented |
-| `CandidateToken` | evidence, discovery reasons | candidate token record | pre-authority | implemented |
-| `UniverseBuildResult` | candidate + normalized features | inclusion/exclusion result | pre-authority | implemented |
-| `DataQualityV1` | evidence + candidates + universe | fail-closed quality gate | pre-authority | implemented |
-| `CQDSnapshotV1` | quality-passing evidence chain | compact deterministic reasoning boundary | pre-authority | implemented |
-| `ConstructedSignalSetV1` | CQD + forensics inputs | constructed signals | pre-authority | implemented |
-| `ScoreCardV1` | constructed signals | score card | pre-decision | implemented |
-| pattern / policy / decision | score card and downstream rules | decision authority | authority | partially implemented through older runtime path |
-| execution / verify / journal | decision envelope + trade intent | execution evidence and journal | authority | implemented |
+## What This Is Not
 
-## Current authority path detail
+- Not a claim that all planned consumer modules are fully implemented.
+- Not permission to treat advisory or monitoring outputs as authority.
 
-| Runtime stage | Primary code path | Inputs | Outputs | Notes |
-|---|---|---|---|---|
-| ingest | `Engine.run()` + ingest handler | market snapshot, wallet snapshot | validated ingest state | authority |
-| signal | `runScoringEngine`, `recognizePatterns`, `runSignalEngine` in `live-runtime.ts` | market-derived signal pack | trade intent or block | authority |
-| risk | `runRiskEngine` | intent, market, wallet | allow/block | authority |
-| chaos | `runChaosGate` | intent + market | allow/block | authority |
-| execute | execution handler | trade intent | execution report | authority |
-| verify | RPC verification | intent + execution report | verification report | authority |
-| journal | journal writer | cycle artifacts | append-only journal | authority |
-| monitor | runtime snapshot writers | runtime state | visibility snapshot | authority-adjacent, not decision-creating |
+## Dependencies
 
-## 7. Acceptance Criteria
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/01_architecture/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/README.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/forensics-evidence-plane.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/workflow-consumers.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/journal-memory-casebook-architecture.md`
 
-- every stage has explicit inputs and outputs
-- pre-authority and authority stages are separated
-- no stage implies hidden LLM or sidecar decision power
-- convergence gaps are explicit
+## Deferred Scope
 
-## 8. Verification / Tests
-
-Verified files:
-
-- `bot/src/core/engine.ts`
-- `bot/src/runtime/live-runtime.ts`
-- `bot/src/runtime/paper-runtime.ts`
-- `bot/src/intelligence/quality/build-data-quality.ts`
-- `bot/src/intelligence/cqd/build-cqd.ts`
-- `bot/src/intelligence/signals/build-constructed-signal-set.ts`
-- `bot/src/intelligence/scoring/build-score-card.ts`
-
-## 9. Risks / Rollback
-
-- Referring to `ScoreCardV1` as decision authority before policy/decision integration would create false authority.
-- Referring to dashboard decision views as canonical decision journals would create dual truth.
-
-## 10. Next Step
-
-Replace the older runtime signal/risk input chain with the typed deterministic-core artifacts incrementally, preserving one decision authority throughout.
+- Any non-deterministic direct authority path.
+- Any untyped bridge from evidence or MCP surfaces into decision execution.

@@ -66,3 +66,7 @@ Derived `basePath` (`JOURNAL_PATH` minus trailing `.jsonl`): `<base-path>`
 - Decision reason: `<short reason>`
 - Follow-up action: `<next concrete action>`
 - Approval scope note: `This record is blocked-execution preparation evidence unless environment-backed checks actually ran and passed.`
+
+
+Note: completed evidence files are historical records and should be indexed in docs/06_journal_replay/evidence-records-index.md.
+

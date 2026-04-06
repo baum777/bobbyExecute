@@ -101,3 +101,7 @@ Boot-critical artifact presence and parseability are necessary but not sufficien
 `live:preflight` also requires valid live secrets/services (for example signer, RPC, and required tokens). This guide does not provide environment-backed proof by itself.
 
 Boot-critical JSON files under `bot/data/` are environment-local runtime state for rehearsal/operations. They are not portable evidence of live readiness across environments.
+
+
+Historical evidence index: C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/evidence-records-index.md.
+

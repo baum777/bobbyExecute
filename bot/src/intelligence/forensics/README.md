@@ -1,25 +1,49 @@
-Pre-authority v2 forensics foundation.
+# Forensics Module
 
-This directory now owns the typed Signal / Forensics input layer:
-- `SignalPackV1`
-- `TrendReversalMonitorInputV1`
-- `TrendReversalObservationV1`
-- `TrendReversalMonitorWorker`
-- deterministic builders for market structure, holder / flow visibility, manipulation visibility, and signal assembly
+Scope: shared forensics evidence contracts and builders.
+Authority: module support doc only.
 
-It also keeps the later trend-reversal observation worker contract in the same namespace, but none of these artifacts create decision authority.
-The local `index.ts` barrel is intentionally narrow and stays pre-authority.
-The downstream `../signals/` bridge consumes these artifacts next, but remains descriptive and non-authoritative.
+## Purpose
 
-Stage 5.5 placement:
-- after `DataQualityV1`
-- after `CQDSnapshotV1`
-- before any downstream scoring, pattern, policy, or execution use
+Provide shared non-authoritative evidence artifacts that can be reused by multiple workflow consumers.
 
-Rules:
-- keep `SignalPackV1` observational and journalable
-- keep missing / partial / stale semantics explicit
-- preserve evidence refs and source coverage explicitly
-- do not add scoring, pattern classification, policy logic, or execution intent here
+## Current Status
 
-Future consumers must use approved typed deterministic bridges only.
+Forensics owns typed observational contracts/builders and monitoring inputs. Outputs remain non-authoritative.
+
+## Evidence Domains
+
+- provenance and source lineage
+- holder and liquidity integrity
+- toxicity/manipulation patterns
+- migration/launch/deployer-linked transitions
+- attention and state-transition signals
+
+## Workflow Consumer Relation
+
+Forensics outputs are intended for:
+- `Meta Fetch Engine` context
+- `Low Cap Hunter` optional scans
+- `Shadow Intelligence` monitoring
+
+All consumption remains non-authoritative.
+
+## Replay And Evidence References
+
+Forensics outputs must preserve evidence references, timestamps, and source coverage for replay.
+
+## Journal-Memory Relation
+
+- forensics is a Layer B/Layer C input source (raw evidence -> potential case compression)
+- forensics outputs do not become canonical case truth without explicit casebook contracts
+- forensics outputs do not become derived knowledge or playbook authority by default
+
+## Boundary
+
+- no scoring/policy/execution authority creation
+- no direct execution bridge
+
+## Dependencies
+
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/forensics-evidence-plane.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/workflow-consumers.md`

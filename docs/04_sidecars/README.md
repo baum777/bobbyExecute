@@ -1,118 +1,65 @@
-# BobbyExecute Shadow Cognitive Sidecars
+# BobbyExecute Sidecars
 
-Scope: advisory sidecars, watchlist discovery, trend monitoring, and optional analysis overlays.  
-Authority: advisory only. Not decision authority.
+Scope: non-authoritative sidecar behavior and evidence-plane integration.
+Authority: architecture support doc.
 
-## 1. Objective
+## Purpose
 
-Define the shadow sidecar layer and keep its authority boundary explicit.
+Define sidecars as observational producers/consumers that enrich intelligence without creating execution authority.
 
-## 2. Current Truth
+## Current Status
 
-### Implemented
+- Sidecar monitoring and watchlist-related components exist.
+- Outputs are observational and journaled.
+- Sidecars remain non-authoritative.
 
-- `parseDowntrendWatchWorkerOutput()` in `bot/src/advisory/downtrend-watch-worker.ts`
-- `TrendReversalMonitorWorker` and runner in `bot/src/intelligence/forensics/`
-- sidecar loop and watch registry in `bot/src/runtime/sidecar/worker-loop.ts`
-- optional advisory decision explanation route in `bot/src/server/routes/kpi-advisory.ts`
+## Target State
 
-### Implemented but default-off or injection-based
+Sidecars feed the shared evidence plane and workflow consumer views with typed, provenance-aware outputs.
 
-- sidecar discovery worker provider input is injected; the default worker returns no candidates
-- advisory LLM only loads when the advisory KPI route is called
+## Authority Boundary
 
-### Not authoritative
+- no trade intent creation
+- no score/policy override
+- no execution trigger
+- no hidden bridge into deterministic authority path
+
+## Inputs
+
+- advisory/discovery observations
+- market structure and watchlist state
+- typed non-authoritative evidence references
+
+## Outputs
 
 - watch candidates
-- trend-reversal observations
-- advisory explanations
-- dashboard annotations
+- trend/state-transition observations
+- context annotations
+- journaled sidecar evidence
 
-## 3. Gaps
+## Workflow Consumer Integration
 
-- There is no verified default live LLM discovery provider wired into runtime boot.
-- Sidecar outputs are journaled, but they are not yet bridged into the deterministic-core artifact chain.
-- Sidecars help observation and enrichment, not decision closure.
+- `Shadow Intelligence`: primary consumer of sidecar monitoring outputs.
+- `Meta Fetch Engine`: may consume sidecar evidence as contextual enrichment.
+- `Low Cap Hunter`: may consume sidecar-derived transition hints as optional context.
 
-## 4. Constraints / Non-Goals
+All outputs remain non-authoritative.
 
-- no execution trigger
-- no policy override
-- no scoring override
-- no decision-token creation
-- no implicit live-trading enablement
+## Canonical Truth Relation
 
-## 5. Reuse of Existing Skills / Tools
+Sidecar outputs are evidence/context only. Canonical decision-history truth remains cycle-summary `decisionEnvelope`.
 
-Verified repo assets used here:
+## What This Is Not
 
-- `bot/src/advisory/downtrend-watch-worker.ts`
-- `bot/src/runtime/sidecar/worker-loop.ts`
-- `bot/src/intelligence/forensics/trend-reversal-monitor-runner.ts`
-- `bot/src/intelligence/forensics/trend-reversal-monitor-worker.ts`
-- `bot/src/server/routes/kpi-advisory.ts`
+- Not a second decision engine.
+- Not an MCP control surface.
 
-## 6. Proposed Implementation
+## Dependencies
 
-## Sidecar model
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/forensics-evidence-plane.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/workflow-consumers.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/README.md`
 
-```text
-raw advisory input
--> watch candidates
--> watch registry
--> deterministic trend-reversal monitoring
--> shadow observations
--> journal / alert / advisory display
-```
+## Deferred Scope
 
-## Current component map
-
-| Component | Inputs | Outputs | Boundary | Status |
-|---|---|---|---|---|
-| downtrend watch parser | raw discovery payload | `WatchCandidate[]` | advisory | implemented |
-| watch registry | watch candidates | active/pruned candidate set | advisory | implemented |
-| trend monitor runner | watch candidates + optional `DataQualityV1` | `TrendReversalObservationV1[]` | advisory | implemented |
-| sidecar worker loop | discovery worker + monitor runner | sidecar journals and observations | advisory | implemented |
-| decision advisory route | canonical v3 decision envelope | advisory explanation | advisory | implemented, optional |
-
-## Output types
-
-Allowed outputs:
-
-- observations
-- enrichment
-- watchlists
-- context blocks
-- journal entries
-
-Forbidden outputs:
-
-- trade intents
-- score mutations
-- policy outcomes
-- execution approvals
-
-## 7. Acceptance Criteria
-
-- every sidecar output is explicitly labeled advisory
-- no path from sidecar output to execution authority is implied
-- default-off and injected components are described truthfully
-
-## 8. Verification / Tests
-
-Verified files:
-
-- `bot/src/advisory/downtrend-watch-worker.ts`
-- `bot/src/runtime/sidecar/worker-loop.ts`
-- `bot/src/intelligence/forensics/trend-reversal-monitor-runner.ts`
-- `bot/src/intelligence/forensics/trend-reversal-monitor-worker.ts`
-- `bot/src/server/routes/kpi-advisory.ts`
-
-## 9. Risks / Rollback
-
-- Treating sidecar observations as decision signals would create hidden authority.
-- Treating the advisory route as a runtime dependency would overstate its importance; it is route-loaded and optional.
-
-## 10. Next Step
-
-If sidecar outputs are ever consumed downstream, the bridge must be typed, deterministic where applicable, and still non-authoritative unless explicitly promoted through the deterministic core.
+- Any direct sidecar-to-authority integration.

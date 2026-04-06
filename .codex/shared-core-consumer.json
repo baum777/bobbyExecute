@@ -3,7 +3,7 @@
   "sharedCoreSource": "C:/workspace/main_projects/codex-workflow-core",
   "sharedCoreMode": "standalone-local-repo",
   "sharedCoreVersion": "0.1.4",
-  "packageFingerprint": "2d1f1f76a9c1ff6ff762ecc11f7bed66131801164fbd7d62c5c3a439d907c011",
+  "packageFingerprint": "3517c4781014642a735960b2d8538eec57e8e540da4270952082683c62c9232d",
   "adoptedSkills": [
     "repo-intake-sot-mapper",
     "runtime-policy-auditor",

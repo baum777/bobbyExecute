@@ -1,7 +1,7 @@
 # Cursor Rule: SoT Governance (Deterministic)
 
 > **Authority:** This file is subordinate to [`governance/SoT.md`](SoT.md).
-> It defines mandatory agent / cursor session behavior for the BobbyExecution repository.
+> It defines mandatory agent / cursor session behavior for the BobbyExecute repository.
 
 ---
 
@@ -35,6 +35,7 @@ After reading the SoT, you MUST ensure the following are loaded:
 - `ops/agent-team/team_progress.md`
 - `ops/agent-team/team_decisions.md`
 - `README.md`
+- `docs/repo-specific-canonical-sources.md`
 - `docs/05_governance/README.md`
 
 ---
