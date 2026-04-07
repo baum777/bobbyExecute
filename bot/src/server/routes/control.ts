@@ -1,7 +1,7 @@
 /**
  * Runtime control routes.
  */
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { getKillSwitchState } from "../../governance/kill-switch.js";
 import type {
   RuntimeConfigControlView,
@@ -15,6 +15,7 @@ import type {
 } from "../../runtime/runtime-config-manager.js";
 import { buildRuntimeReadiness } from "../runtime-truth.js";
 import { getMicroLiveControlSnapshot } from "../../runtime/live-control.js";
+import type { MicroLiveControlSnapshot } from "../../runtime/live-control.js";
 import { loadVisibleRuntimeState } from "../runtime-visibility.js";
 import type {
   WorkerRestartService,
@@ -84,6 +85,7 @@ export interface ControlRouteDeps {
   governanceRepository?: ControlGovernanceRepositoryWithAudits;
   runtimeEnvironment?: string;
   requiredToken?: string;
+  operatorReadToken?: string;
   getRuntimeSnapshot?: () => RuntimeSnapshot;
 }
 
@@ -173,6 +175,53 @@ export interface LivePromotionResponse {
   requests: ControlLivePromotionRecord[];
 }
 
+export type OperatorReleaseStage = "paper_safe" | "micro_live" | "constrained_live" | "blocked";
+
+export type OperatorChecklistStatus = "pass" | "fail" | "manual_review_required";
+
+export interface OperatorEvidenceChecklistItem {
+  id: string;
+  label: string;
+  required: boolean;
+  surfaceKind: "command" | "route" | "file";
+  surfaceRef: string;
+  note?: string;
+}
+
+export interface OperatorIncidentProcedure {
+  id: "provider_outage" | "signer_failure" | "kill_switch" | "degraded_mode" | "rollback";
+  trigger: string;
+  operatorAction: string;
+  controlSurfaces: string[];
+  evidenceSurfaces: string[];
+}
+
+export interface OperatorReleaseGateChecklistItem {
+  id: string;
+  label: string;
+  status: OperatorChecklistStatus;
+  evidence: string[];
+  note?: string;
+}
+
+export interface OperatorReleaseGateResponse {
+  success: true;
+  surfaceKind: "operational" | "derived" | "unwired";
+  rolloutStage: OperatorReleaseStage;
+  readiness?: RuntimeReadiness;
+  releaseGate: {
+    recommendedStage: OperatorReleaseStage;
+    canArmMicroLive: boolean;
+    canUseStagedLiveCandidate: boolean;
+    blockers: RuntimeReadiness["blockers"];
+    checklist: OperatorReleaseGateChecklistItem[];
+  };
+  operatorEvidenceChecklist: OperatorEvidenceChecklistItem[];
+  incidentRunbook: OperatorIncidentProcedure[];
+  killSwitch: { halted: boolean; reason?: string; triggeredAt?: string };
+  liveControl: MicroLiveControlSnapshot;
+}
+
 export interface LivePromotionRequestResponse {
   success: boolean;
   accepted: boolean;
@@ -222,6 +271,10 @@ function resolveRequestPath(url: string): string {
 function resolveRequestId(headers: Record<string, unknown>): string | undefined {
   const requestId = headers["x-request-id"];
   return typeof requestId === "string" && requestId.length > 0 ? requestId : undefined;
+}
+
+function isReadOnlyControlRequest(method: string): boolean {
+  return method === "GET" || method === "HEAD";
 }
 
 function isControlMutation(method: string, targetPath: string): boolean {
@@ -356,6 +409,57 @@ function mergeLivePromotionRecord(
   };
 }
 
+const KILL_SWITCH_DISABLED_ACTIONS = new Set<ControlAction>([
+  "pause",
+  "resume",
+  "mode_change",
+  "runtime_config_change",
+  "reload",
+  "live_promotion_request",
+  "live_promotion_approve",
+  "live_promotion_deny",
+  "live_promotion_apply",
+  "live_promotion_rollback",
+]);
+
+async function denyWhenKillSwitchActive(
+  deps: ControlRouteDeps,
+  context: ControlOperatorAuthContext,
+  target: string,
+  action: ControlAction,
+  reply: FastifyReply
+): Promise<boolean> {
+  if (!KILL_SWITCH_DISABLED_ACTIONS.has(action)) {
+    return false;
+  }
+
+  const killSwitch = getKillSwitchState();
+  if (!killSwitch.halted) {
+    return false;
+  }
+
+  const message = "Control route disabled while kill switch is active.";
+  await recordOperatorAudit(deps, context, {
+    action,
+    target,
+    result: "blocked",
+    reason: killSwitch.reason ?? "kill switch active",
+    note: message,
+    requestId: context.requestId,
+    metadata: {
+      killSwitch,
+    },
+  });
+
+  reply.status(409).send({
+    success: false,
+    message,
+    killSwitch,
+    liveControl: getMicroLiveControlSnapshot(),
+  });
+  return true;
+}
+
 async function recordOperatorAudit(
   deps: ControlRouteDeps,
   context: ControlOperatorAuthContext | undefined,
@@ -444,6 +548,226 @@ function buildRuntimeConfigStatusResponse(
 
 function toReadiness(runtime?: RuntimeSnapshot): RuntimeReadiness | undefined {
   return buildRuntimeReadiness(runtime);
+}
+
+function canArmMicroLiveReleaseGate(snapshot: WorkerRestartSnapshot, readiness?: RuntimeReadiness): boolean {
+  const liveControl = snapshot.runtime?.liveControl ?? getMicroLiveControlSnapshot();
+  return Boolean(
+    readiness &&
+      liveControl.liveEnabled === true &&
+      liveControl.rolloutPosture === "micro_live" &&
+      liveControl.rolloutConfigValid !== false &&
+      liveControl.rolloutConfigured &&
+      liveControl.killSwitchActive !== true &&
+      liveControl.blocked !== true &&
+      liveControl.roundStatus !== "failed" &&
+      liveControl.roundStatus !== "stopped" &&
+      liveControl.roundStatus !== "completed" &&
+      snapshot.runtime?.status !== "error" &&
+      snapshot.runtime?.adapterHealth?.degraded !== true
+  );
+}
+
+function canUseStagedLiveCandidateReleaseGate(snapshot: WorkerRestartSnapshot, readiness?: RuntimeReadiness): boolean {
+  const liveControl = snapshot.runtime?.liveControl ?? getMicroLiveControlSnapshot();
+  return Boolean(
+    readiness &&
+      liveControl.liveEnabled === true &&
+      liveControl.rolloutPosture === "staged_live_candidate" &&
+      liveControl.rolloutConfigValid !== false &&
+      liveControl.rolloutConfigured &&
+      liveControl.killSwitchActive !== true &&
+      liveControl.blocked !== true &&
+      snapshot.runtime?.status !== "error" &&
+      snapshot.runtime?.adapterHealth?.degraded !== true &&
+      snapshot.runtime?.degradedState?.active !== true
+  );
+}
+
+function deriveOperatorReleaseStage(snapshot: WorkerRestartSnapshot, readiness?: RuntimeReadiness): OperatorReleaseStage {
+  if (!readiness) {
+    return "blocked";
+  }
+  if (canUseStagedLiveCandidateReleaseGate(snapshot, readiness)) {
+    return "constrained_live";
+  }
+  if (canArmMicroLiveReleaseGate(snapshot, readiness)) {
+    return "micro_live";
+  }
+  if (readiness.paperSafe) {
+    return "paper_safe";
+  }
+  return "blocked";
+}
+
+function buildOperatorEvidenceChecklist(): OperatorEvidenceChecklistItem[] {
+  return [
+    {
+      id: "live-preflight",
+      label: "Capture live preflight evidence",
+      required: true,
+      surfaceKind: "command",
+      surfaceRef: "npm --prefix bot run live:preflight",
+      note: "Creates the persisted live-preflight evidence sidecar next to JOURNAL_PATH.",
+    },
+    {
+      id: "worker-state",
+      label: "Capture boot-critical worker state",
+      required: true,
+      surfaceKind: "command",
+      surfaceRef: "npm --prefix bot run recovery:worker-state",
+      note: "Use the boot-critical artifact report before any rollout decision.",
+    },
+    {
+      id: "health-surface",
+      label: "Inspect runtime health",
+      required: true,
+      surfaceKind: "route",
+      surfaceRef: "GET /health",
+    },
+    {
+      id: "control-status",
+      label: "Inspect control and readiness state",
+      required: true,
+      surfaceKind: "route",
+      surfaceRef: "GET /control/status",
+    },
+    {
+      id: "release-gate",
+      label: "Record the release-gate checklist surface",
+      required: true,
+      surfaceKind: "route",
+      surfaceRef: "GET /control/release-gate",
+    },
+  ];
+}
+
+function buildIncidentRunbook(): OperatorIncidentProcedure[] {
+  return [
+    {
+      id: "provider_outage",
+      trigger: "Adapter health degrades or provider data becomes unavailable.",
+      operatorAction: "Hold rollout, inspect GET /health and GET /kpi/adapters, then pause or stop live operation.",
+      controlSurfaces: ["POST /control/pause", "POST /control/emergency-stop"],
+      evidenceSurfaces: ["GET /health", "GET /kpi/adapters", "GET /control/status"],
+    },
+    {
+      id: "signer_failure",
+      trigger: "Signer URL or signer authorization fails during live-preflight or runtime start.",
+      operatorAction: "Fail closed, stop live operation, and re-run live preflight after the signer boundary is restored.",
+      controlSurfaces: ["POST /control/emergency-stop", "POST /control/halt"],
+      evidenceSurfaces: ["GET /control/status", "GET /health", "npm --prefix bot run live:preflight"],
+    },
+    {
+      id: "degraded_mode",
+      trigger: "Runtime or adapter state degrades but paper-safe operation remains available.",
+      operatorAction: "Keep live disabled, review readiness blockers, and resume only after explicit evidence-backed review.",
+      controlSurfaces: ["POST /control/pause", "POST /control/resume"],
+      evidenceSurfaces: ["GET /control/status", "GET /health"],
+    },
+    {
+      id: "kill_switch",
+      trigger: "Emergency stop or control halt is required.",
+      operatorAction: "Use the emergency stop surface first, then preserve the audit trail and do not re-arm until review completes.",
+      controlSurfaces: ["POST /control/emergency-stop", "POST /control/halt"],
+      evidenceSurfaces: ["GET /control/status", "GET /health"],
+    },
+    {
+      id: "rollback",
+      trigger: "A live promotion must be reversed after application or a bad rollout must be reversed.",
+      operatorAction: "Use the live-promotion rollback surface tied to the specific request id and record the rollback reason.",
+      controlSurfaces: ["POST /control/live-promotion/:id/rollback"],
+      evidenceSurfaces: ["GET /control/live-promotion", "GET /control/status"],
+    },
+  ];
+}
+
+function buildReleaseGateChecklist(
+  snapshot: WorkerRestartSnapshot,
+  readiness: RuntimeReadiness | undefined
+): OperatorReleaseGateChecklistItem[] {
+  const liveControl = snapshot.runtime?.liveControl ?? getMicroLiveControlSnapshot();
+  const checklist: OperatorReleaseGateChecklistItem[] = [
+    {
+      id: "paper-safe",
+      label: "Paper-safe runtime posture",
+      status: readiness ? (readiness.paperSafe === false ? "fail" : "pass") : "manual_review_required",
+      evidence: ["GET /health", "GET /control/status"],
+      note: readiness ? (readiness.paperSafe === false ? "Runtime is not paper-safe." : undefined) : "Readiness is not available.",
+    },
+    {
+      id: "explicit-rollout-stage",
+      label: "Explicit rollout posture is set",
+      status:
+        liveControl.rolloutConfigured && liveControl.rolloutPosture !== "paused_or_rolled_back" ? "pass" : "fail",
+      evidence: ["GET /control/status", "GET /control/release-gate"],
+      note:
+        liveControl.rolloutConfigured
+          ? `Rollout posture is ${liveControl.rolloutPosture}.`
+          : "Rollout posture is not explicitly configured.",
+    },
+    {
+      id: "micro-live-gate",
+      label: "Micro-live gate is available",
+      status: canArmMicroLiveReleaseGate(snapshot, readiness) ? "pass" : readiness ? "fail" : "manual_review_required",
+      evidence: ["GET /control/status", "GET /control/release-gate"],
+      note: canArmMicroLiveReleaseGate(snapshot, readiness) ? "Micro-live can be armed." : "Micro-live remains blocked.",
+    },
+    {
+      id: "staged-live-gate",
+      label: "Staged-live candidate gate is available",
+      status: canUseStagedLiveCandidateReleaseGate(snapshot, readiness) ? "pass" : readiness ? "fail" : "manual_review_required",
+      evidence: ["GET /control/status", "GET /control/release-gate"],
+      note: canUseStagedLiveCandidateReleaseGate(snapshot, readiness) ? "Staged-live candidate is eligible." : "Staged-live candidate remains blocked.",
+    },
+    {
+      id: "kill-switch-clear",
+      label: "Kill switch is not active",
+      status: liveControl.killSwitchActive ? "fail" : "pass",
+      evidence: ["GET /control/status", "GET /health"],
+      note: liveControl.killSwitchActive ? "Emergency stop is active." : undefined,
+    },
+  ];
+
+  if (readiness?.posture === "degraded_but_safe_in_paper") {
+    checklist.push({
+      id: "degraded-paper-safe",
+      label: "Degraded mode is limited to paper-safe operation",
+      status: "manual_review_required",
+      evidence: ["GET /health", "GET /control/status"],
+      note: "Degraded runtime requires operator review before any live progression.",
+    });
+  }
+
+  return checklist;
+}
+
+function buildOperatorReleaseGateResponse(
+  snapshot: WorkerRestartSnapshot,
+  readiness: RuntimeReadiness | undefined
+): OperatorReleaseGateResponse {
+  const liveControl = snapshot.runtime?.liveControl ?? getMicroLiveControlSnapshot();
+  const surfaceKind: OperatorReleaseGateResponse["surfaceKind"] =
+    snapshot.runtime || snapshot.worker || snapshot.runtimeConfig ? "operational" : "unwired";
+  const rolloutStage = deriveOperatorReleaseStage(snapshot, readiness);
+  const checklist = buildReleaseGateChecklist(snapshot, readiness);
+  return {
+    success: true,
+    surfaceKind,
+    rolloutStage,
+    readiness,
+    releaseGate: {
+      recommendedStage: rolloutStage,
+      canArmMicroLive: canArmMicroLiveReleaseGate(snapshot, readiness),
+      canUseStagedLiveCandidate: canUseStagedLiveCandidateReleaseGate(snapshot, readiness),
+      blockers: readiness?.blockers ?? [],
+      checklist,
+    },
+    operatorEvidenceChecklist: buildOperatorEvidenceChecklist(),
+    incidentRunbook: buildIncidentRunbook(),
+    killSwitch: getKillSwitchState(),
+    liveControl,
+  };
 }
 
 async function loadLatestDatabaseRehearsalEvidenceForSnapshot(
@@ -781,19 +1105,24 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const presentedToken = readPresentedToken(request.headers as Record<string, unknown>);
-      if (presentedToken !== requiredToken) {
+      const isReadRequest = isReadOnlyControlRequest(request.method);
+      const readTokenAccepted = isReadRequest && deps.operatorReadToken && presentedToken === deps.operatorReadToken;
+      if (presentedToken !== requiredToken && !readTokenAccepted) {
+        const denialReason = isReadRequest
+          ? "missing or invalid operator read authorization"
+          : "missing or invalid control authorization";
         void recordAuthFailure(
           deps,
           actionLabel,
           resolveRequestPath(request.url),
-          "missing or invalid control authorization",
+          denialReason,
           undefined,
           resolveRequestId(request.headers as Record<string, unknown>)
         );
         return reply.status(403).send({
           success: false,
           code: "control_auth_invalid",
-          message: "Control routes denied: missing or invalid control authorization.",
+          message: `Control routes denied: ${denialReason}.`,
           killSwitch: getKillSwitchState(),
           liveControl: getMicroLiveControlSnapshot(),
         } satisfies ControlResponse);
@@ -942,6 +1271,9 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (await denyWhenKillSwitchActive(deps, operatorContext, "/control/pause", "pause", reply)) {
+        return;
+      }
       const body = (request.body ?? {}) as { scope?: "soft" | "hard"; reason?: string };
       const scope = body.scope ?? "soft";
       const reason = body.reason ?? `${scope} pause`;
@@ -976,6 +1308,9 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (await denyWhenKillSwitchActive(deps, operatorContext, "/control/resume", "resume", reply)) {
+        return;
+      }
       const body = (request.body ?? {}) as { reason?: string };
       const result = await runtimeConfigManager.resume({
         actor: operatorContext.identity.actorId,
@@ -1080,6 +1415,21 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
         .send(buildRuntimeConfigStatusResponse(snapshot, toReadiness(snapshot.runtime), databaseRehearsal, databaseRehearsalStatus));
     });
 
+    fastify.get<{ Reply: OperatorReleaseGateResponse | ControlResponse }>("/control/release-gate", async (_request, reply) => {
+      if (!runtimeConfigManager) {
+        return reply.status(503).send({
+          success: false,
+          message: "Release gate unavailable: config manager is not wired.",
+          killSwitch: getKillSwitchState(),
+          liveControl: getMicroLiveControlSnapshot(),
+        });
+      }
+
+      const snapshot = await readControlSnapshot(deps);
+      const readiness = toReadiness(snapshot.runtime);
+      return reply.status(200).send(buildOperatorReleaseGateResponse(snapshot, readiness));
+    });
+
     fastify.get<{ Reply: RuntimeConfigStatusResponse | ControlResponse }>("/control/runtime-status", async (_request, reply) => {
       if (!runtimeConfigManager) {
         return reply.status(503).send({
@@ -1130,6 +1480,9 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (await denyWhenKillSwitchActive(deps, operatorContext, "/control/mode", "mode_change", reply)) {
+        return;
+      }
       const requestedMode = request.body.mode;
       if (requestedMode === "live" || requestedMode === "live_limited") {
         const message = "Direct live mode changes are governed by the live promotion workflow.";
@@ -1193,6 +1546,9 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (await denyWhenKillSwitchActive(deps, operatorContext, "/control/runtime-config", "runtime_config_change", reply)) {
+        return;
+      }
       const result = await runtimeConfigManager.applyBehaviorPatch({
         patch: request.body.patch as never,
         actor: operatorContext.identity.actorId,
@@ -1224,6 +1580,9 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (await denyWhenKillSwitchActive(deps, operatorContext, "/control/reload", "reload", reply)) {
+        return;
+      }
       const result = await runtimeConfigManager.reload({
         actor: operatorContext.identity.actorId,
         reason: request.body.reason ?? "control_api_reload",
@@ -1286,6 +1645,17 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (
+        await denyWhenKillSwitchActive(
+          deps,
+          operatorContext,
+          "/control/live-promotion/request",
+          "live_promotion_request",
+          reply
+        )
+      ) {
+        return;
+      }
       const body = (request.body ?? {}) as { targetMode?: ControlLivePromotionTargetMode; reason?: string };
       const targetMode = body.targetMode;
       if (targetMode !== "live_limited" && targetMode !== "live") {
@@ -1349,6 +1719,17 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (
+        await denyWhenKillSwitchActive(
+          deps,
+          operatorContext,
+          `/control/live-promotion/${request.params.id}/approve`,
+          "live_promotion_approve",
+          reply
+        )
+      ) {
+        return;
+      }
       const record = await governanceRepository.loadLivePromotionRequest(request.params.id);
       if (!record) {
         return reply.status(404).send({
@@ -1434,6 +1815,17 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (
+        await denyWhenKillSwitchActive(
+          deps,
+          operatorContext,
+          `/control/live-promotion/${request.params.id}/deny`,
+          "live_promotion_deny",
+          reply
+        )
+      ) {
+        return;
+      }
       const record = await governanceRepository.loadLivePromotionRequest(request.params.id);
       if (!record) {
         return reply.status(404).send({
@@ -1490,6 +1882,17 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (
+        await denyWhenKillSwitchActive(
+          deps,
+          operatorContext,
+          `/control/live-promotion/${request.params.id}/apply`,
+          "live_promotion_apply",
+          reply
+        )
+      ) {
+        return;
+      }
       const record = await governanceRepository.loadLivePromotionRequest(request.params.id);
       if (!record) {
         return reply.status(404).send({
@@ -1594,6 +1997,17 @@ export function controlRoutes(deps: ControlRouteDeps = {}): FastifyPluginAsync {
       }
 
       const operatorContext = getOperatorContext(request);
+      if (
+        await denyWhenKillSwitchActive(
+          deps,
+          operatorContext,
+          `/control/live-promotion/${request.params.id}/rollback`,
+          "live_promotion_rollback",
+          reply
+        )
+      ) {
+        return;
+      }
       const record = await governanceRepository.loadLivePromotionRequest(request.params.id);
       if (!record) {
         return reply.status(404).send({
