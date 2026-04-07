@@ -17,6 +17,8 @@ Authority: authoritative for documentation-tier classification in BobbyExecute.
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/05_governance/README.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/target-architecture-4-plane.md`
 
+The Tier 1 architecture and boundary docs above now also carry the Dashboard V1 target route model (`/overview`, `/control`, `/journal`, `/recovery`, `/advanced`) and the responsive/mobile addendum.
+
 ### Tier 2: Canonical Support Documents
 
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/glossary/architecture-terms.md`

@@ -2,15 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Plug, ScrollText, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, ScrollText, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NAV_ITEMS } from '@/lib/constants';
 
-const items = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/adapters', label: 'Adapters', icon: Plug },
-  { href: '/decisions', label: 'Decisions', icon: ScrollText },
-  { href: '/control', label: 'Control', icon: ShieldAlert },
-];
+const ICONS = {
+  LayoutDashboard,
+  ShieldAlert,
+  ScrollText,
+  ShieldCheck,
+  SlidersHorizontal,
+} as const;
 
 export function Navigation() {
   const pathname = usePathname();
@@ -18,8 +20,9 @@ export function Navigation() {
   return (
     <>
       <nav className="hidden lg:flex flex-col w-52 border-r border-border-default bg-bg-surface/50 min-h-[calc(100vh-3.5rem)] p-3 gap-1">
-        {items.map(({ href, label, icon: Icon }) => {
-          const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
+        {NAV_ITEMS.map(({ href, label, icon }) => {
+          const Icon = ICONS[icon];
+          const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}
@@ -39,8 +42,9 @@ export function Navigation() {
       </nav>
 
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-border-default bg-bg-surface/95 backdrop-blur-sm px-2 py-2">
-        {items.map(({ href, label, icon: Icon }) => {
-          const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
+        {NAV_ITEMS.map(({ href, label, icon }) => {
+          const Icon = ICONS[icon];
+          const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}

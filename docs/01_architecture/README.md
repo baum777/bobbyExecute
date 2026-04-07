@@ -13,12 +13,23 @@ Define the active architecture using a four-plane model with one deterministic a
 - Runtime cycle summaries persist canonical `decisionEnvelope` decision-history artifacts.
 - Sidecar and advisory surfaces exist but are non-authoritative.
 - MCP posture is bounded, prompt/resource oriented, and non-authoritative.
+- Dashboard V1 is the intended operator UI target. The active screen model is `/overview`, `/control`, `/journal`, `/recovery`, and `/advanced`, with `/overview` as the canonical overview route and `/` only a temporary migration shim if retained.
+- The responsive/mobile addendum is part of the target UI truth: the five-screen model stays intact across breakpoints, truth labels and effect labels remain visible, the top status strip may compress, the sidebar may collapse safely, and mobile must not create hidden primary state or duplicate truth surfaces.
 
 ## Target State
 
 Maintain one authority plane while expanding a reusable non-authoritative evidence plane consumed by three workflow consumers.
 
 The journal-memory overlay extends this with non-authoritative casebook/knowledge/playbook layers that remain downstream of raw journal truth.
+
+### Dashboard V1 UI Surface
+
+- Overview: front door for the V1 dashboard, routed canonically at `/overview`.
+- Control: explicit operator action surface for live control and release-gate activity.
+- Journal: separates trade history, control actions, and canonical decision history.
+- Recovery: explicit recovery and release-gate visibility, not buried under generic status.
+- Advanced: non-primary operational detail and diagnostic surfaces that do not belong on the main screens.
+- Legacy mixed dashboard routes such as `/adapters` and `/decisions` are transition surfaces only and are not the intended UI target.
 
 ## Architecture Planes
 
@@ -70,6 +81,7 @@ Future direction:
 - Only the deterministic authority plane may create decision/execution authority.
 - No second decision-history truth is permitted.
 - Sidecars and MCP surfaces remain non-authoritative.
+- Dashboard UI surfaces remain non-authoritative presentation layers.
 - Journal-memory layers are non-authoritative unless promoted through explicit deterministic contracts.
 - Decision-time truth must remain isolated from outcome-time and review-time interpretations.
 
@@ -95,6 +107,7 @@ Future direction:
 
 - Not a tool catalog or runbook.
 - Not a claim that all workflow consumers are fully wired.
+- Not a claim that the legacy mixed dashboard remains the target UI.
 - Not permission for MCP/sidecar control or execution mutation.
 
 ## Dependencies

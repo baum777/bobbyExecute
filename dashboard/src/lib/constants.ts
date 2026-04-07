@@ -1,3 +1,5 @@
+import { DASHBOARD_PRIMARY_ROUTES } from './dashboard-route-map';
+
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
 export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
@@ -10,12 +12,7 @@ export const POLLING = {
   METRICS: 10000,
 } as const;
 
-export const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
-  { href: '/adapters', label: 'Adapters', icon: 'Plug' },
-  { href: '/decisions', label: 'Decisions', icon: 'ScrollText' },
-  { href: '/control', label: 'Control', icon: 'ShieldAlert' },
-] as const;
+export const NAV_ITEMS = DASHBOARD_PRIMARY_ROUTES;
 
 export const ADAPTER_STATUS_CONFIG = {
   healthy: { label: 'Healthy', color: 'bg-accent-success', textColor: 'text-accent-success' },

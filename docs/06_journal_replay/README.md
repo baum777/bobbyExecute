@@ -12,6 +12,7 @@ Define canonical versus derived artifacts and replay obligations across authorit
 - Runtime and persistence produce canonical authority artifacts, including cycle summaries with `decisionEnvelope`.
 - Sidecar and evidence outputs are journaled as non-authoritative records.
 - Historical preflight evidence docs exist and are indexed separately.
+- Dashboard V1 consumes these artifacts as derived presentation layers only; it does not define a second canonical decision-history truth.
 
 ## Target State
 
@@ -35,6 +36,7 @@ Maintain a journal-first model where canonical authority artifacts and non-autho
 
 - dashboard projections
 - convenience summaries built from canonical/evidence artifacts
+- V1 dashboard journal and recovery surfaces are derived views over raw journal/evidence records and control action history; they must keep trade history, control actions, and canonical decision history separate.
 
 ### Casebook / Knowledge / Playbook Layers (Non-Authoritative)
 
@@ -53,6 +55,7 @@ Maintain a journal-first model where canonical authority artifacts and non-autho
 ## Canonical Truth Relation
 
 Canonical decision-history truth is runtime cycle-summary `decisionEnvelope`.
+The dashboard may display canonical decision history, but it does not own or redefine it.
 
 ## Operational And Historical Records
 
@@ -64,6 +67,7 @@ Canonical decision-history truth is runtime cycle-summary `decisionEnvelope`.
 
 - Not a runtime mutation interface.
 - Not a claim that all replay views are public API surfaces.
+- Not a claim that the legacy mixed dashboard remains the intended target surface.
 
 ## Dependencies
 

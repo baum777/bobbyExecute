@@ -14,6 +14,15 @@ BobbyExecute is a governance-first Solana trading system with one deterministic 
   - `bot/src/runtime/dry-run-runtime.ts`
 - Canonical decision-history truth is cycle-summary `decisionEnvelope`:
   - `bot/src/persistence/runtime-cycle-summary-repository.ts`
+- Dashboard V1 is the intended operator UI target. The canonical screen set is:
+  - `/overview`
+  - `/control`
+  - `/journal`
+  - `/recovery`
+  - `/advanced`
+- `Overview` is the canonical overview route. `/` is only a temporary migration shim if retained.
+- Legacy mixed dashboard entry surfaces such as `/adapters` and `/decisions` are transition surfaces only and should be treated as redirect-only or to-remove, not as the intended target UI.
+- The V1 dashboard applies the responsive/mobile addendum: the five-screen model stays intact across breakpoints; truth labels and effect labels remain visible on module, card, and detail surfaces; the top status strip may compress on small screens; the sidebar may collapse safely; mobile must not introduce hidden primary state or duplicate truth surfaces; `release_gate`, `kill_switch`, `blocked`, and `restart_required` remain visible in the mobile operator zone.
 - Premerge gate is green and remains `npm run lint && npm test`.
 - Current primary blocker is environment-backed staging/live-test readiness proof, not repo structure.
 
@@ -59,6 +68,7 @@ BobbyExecute is a governance-first Solana trading system with one deterministic 
 
 - Not a claim that MCP is a live authority/control plane.
 - Not a claim that sidecar or forensics outputs can trigger execution directly.
+- Not a claim that the legacy mixed dashboard remains the intended UI target.
 - Not a claim of live production authorization.
 
 ## Repository Map
@@ -67,7 +77,7 @@ BobbyExecute is a governance-first Solana trading system with one deterministic 
 - `docs/`: architecture, governance, pipeline, replay, runbooks
 - `governance/`: source-of-truth boundary files
 - `signer/`: remote signer boundary
-- `dashboard/`: operator UI and read surfaces
+- `dashboard/`: operator UI transition surface and read surfaces; V1 target screens are routed through `/overview`, `/control`, `/journal`, `/recovery`, and `/advanced`
 
 ## Canonical Documentation Entry Points
 

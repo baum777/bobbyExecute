@@ -13,12 +13,15 @@ Enforce one deterministic authority plane and explicit non-authoritative boundar
 - Canonical decision-history truth is cycle-summary `decisionEnvelope`.
 - MCP remains bounded and non-authoritative.
 - Sidecars remain non-authoritative.
+- Dashboard V1 is the intended operator UI target and remains non-authoritative. The V1 route set is `/overview`, `/control`, `/journal`, `/recovery`, and `/advanced`.
+- The responsive/mobile addendum is part of the target UI truth: the five-screen model does not collapse on small screens, truth labels and effect labels remain visible, and mobile must not create hidden primary state or duplicate truth surfaces.
 
 ## Target State
 
 - Keep authority singular and deterministic.
 - Formalize shared forensics/intelligence evidence contracts without granting authority.
 - Keep workflow consumers and MCP as bounded read/intelligence surfaces.
+- Keep the V1 dashboard as a derived presentation layer only, with `Overview` canonical at `/overview` and `/` retained only as a temporary shim if needed.
 
 ## Four-Plane Governance Boundaries
 
@@ -54,6 +57,7 @@ Enforce one deterministic authority plane and explicit non-authoritative boundar
 
 - Canonical decision-history source: runtime cycle summary `decisionEnvelope`.
 - Action logs, dashboards, and advisory outputs are derived/supporting surfaces unless explicitly marked canonical by producer contract.
+- Legacy mixed dashboard routes and surfaces are transitional and must not be treated as the target truth surface.
 - Decision-time truth must remain immutable relative to outcome-time and review-time learning layers.
 
 ## What This Is Not
@@ -74,3 +78,4 @@ Enforce one deterministic authority plane and explicit non-authoritative boundar
 - MCP auth/session expansion.
 - Any authority-path refactor outside governed runtime contracts.
 - Casebook/knowledge/playbook schema rollout and automated prior promotion logic.
+- V1-deferred dashboard topics: `casebook`, `knowledge`, `priors`, `playbooks`, `optimization_memory`, `deep_infra_controls`, `deployment_internal_control_surfaces`, `large_model_orchestration_workbench`.
