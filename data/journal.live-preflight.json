@@ -1,0 +1,36 @@
+{
+  "capturedAt": "2026-04-07T04:59:00.445Z",
+  "status": "ready",
+  "report": {
+    "executionMode": "live",
+    "rpcMode": "real",
+    "liveTestEnabled": true,
+    "rolloutPosture": "micro_live",
+    "readiness": {
+      "posture": "healthy_for_posture",
+      "liveAllowed": false,
+      "paperSafe": false,
+      "liveTestMode": true,
+      "rolloutPosture": "micro_live",
+      "rolloutConfigured": true,
+      "rolloutConfigValid": true,
+      "roundStatus": "idle",
+      "blocked": false,
+      "disarmed": true,
+      "stopped": false,
+      "canArmMicroLive": true,
+      "canUseStagedLiveCandidate": false,
+      "blockers": []
+    },
+    "preflightGate": "micro_live",
+    "evidencePath": "..\\data\\journal.live-preflight.json",
+    "maxCapitalUsd": 50,
+    "maxTradesPerDay": 1,
+    "maxDailyLossUsd": 10,
+    "workerJournalPath": "..\\data\\journal.jsonl",
+    "workerSafeBoot": true,
+    "workerBootCriticalMissing": [],
+    "workerBootCriticalInvalid": [],
+    "blockers": []
+  }
+}
