@@ -185,6 +185,22 @@ export class Engine {
     let intent: TradeIntent | undefined;
     let execReport: ExecutionReport | undefined;
     let rpcVerify: RpcVerificationReport | undefined;
+    const buildJournalProvenance = (
+      reasonClass?: DecisionReasonClass,
+      sources: string[] = ingestSources,
+      freshness: DecisionFreshness | undefined = ingestFreshness,
+      evidenceRef: DecisionEvidenceRef = ingestEvidenceRef
+    ): {
+      reasonClass?: DecisionReasonClass;
+      sources: string[];
+      freshness?: DecisionFreshness;
+      evidenceRef: DecisionEvidenceRef;
+    } => ({
+      reasonClass,
+      sources: [...sources],
+      freshness,
+      evidenceRef: { ...evidenceRef },
+    });
 
     try {
       const envelope = assertDecisionEnvelope(
@@ -289,7 +305,10 @@ export class Engine {
                     executionMode: this.executionMode,
                   };
               state.tradeIntent = intent;
-              await this.appendCriticalJournal(state, "decision_outcome", { market, wallet, signal }, { intent });
+              await this.appendCriticalJournal(state, "decision_outcome", { market, wallet, signal }, {
+                intent,
+                provenance: buildJournalProvenance(undefined, [...ingestSources, "signal:engine"]),
+              });
 
               const signalEvidence = hashSignalPackForEvidence({
                 direction: signal.direction,
@@ -322,7 +341,14 @@ export class Engine {
                 state,
                 "risk_decision",
                 { intent, market, wallet },
-                { allowed: risk.allowed, reason: risk.reason },
+                {
+                  allowed: risk.allowed,
+                  reason: risk.reason,
+                  provenance: buildJournalProvenance(
+                    risk.allowed ? undefined : "RISK_BLOCKED",
+                    [...ingestSources, "risk:engine"]
+                  ),
+                },
                 !risk.allowed,
                 risk.reason
               );
@@ -366,7 +392,15 @@ export class Engine {
                 state,
                 "chaos_decision",
                 { intent, market, wallet, signal },
-                { allowed: chaos.allowed, reason: chaos.reason, reportHash: chaos.reportHash },
+                {
+                  allowed: chaos.allowed,
+                  reason: chaos.reason,
+                  reportHash: chaos.reportHash,
+                  provenance: buildJournalProvenance(
+                    chaos.allowed ? undefined : "RISK_BLOCKED",
+                    [...ingestSources, "chaos:gate"]
+                  ),
+                },
                 !chaos.allowed,
                 chaos.reason
               );
@@ -405,7 +439,13 @@ export class Engine {
               state.stage = "execute";
               execReport = await executeFn(intent);
               state.executionReport = execReport;
-              await this.appendCriticalJournal(state, "execution_result", { intent }, { execReport });
+              await this.appendCriticalJournal(state, "execution_result", { intent }, {
+                execReport,
+                provenance: buildJournalProvenance(
+                  execReport.success ? "SUCCESS" : "EXECUTION_FAILED",
+                  [...ingestSources, "execute:engine"]
+                ),
+              });
               state.stage = "verify";
               await this.emitStageTransition(state, "execute", "verify");
 
@@ -430,7 +470,13 @@ export class Engine {
                 state,
                 "verification_result",
                 { intent, execReport },
-                { rpcVerify },
+                {
+                  rpcVerify,
+                  provenance: buildJournalProvenance(
+                    rpcVerify.passed ? "SUCCESS" : "EXECUTION_FAILED",
+                    [...ingestSources, "verify:rpc"]
+                  ),
+                },
                 !rpcVerify.passed,
                 rpcVerify.reason
               );
@@ -507,6 +553,7 @@ export class Engine {
             execReport,
             rpcVerify,
             blocked: envelope.blocked,
+            provenance: buildJournalProvenance(envelope.reasonClass, envelope.sources, envelope.freshness, envelope.evidenceRef),
           },
           blocked: envelope.blocked,
           reason: envelope.blockedReason,

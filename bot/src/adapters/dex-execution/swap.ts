@@ -6,6 +6,7 @@ import { VersionedTransaction } from "@solana/web3.js";
 import type { TradeIntent } from "../../core/contracts/trade.js";
 import type { ExecutionReport } from "../../core/contracts/trade.js";
 import type { QuoteResult } from "./types.js";
+import { hashDecision } from "../../core/determinism/hash.js";
 import { isLiveTradingEnabled, assertLiveTradingRequiresRealRpc } from "../../config/safety.js";
 import { getQuote } from "./quotes.js";
 import { resilientFetch } from "../http-resilience.js";
@@ -60,6 +61,20 @@ export interface SwapDeps {
   verifyTransaction?: (signature: string) => Promise<unknown>;
 }
 
+export function deriveLiveExecutionAttemptId(intent: TradeIntent): string {
+  return `live-attempt:${hashDecision({
+    traceId: intent.traceId,
+    timestamp: intent.timestamp,
+    idempotencyKey: intent.idempotencyKey,
+    tokenIn: intent.tokenIn,
+    tokenOut: intent.tokenOut,
+    amountIn: intent.amountIn,
+    minAmountOut: intent.minAmountOut,
+    slippagePercent: intent.slippagePercent,
+    executionMode: intent.executionMode ?? (intent.dryRun ? "dry" : "paper"),
+  })}`;
+}
+
 function readIntEnv(name: string, fallback: number, min = 1): number {
   const raw = process.env[name];
   const parsed = raw == null ? Number.NaN : Number.parseInt(raw, 10);
@@ -71,10 +86,10 @@ function readIntEnv(name: string, fallback: number, min = 1): number {
 
 function createLiveArtifacts(intent: TradeIntent): Record<string, unknown> {
   return {
-    attemptId: `${intent.traceId}:${Date.now()}`,
+    attemptId: deriveLiveExecutionAttemptId(intent),
     mode: "live",
     failClosed: true,
-    startedAt: new Date().toISOString(),
+    startedAt: intent.timestamp,
     intent: {
       traceId: intent.traceId,
       timestamp: intent.timestamp,
@@ -184,9 +199,13 @@ function normalizeLiveSuccessArtifacts(
   txSignature: string,
   actualAmountOut: string
 ): Record<string, unknown> {
+  const completedAt =
+    typeof artifacts.startedAt === "string" && artifacts.startedAt.length > 0
+      ? artifacts.startedAt
+      : new Date().toISOString();
   return {
     ...artifacts,
-    completedAt: new Date().toISOString(),
+    completedAt,
     send: {
       ...((artifacts.send as Record<string, unknown> | undefined) ?? {}),
       txSignature,

@@ -17,11 +17,12 @@ export interface HealthResponse {
   status: HealthStatus;
   uptimeMs: number;
   version: string;
+  surfaceKind: KpiMetricProvenance;
   killSwitch?: KillSwitchState;
 }
 
 export type KpiMetricProvenance =
-  | 'wired'
+  | 'operational'
   | 'derived'
   | 'default'
   | 'legacy_projection'
@@ -52,10 +53,11 @@ export interface Adapter {
 }
 
 export interface AdaptersResponse {
+  surfaceKind: KpiMetricProvenance;
   adapters: Adapter[];
 }
 
-export type DecisionProvenanceKind = 'canonical' | 'derived';
+export type DecisionProvenanceKind = 'canonical' | 'legacy_projection';
 export type DecisionSource = 'runtime_cycle_summary' | 'action_log_projection';
 
 export type DecisionReasonClass =
@@ -142,6 +144,7 @@ export interface DecisionAdvisoryResponse {
 }
 
 export interface MetricsResponse {
+  surfaceKind: KpiMetricProvenance;
   p95LatencyMs: Record<string, number>;
 }
 

@@ -9,6 +9,7 @@ import type { ExecutionReport } from "../core/contracts/trade.js";
 
 export type ExecutionEvidenceKind =
   | "decision_summary"
+  | "execution_attempt_summary"
   | "execution_summary"
   | "live_refusal_summary"
   | "guardrail_refusal_summary"

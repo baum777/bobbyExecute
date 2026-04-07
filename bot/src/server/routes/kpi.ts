@@ -89,7 +89,7 @@ function actionToKpiDecision(entry: ActionLogEntry, index: number): KpiDecision 
     token,
     confidence,
     reasons,
-    provenanceKind: "derived",
+    provenanceKind: "legacy_projection",
     source: "action_log_projection",
     actionLogAction: entry.action,
     actionLogAgentId: entry.agentId,
@@ -147,10 +147,10 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
             ? runtime.adapterHealth.healthy / runtime.adapterHealth.total
             : 1;
       const lastDecisionAtProvenance: KpiMetricProvenance =
-        lastEntry != null ? "derived" : runtime?.lastDecisionAt != null ? "wired" : "default";
+        lastEntry != null ? "derived" : runtime?.lastDecisionAt != null ? "operational" : "default";
       const dataQualityProvenance: KpiMetricProvenance =
         circuitBreaker != null
-          ? "wired"
+          ? "operational"
           : runtime?.adapterHealth && runtime.adapterHealth.total > 0
             ? "derived"
             : "default";
@@ -266,15 +266,21 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
   );
 
     fastify.get<{ Reply: KpiAdaptersResponse }>("/kpi/adapters", async (_request, reply) => {
-    const visible = await loadVisibleRuntimeState(
-      runtimeVisibilityRepository,
-      runtimeEnvironment,
-      getRuntimeSnapshot
-    );
-    const runtime = visible.runtime;
-    const health = circuitBreaker?.getHealth() ?? [];
-    const adapters: KpiAdapter[] =
-      health.length > 0
+      const visible = await loadVisibleRuntimeState(
+        runtimeVisibilityRepository,
+        runtimeEnvironment,
+        getRuntimeSnapshot
+      );
+      const runtime = visible.runtime;
+      const surfaceKind: KpiMetricProvenance =
+        circuitBreaker != null
+          ? "operational"
+          : runtime?.adapterHealth && runtime.adapterHealth.total > 0
+            ? "derived"
+            : "default";
+      const health = circuitBreaker?.getHealth() ?? [];
+      const adapters: KpiAdapter[] =
+        health.length > 0
         ? health.map((h) => ({
             id: h.adapterId,
             status: mapHealthToStatus(h),
@@ -309,7 +315,7 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
         });
       }
     }
-    return reply.status(200).send({ adapters });
+    return reply.status(200).send({ surfaceKind, adapters });
   });
 
     fastify.get<{ Reply: KpiMetricsResponse }>("/kpi/metrics", async (_request, reply) => {
@@ -320,7 +326,10 @@ export function kpiRoutes(deps: KpiRouteDeps): FastifyPluginAsync {
         const v = getter(name);
         if (v !== undefined) p95LatencyMs[name] = v;
       }
-      return reply.status(200).send({ p95LatencyMs });
+      return reply.status(200).send({
+        surfaceKind: "operational",
+        p95LatencyMs,
+      });
     });
   };
 }

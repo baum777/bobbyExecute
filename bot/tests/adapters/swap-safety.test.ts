@@ -3,7 +3,7 @@
  */
 import { PublicKey, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { executeSwap } from "@bot/adapters/dex-execution/swap.js";
+import { deriveLiveExecutionAttemptId, executeSwap } from "@bot/adapters/dex-execution/swap.js";
 import type { TradeIntent } from "@bot/core/contracts/trade.js";
 
 const baseIntent: TradeIntent = {
@@ -27,6 +27,18 @@ function makeSerializedTransaction(): string {
   }).compileToV0Message();
   const tx = new VersionedTransaction(message);
   return Buffer.from(tx.serialize()).toString("base64");
+}
+
+function makeFreshQuote(overrides: Record<string, unknown> = {}) {
+  return {
+    quoteId: "q-live",
+    amountOut: "123",
+    minAmountOut: "120",
+    fetchedAt: new Date().toISOString(),
+    slippageBps: 100,
+    rawQuotePayload: { routePlan: [] },
+    ...overrides,
+  };
 }
 
 function makeSigner() {
@@ -78,6 +90,10 @@ describe("Swap Safety (M0)", () => {
     else delete process.env.LIVE_TEST_MODE;
     if (origEnv.JUPITER_API_KEY !== undefined) process.env.JUPITER_API_KEY = origEnv.JUPITER_API_KEY;
     else delete process.env.JUPITER_API_KEY;
+    delete process.env.LIVE_QUOTE_MAX_AGE_MS;
+    delete process.env.LIVE_VERIFY_MAX_ATTEMPTS;
+    delete process.env.LIVE_VERIFY_RETRY_MS;
+    delete process.env.LIVE_VERIFY_TIMEOUT_MS;
     vi.unstubAllGlobals();
   });
 
@@ -202,5 +218,111 @@ describe("Swap Safety (M0)", () => {
     expect(result.failureCode).toBe("live_quote_failed");
     expect(result.error).toMatch(/JUPITER_API_KEY|Jupiter API key/);
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("keeps live artifacts deterministic for the same input", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+    process.env.LIVE_QUOTE_MAX_AGE_MS = "999999999999";
+
+    const quote = makeFreshQuote({
+      quoteId: "q-deterministic",
+      fetchedAt: "2026-03-05T12:00:00.000Z",
+    });
+    const deps = {
+      rpcClient: {
+        sendRawTransaction: vi.fn(async () => "sig-deterministic"),
+        getTransactionReceipt: vi.fn(async () => ({ status: "confirmed" })),
+      },
+      walletPublicKey: "11111111111111111111111111111111",
+      signer: makeSigner(),
+      buildSwapTransaction: async () => ({ swapTransaction: makeSerializedTransaction() }),
+      verifyTransaction: async () => ({ status: "confirmed" }),
+    };
+
+    const first = await executeSwap(
+      { ...baseIntent, executionMode: "live", dryRun: false },
+      quote,
+      deps
+    );
+    const second = await executeSwap(
+      { ...baseIntent, executionMode: "live", dryRun: false },
+      quote,
+      {
+        ...deps,
+        rpcClient: {
+          sendRawTransaction: vi.fn(async () => "sig-deterministic"),
+          getTransactionReceipt: vi.fn(async () => ({ status: "confirmed" })),
+        },
+      }
+    );
+
+    expect(first.success).toBe(true);
+    expect(second.success).toBe(true);
+    expect(first.txSignature).toBe("sig-deterministic");
+    const { quote: firstQuote, ...firstArtifacts } = first.artifacts as Record<string, unknown>;
+    const { quote: secondQuote, ...secondArtifacts } = second.artifacts as Record<string, unknown>;
+    expect(firstArtifacts).toEqual(secondArtifacts);
+    expect(firstQuote).toMatchObject({
+      fetchedAt: "2026-03-05T12:00:00.000Z",
+      maxAgeMs: 999999999999,
+    });
+    expect(secondQuote).toMatchObject({
+      fetchedAt: "2026-03-05T12:00:00.000Z",
+      maxAgeMs: 999999999999,
+    });
+    expect(first.artifacts).toMatchObject({
+      attemptId: deriveLiveExecutionAttemptId({ ...baseIntent, executionMode: "live", dryRun: false }),
+      startedAt: baseIntent.timestamp,
+      completedAt: baseIntent.timestamp,
+      verification: {
+        confirmed: true,
+        attempts: 1,
+      },
+    });
+  });
+
+  it("retries verification without creating duplicate send effects", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+    process.env.LIVE_QUOTE_MAX_AGE_MS = "999999999999";
+    process.env.LIVE_VERIFY_MAX_ATTEMPTS = "3";
+    process.env.LIVE_VERIFY_RETRY_MS = "0";
+
+    const sendRawTransaction = vi.fn(async () => "sig-retry");
+    const verifyTransaction = vi
+      .fn()
+      .mockResolvedValueOnce({ status: "pending" })
+      .mockResolvedValueOnce({ status: "confirmed" });
+
+    const result = await executeSwap(
+      { ...baseIntent, executionMode: "live", dryRun: false },
+      makeFreshQuote({
+        quoteId: "q-retry",
+        fetchedAt: "2026-03-05T12:00:00.000Z",
+      }),
+      {
+        rpcClient: {
+          sendRawTransaction,
+          getTransactionReceipt: verifyTransaction,
+        },
+        walletPublicKey: "11111111111111111111111111111111",
+        signer: makeSigner(),
+        buildSwapTransaction: async () => ({ swapTransaction: makeSerializedTransaction() }),
+      }
+    );
+
+    expect(result.success).toBe(true);
+    expect(sendRawTransaction).toHaveBeenCalledTimes(1);
+    expect(verifyTransaction).toHaveBeenCalledTimes(2);
+    expect(result.artifacts).toMatchObject({
+      verification: {
+        attempted: true,
+        confirmed: true,
+        attempts: 2,
+        maxAttempts: 3,
+        retryMs: 0,
+      },
+    });
   });
 });

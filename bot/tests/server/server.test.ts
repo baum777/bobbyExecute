@@ -37,6 +37,7 @@ describe("Server (Wave 3)", () => {
       uptimeMs: expect.any(Number),
       version: expect.any(String),
     });
+    expect(body.surfaceKind).toBe("operational");
     expect(body.uptimeMs).toBeGreaterThanOrEqual(0);
   });
 
@@ -51,12 +52,12 @@ describe("Server (Wave 3)", () => {
     try {
       const runningRes = await fetch(`http://127.0.0.1:${PORT + 3}/health`);
       expect(runningRes.status).toBe(200);
-      expect((await runningRes.json()).botStatus).toBe("running");
+      expect((await runningRes.json())).toMatchObject({ botStatus: "running", surfaceKind: "unwired" });
 
       status = "paused";
       const pausedRes = await fetch(`http://127.0.0.1:${PORT + 3}/health`);
       expect(pausedRes.status).toBe(200);
-      expect((await pausedRes.json()).botStatus).toBe("paused");
+      expect((await pausedRes.json())).toMatchObject({ botStatus: "paused", surfaceKind: "unwired" });
     } finally {
       await srv.close();
     }
@@ -167,6 +168,7 @@ describe("Server (Wave 3)", () => {
       expect(health.runtime.mode).toBe("paper");
       expect(health.runtime.paperModeActive).toBe(true);
       expect(health.status).toBe("DEGRADED");
+      expect(health.surfaceKind).toBe("derived");
       expect(health.runtime.lastEngineStage).toBe("monitor");
       expect(health.runtime.degraded).toMatchObject({ active: true, consecutiveCycles: 2 });
       expect(health.runtime.adapterHealth).toMatchObject({ degraded: true, unhealthyAdapterIds: ["primary"] });
@@ -178,6 +180,7 @@ describe("Server (Wave 3)", () => {
       expect(summary.runtime.executionCount).toBe(2);
       expect(summary.runtime.degraded).toMatchObject({ active: true, consecutiveCycles: 2 });
       expect(summary.runtime.adapterHealth).toMatchObject({ degraded: true, unhealthyAdapterIds: ["primary"] });
+      expect(summary.metricProvenance?.dataQuality).toBe("derived");
     } finally {
       await srv.close();
     }
@@ -243,6 +246,7 @@ describe("Server (Wave 3)", () => {
 
       expect(health.status).toBe("DEGRADED");
       expect(summary.dataQuality).toBe(0.5);
+      expect(adapters.surfaceKind).toBe("derived");
       expect(adapters.adapters).toEqual([
         {
           id: "primary",
@@ -369,9 +373,9 @@ describe("Server (Wave 3)", () => {
       metricProvenance: {
         riskScore: "default",
         chaosPassRate: "default",
-        dataQuality: expect.stringMatching(/^(wired|derived|default)$/),
-        lastDecisionAt: expect.stringMatching(/^(wired|derived|default)$/),
-        tradesToday: expect.stringMatching(/^(wired|derived|default)$/),
+        dataQuality: expect.stringMatching(/^(operational|derived|default|legacy_projection|unwired)$/),
+        lastDecisionAt: expect.stringMatching(/^(operational|derived|default|legacy_projection|unwired)$/),
+        tradesToday: expect.stringMatching(/^(operational|derived|default|legacy_projection|unwired)$/),
       },
     });
     expect(typeof body.lastDecisionAt === "string" || body.lastDecisionAt === null).toBe(true);
@@ -438,7 +442,7 @@ describe("Server (Wave 3)", () => {
       const summary = await summaryRes.json();
       expect(summary.lastDecisionAt).toBe("2026-03-18T12:01:00.000Z");
       expect(summary.tradesToday).toBe(0);
-      expect(summary.metricProvenance?.lastDecisionAt).toBe("wired");
+      expect(summary.metricProvenance?.lastDecisionAt).toBe("operational");
     } finally {
       await srv.close();
     }
@@ -650,7 +654,7 @@ describe("Server (Wave 3)", () => {
         token: "USDC",
         confidence: 0.2,
         reasons: ["RISK_FAIL_CLOSED"],
-        provenanceKind: "derived",
+        provenanceKind: "legacy_projection",
         source: "action_log_projection",
         actionLogAction: "risk_blocked",
       });
@@ -658,7 +662,7 @@ describe("Server (Wave 3)", () => {
         action: "allow",
         token: "USDC",
         confidence: 0.8,
-        provenanceKind: "derived",
+        provenanceKind: "legacy_projection",
         source: "action_log_projection",
         actionLogAction: "complete",
       });
@@ -786,6 +790,7 @@ describe("Server (Wave 3)", () => {
     expect(body).toHaveProperty("p95LatencyMs");
     expect(typeof body.p95LatencyMs).toBe("object");
     expect(body.p95LatencyMs.adapter).toBe(42);
+    expect(body.surfaceKind).toBe("operational");
   });
 
   it("decisions include action log entries when present", async () => {
@@ -813,7 +818,7 @@ describe("Server (Wave 3)", () => {
       expect(dec.action).toBe("allow");
       expect(dec.confidence).toBe(0.85);
       expect(dec.token).toContain("So11");
-      expect(dec.provenanceKind).toBe("derived");
+      expect(dec.provenanceKind).toBe("legacy_projection");
       expect(dec.source).toBe("action_log_projection");
     } finally {
       await srv.close();

@@ -8,7 +8,7 @@ import type { RpcClient } from "../adapters/rpc-verify/client.js";
 import type { IncidentRecorder } from "../observability/incidents.js";
 import { getQuote } from "../adapters/dex-execution/quotes.js";
 import type { QuoteResult } from "../adapters/dex-execution/types.js";
-import { executeSwap, type SwapDeps } from "../adapters/dex-execution/swap.js";
+import { deriveLiveExecutionAttemptId, executeSwap, type SwapDeps } from "../adapters/dex-execution/swap.js";
 import { verifyBeforeTrade } from "../adapters/rpc-verify/verify.js";
 import { isLiveTradingEnabled } from "../config/safety.js";
 import type { Signer } from "../adapters/signer/index.js";
@@ -34,6 +34,31 @@ export interface ExecutionHandlerDeps {
   swapExecutor?: (intent: TradeIntent, quote?: QuoteResult, deps?: SwapDeps) => Promise<ExecutionReport>;
   executionEvidenceRepository?: ExecutionEvidenceRepository;
   incidentRecorder?: IncidentRecorder;
+}
+
+function readVerificationArtifact(artifacts: ExecutionReport["artifacts"]): Record<string, unknown> | undefined {
+  if (typeof artifacts !== "object" || artifacts === null) {
+    return undefined;
+  }
+
+  const verification = (artifacts as Record<string, unknown>).verification;
+  if (typeof verification !== "object" || verification === null) {
+    return undefined;
+  }
+
+  return verification as Record<string, unknown>;
+}
+
+function asStringOrNull(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function asBooleanOrNull(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function asNumberOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 /**
@@ -120,6 +145,59 @@ export async function createExecutionHandler(
       });
     };
 
+    const recordAttempt = async (): Promise<void> => {
+      await appendEvidence({
+        id: nextEvidenceId("execution_attempt_summary"),
+        at: intent.timestamp,
+        kind: "execution_attempt_summary",
+        allowed: true,
+        ...baseEvidence,
+        details: {
+          attemptId: deriveLiveExecutionAttemptId(intent),
+          hasVerifyDeps,
+          hasLiveSwapDeps,
+          hasRpcClient: !!rpcClient,
+          hasWalletAddress: !!walletAddress,
+          hasSendRawTransaction: !!sendRawTransaction,
+          hasSigner: !!signer,
+          quoteRequested: true,
+        },
+      });
+    };
+
+    const recordVerificationOutcome = async (report: ExecutionReport): Promise<void> => {
+      const verification = readVerificationArtifact(report.artifacts);
+      if (!verification) {
+        return;
+      }
+
+      await appendEvidence({
+        id: nextEvidenceId("verification_outcome"),
+        at: report.timestamp,
+        kind: "verification_outcome",
+        allowed: verification.confirmed === true,
+        success: report.success,
+        ...baseEvidence,
+        failureStage: report.failureStage,
+        failureCode: report.failureCode,
+        message: report.error,
+        details: {
+          attemptId: asStringOrNull(verification.attemptId) ?? deriveLiveExecutionAttemptId(intent),
+          txSignature: report.txSignature ?? null,
+          confirmed: asBooleanOrNull(verification.confirmed),
+          attempted: asBooleanOrNull(verification.attempted),
+          timedOut: asBooleanOrNull(verification.timedOut),
+          attempts: asNumberOrNull(verification.attempts),
+          maxAttempts: asNumberOrNull(verification.maxAttempts),
+          retryMs: asNumberOrNull(verification.retryMs),
+          timeoutMs: asNumberOrNull(verification.timeoutMs),
+          receiptState: asStringOrNull(verification.receiptState),
+          lastError: asStringOrNull(verification.lastError),
+          missingVerificationEvidence: false,
+        },
+      });
+    };
+
     const finalize = async (report: ExecutionReport): Promise<ExecutionReport> => {
       if (liveIntent && microLiveAttempt) {
         finalizeMicroLiveIntent(microLiveAttempt, {
@@ -130,6 +208,7 @@ export async function createExecutionHandler(
       }
       if (liveIntent) {
         await recordExecution(report);
+        await recordVerificationOutcome(report);
         if (!report.success) {
           const refusalType =
             report.failureCode != null && /^micro_live_/.test(report.failureCode)
@@ -260,7 +339,32 @@ export async function createExecutionHandler(
     }
 
     if (liveIntent && !isLiveTradingEnabled()) {
-      return finalize(await swapExecutor(intent, undefined, undefined));
+      return finalize({
+        traceId: intent.traceId,
+        timestamp: intent.timestamp,
+        tradeIntentId: intent.idempotencyKey,
+        success: false,
+        error: "Live execution disabled (LIVE_TRADING not enabled)",
+        dryRun: false,
+        executionMode: "live",
+        paperExecution: false,
+        failClosed: true,
+        failureStage: "preflight",
+        failureCode: "live_dependency_incomplete",
+        artifacts: {
+          mode: "live",
+          failClosed: true,
+          stage: "preflight",
+          executionAttemptId: deriveLiveExecutionAttemptId(intent),
+          dependencyState: {
+            liveTradingEnabled: false,
+            hasRpcClient: !!rpcClient,
+            hasWalletAddress: !!walletAddress,
+            hasSendRawTransaction: !!sendRawTransaction,
+            hasSigner: !!signer,
+          },
+        },
+      });
     }
 
     const normalizedNonLiveIntent =
@@ -287,11 +391,12 @@ export async function createExecutionHandler(
           signer: signer!,
           buildSwapTransaction: deps?.buildSwapTransaction,
           verifyTransaction: deps?.verifyTransaction,
-        }
+      }
       : undefined;
 
     let quote: QuoteResult | undefined;
     if (liveIntent) {
+      await recordAttempt();
       try {
         quote = await quoteFetcher(intent);
       } catch (error) {
@@ -333,6 +438,26 @@ export async function createExecutionHandler(
           (result.artifacts as Record<string, unknown>).verification !== null &&
           (result.artifacts as { verification: { confirmed?: boolean } }).verification.confirmed === true;
         if (!hasTx || !verificationConfirmed) {
+          await appendEvidence({
+            id: nextEvidenceId("verification_outcome"),
+            at: intent.timestamp,
+            kind: "verification_outcome",
+            allowed: false,
+            success: false,
+            ...baseEvidence,
+            failureStage: "verification",
+            failureCode: "live_verification_failed",
+            message: "Live success rejected: missing concrete tx signature or confirmation evidence.",
+            details: {
+              attemptId: deriveLiveExecutionAttemptId(intent),
+              txSignature: result.txSignature ?? null,
+              confirmed: false,
+              attempted: true,
+              missingVerificationEvidence: true,
+              hasTx,
+              verificationConfirmed,
+            },
+          });
           return finalize({
             traceId: intent.traceId,
             timestamp: intent.timestamp,

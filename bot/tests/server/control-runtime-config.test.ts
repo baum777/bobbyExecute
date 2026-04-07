@@ -423,4 +423,46 @@ describe("control runtime-config routes", () => {
       expect.arrayContaining(["runtime_config", "pause", "resume", "kill_switch", "reload"])
     );
   });
+
+  it("blocks live-mode requests through the generic runtime-config patch path and records the refusal", async () => {
+    const harness = await createHarness();
+    servers.push(harness);
+
+    const response = await fetch(`${harness.baseUrl}/control/runtime-config`, {
+      method: "POST",
+      headers: {
+        ...buildControlOperatorAssertionHeaders({ action: "runtime_config_change", target: "/control/runtime-config" }),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        patch: {
+          mode: "live",
+        },
+        reason: "attempt live via generic patch",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      success: false,
+      accepted: false,
+      action: "runtime_config",
+      rejectionReason: "live mode changes require the live promotion workflow",
+      runtimeConfig: {
+        requestedMode: "observe",
+        appliedMode: "observe",
+      },
+    });
+
+    const history = await harness.manager.getHistory();
+    expect(
+      history.changes.some(
+        (change) =>
+          change.action === "runtime_config" &&
+          change.accepted === false &&
+          change.rejectionReason === "live mode changes require the live promotion workflow"
+      )
+    ).toBe(true);
+  });
 });

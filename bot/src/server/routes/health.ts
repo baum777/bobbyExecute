@@ -32,6 +32,12 @@ export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
       );
       const runtimeSnapshot = visible.runtime;
       const report = checkHealth(circuitBreaker, runtimeSnapshot);
+      const surfaceKind: HealthResponse["surfaceKind"] =
+        circuitBreaker != null
+          ? "operational"
+          : runtimeSnapshot
+            ? "derived"
+            : "unwired";
       const uptimeMs = Date.now() - startedAt;
       const killState = runtimeSnapshot?.liveControl?.killSwitchActive
         ? { halted: true, reason: runtimeSnapshot.liveControl.reasonDetail, triggeredAt: runtimeSnapshot.liveControl.lastTransitionAt }
@@ -40,6 +46,7 @@ export function healthRoutes(deps: HealthRouteDeps): FastifyPluginAsync {
         status: report.status,
         uptimeMs,
         version: VERSION,
+        surfaceKind,
         botStatus:
           getBotStatus?.() ??
           (runtimeSnapshot?.status === "running"

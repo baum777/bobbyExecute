@@ -6,6 +6,7 @@ import { RuntimeConfigManager } from "../../src/runtime/runtime-config-manager.j
 
 export const TEST_RUNTIME_ENV = "runtime-config-test";
 export const TEST_CONTROL_TOKEN = "runtime-config-control-token";
+export const TEST_OPERATOR_READ_TOKEN = "runtime-config-operator-read-token";
 
 export function createRuntimeConfigBootConfig(): Config {
   return parseConfig({
@@ -44,6 +45,10 @@ export async function createRuntimeConfigTestManager(options: {
 
 export function controlHeaders(token = TEST_CONTROL_TOKEN): HeadersInit {
   return { "x-control-token": token };
+}
+
+export function operatorReadHeaders(token = TEST_OPERATOR_READ_TOKEN): HeadersInit {
+  return { authorization: `Bearer ${token}` };
 }
 
 export function buildControlOperatorAssertionHeaders(options: {

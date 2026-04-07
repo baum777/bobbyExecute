@@ -38,6 +38,7 @@ export interface ServerConfig {
   governanceRepository?: ControlGovernanceRepositoryWithAudits;
   runtimeEnvironment?: string;
   controlAuthToken?: string;
+  operatorReadToken?: string;
   databaseUrl?: string;
 }
 
@@ -140,6 +141,7 @@ async function createVisibilityServer(
       controlRoutes({
         runtimeConfigManager: config.runtimeConfigManager,
         requiredToken: config.controlAuthToken,
+        operatorReadToken: config.operatorReadToken,
         runtimeVisibilityRepository: config.runtimeVisibilityRepository,
         restartService: config.restartService,
         restartAlertRepository: config.restartAlertRepository,

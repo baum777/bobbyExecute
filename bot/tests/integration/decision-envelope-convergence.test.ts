@@ -104,6 +104,8 @@ describe("decision envelope convergence", () => {
       expect(runtimeState?.decisionEnvelope?.entrypoint).toBe("engine");
       expect(runtimeState?.decisionEnvelope?.flow).toBe("trade");
       expect(replay?.summary).toEqual(runtime.getSnapshot().lastCycleSummary);
+      expect(replay?.summary.provenance?.reasonClass).toBe(runtimeState?.decisionEnvelope?.reasonClass);
+      expect(replay?.summary.provenance?.evidenceRef).toEqual(runtimeState?.decisionEnvelope?.evidenceRef);
       expect(replay?.summary.blocked).toBe(false);
       expect(replay?.summary.blockedReason).toBeUndefined();
       expect(replay?.summary.decision?.allowed).toBe(true);
@@ -185,6 +187,8 @@ describe("decision envelope convergence", () => {
       expect(runtimeState?.decisionEnvelope?.entrypoint).toBe("engine");
       expect(runtimeState?.decisionEnvelope?.flow).toBe("trade");
       expect(replay?.summary).toEqual(runtime.getSnapshot().lastCycleSummary);
+      expect(replay?.summary.provenance?.reasonClass).toBe(runtimeState?.decisionEnvelope?.reasonClass);
+      expect(replay?.summary.provenance?.evidenceRef).toEqual(runtimeState?.decisionEnvelope?.evidenceRef);
       expect(replay?.summary.blocked).toBe(true);
       expect(replay?.summary.blockedReason).toBe(fixtures.denyEnvelope.blockedReason);
       expect(replay?.summary.decision?.allowed).toBe(false);

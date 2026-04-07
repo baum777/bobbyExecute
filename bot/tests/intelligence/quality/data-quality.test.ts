@@ -218,6 +218,25 @@ describe("Wave 1 data quality gate", () => {
     expect(quality.discrepancy).toBeGreaterThan(0);
   });
 
+  it("keeps provider disagreement degradations deterministic for the same evidence", () => {
+    const { evidence, candidate, universe } = buildStaleArtifacts();
+    const qualityA = buildDataQualityV1({
+      evidence,
+      candidates: [candidate],
+      universe,
+    });
+    const qualityB = buildDataQualityV1({
+      evidence,
+      candidates: [candidate],
+      universe,
+    });
+
+    expect(qualityA.status).toBe("degraded");
+    expect(qualityA.reasonCodes).toContain("DQ_DISAGREED_SOURCES");
+    expect(qualityA.disagreedSources.priceUsd).toEqual(["market", "social"]);
+    expect(qualityA).toEqual(qualityB);
+  });
+
   it("is deterministic when observations and candidates are reordered", () => {
     const passArtifacts = buildPassArtifacts();
     const candidateTwin = { ...passArtifacts.candidate, symbol: undefined };

@@ -223,5 +223,7 @@ describe("live runtime path", () => {
     expect(summary.authorityArtifactChain?.derivedOnly).toBe(false);
     expect(summary.authorityArtifactChain?.authorityInfluence).toBe(true);
     expect(summary.authorityArtifactChain?.decision.blocked).toBe(false);
+    expect(summary.provenance?.reasonClass).toBe(summary.decisionEnvelope?.reasonClass);
+    expect(summary.provenance?.evidenceRef).toEqual(summary.decisionEnvelope?.evidenceRef);
   });
 });

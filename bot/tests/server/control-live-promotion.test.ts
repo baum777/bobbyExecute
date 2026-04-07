@@ -287,6 +287,81 @@ describe("control live promotion governance", () => {
     });
   });
 
+  it("records an auditable blocked live-promotion request when the kill switch is active", async () => {
+    const harness = await createHarness();
+    harnesses.push(harness);
+
+    const emergencyResponse = await fetch(`${harness.baseUrl}/emergency-stop`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...buildControlOperatorAssertionHeaders({
+          role: "admin",
+          actorId: "alice",
+          displayName: "Alice Example",
+          action: "emergency_stop",
+          target: "/emergency-stop",
+          authResult: "authorized",
+        }),
+      },
+      body: JSON.stringify({ reason: "emergency halt" }),
+    });
+
+    expect(emergencyResponse.status).toBe(200);
+    await expect(emergencyResponse.json()).resolves.toMatchObject({
+      success: true,
+      accepted: true,
+      runtimeConfig: {
+        killSwitch: true,
+      },
+    });
+
+    const blockedResponse = await fetch(`${harness.baseUrl}/control/live-promotion/request`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...buildControlOperatorAssertionHeaders({
+          role: "admin",
+          actorId: "alice",
+          displayName: "Alice Example",
+          action: "live_promotion_request",
+          target: "/control/live-promotion/request",
+          authResult: "authorized",
+        }),
+      },
+      body: JSON.stringify({ targetMode: "live_limited", reason: "blocked by kill switch" }),
+    });
+
+    expect(blockedResponse.status).toBe(409);
+    await expect(blockedResponse.json()).resolves.toMatchObject({
+      success: false,
+      message: "Control route disabled while kill switch is active.",
+      killSwitch: {
+        halted: true,
+      },
+    });
+
+    const auditEvents = await harness.governanceRepository.listAuditEvents("test");
+    expect(
+      auditEvents.some(
+        (event) =>
+          event.action === "emergency_stop" &&
+          event.result === "allowed" &&
+          event.target === "/control/emergency-stop"
+      )
+    ).toBe(true);
+    expect(
+      auditEvents.some(
+        (event) =>
+          event.action === "live_promotion_request" &&
+          event.result === "blocked" &&
+          event.target === "/control/live-promotion/request"
+      )
+    ).toBe(true);
+    expect(auditEvents[0]?.action).toBe("live_promotion_request");
+    expect(auditEvents[1]?.action).toBe("emergency_stop");
+  });
+
   it("persists approved live promotions and rollback state durably", async () => {
     const harness = await createHarness();
     harnesses.push(harness);

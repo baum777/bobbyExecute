@@ -7,6 +7,7 @@ import { LoadingCard } from '@/components/shared/loading-card';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ErrorCard } from '@/components/shared/error-card';
 import { relativeTime } from '@/lib/utils';
+import { kpiProvenanceLabel } from '@/lib/kpi-provenance';
 import { Plug } from 'lucide-react';
 
 export function AdapterHealthTable() {
@@ -26,8 +27,8 @@ export function AdapterHealthTable() {
           <Plug className="h-4 w-4 text-text-muted" />
         </div>
         <p className="text-[10px] uppercase tracking-wide text-text-muted pt-1">
-          GET /kpi/adapters — wired when circuit breaker is active; else derived from runtime snapshot or default
-          placeholders
+          GET /kpi/adapters — surface {kpiProvenanceLabel(data?.surfaceKind)}; operational when the circuit breaker
+          is active, derived from runtime snapshot when available, default when placeholders are all that exists
         </p>
       </CardHeader>
       <CardContent>

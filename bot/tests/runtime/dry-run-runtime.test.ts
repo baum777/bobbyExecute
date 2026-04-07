@@ -94,6 +94,9 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(run).not.toHaveBeenCalled();
     expect(runtime.getLastState()?.blocked).toBe(true);
     expect(runtime.getLastState()?.blockedReason).toBe("RUNTIME_PHASE2_KILL_SWITCH_HALTED");
+    expect(runtime.getSnapshot().lastCycleSummary?.provenance?.reasonBasis.blockedReason).toBe(
+      "RUNTIME_PHASE2_KILL_SWITCH_HALTED"
+    );
 
     await runtime.stop();
   });
@@ -817,6 +820,8 @@ describe("DryRunRuntime (phase-2)", () => {
     expect(replay).not.toBeNull();
     expect(replay?.summary).toEqual(summary);
     expect(replay?.summary.outcome).toBe("blocked");
+    expect(replay?.summary.provenance?.reasonClass).toBe("DATA_STALE");
+    expect(replay?.summary.provenance?.reasonBasis.blockedReason).toContain("stale");
     expect(replay?.incidents).toHaveLength(1);
     expect(replay?.incidents[0].details?.traceId).toBe(summary.traceId);
     expect(replay?.journal).toEqual([]);

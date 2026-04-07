@@ -1,14 +1,17 @@
-import type { KpiMetricProvenance } from '@/types/api';
+import type { DecisionProvenanceKind, KpiMetricProvenance } from '@/types/api';
 
-const LABEL: Record<KpiMetricProvenance, string> = {
-  wired: 'wired',
+type TruthProvenance = KpiMetricProvenance | DecisionProvenanceKind;
+
+const LABEL: Record<TruthProvenance, string> = {
+  operational: 'operational',
   derived: 'derived',
   default: 'default',
   legacy_projection: 'legacy',
   unwired: 'unwired',
+  canonical: 'canonical',
 };
 
-export function kpiProvenanceLabel(p: KpiMetricProvenance | undefined): string {
+export function kpiProvenanceLabel(p: TruthProvenance | undefined): string {
   if (!p) return '—';
   return LABEL[p] ?? p;
 }

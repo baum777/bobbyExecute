@@ -68,7 +68,9 @@ export function HeroCards() {
               HALTED: {health.killSwitch.reason || 'Unknown'}
             </div>
           )}
-          <p className="mt-1 text-[10px] uppercase tracking-wide text-text-muted">Metric: wired</p>
+          <p className="mt-1 text-[10px] uppercase tracking-wide text-text-muted">
+            Surface: {kpiProvenanceLabel(health?.surfaceKind)}
+          </p>
         </CardContent>
       </Card>
 

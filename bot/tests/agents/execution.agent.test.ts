@@ -4,6 +4,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createExecutionHandler } from "@bot/agents/execution.agent.js";
 import { createRpcClient } from "@bot/adapters/rpc-verify/client.js";
+import { deriveLiveExecutionAttemptId } from "@bot/adapters/dex-execution/swap.js";
 import type { TradeIntent } from "@bot/core/contracts/trade.js";
 import { InMemoryExecutionRepository } from "@bot/persistence/execution-repository.js";
 import { InMemoryIncidentRepository } from "@bot/persistence/incident-repository.js";
@@ -54,6 +55,8 @@ describe("createExecutionHandler", () => {
   afterEach(() => {
     delete process.env.LIVE_TRADING;
     delete process.env.RPC_MODE;
+    delete process.env.TRADING_ENABLED;
+    delete process.env.LIVE_TEST_MODE;
     delete process.env.MICRO_LIVE_REQUIRE_ARM;
     delete process.env.MICRO_LIVE_MAX_NOTIONAL;
     delete process.env.MICRO_LIVE_MAX_TRADES_PER_WINDOW;
@@ -62,6 +65,11 @@ describe("createExecutionHandler", () => {
     delete process.env.MICRO_LIVE_MAX_INFLIGHT;
     delete process.env.MICRO_LIVE_FAILURES_TO_BLOCK;
     delete process.env.MICRO_LIVE_FAILURE_WINDOW_MS;
+    delete process.env.LIVE_VERIFY_MAX_ATTEMPTS;
+    delete process.env.LIVE_VERIFY_TIMEOUT_MS;
+    delete process.env.LIVE_VERIFY_RETRY_MS;
+    delete process.env.LIVE_QUOTE_MAX_AGE_MS;
+    delete process.env.JUPITER_API_KEY;
     delete process.env.ROLLOUT_POSTURE;
     resetMicroLiveControlForTests();
     resetKillSwitch();
@@ -93,13 +101,19 @@ describe("createExecutionHandler", () => {
       getBalance: async () => ({ address: "a", balance: "0", decimals: 9 }),
       getTransactionReceipt: async () => ({}),
     } as import("@bot/adapters/rpc-verify/client.js").RpcClient;
+    const swapExecutor = vi.fn();
+    const quoteFetcher = vi.fn();
     const handler = await createExecutionHandler({
       rpcClient: failingRpc,
       walletAddress: "addr",
+      quoteFetcher,
+      swapExecutor,
     });
     const result = await handler(baseIntent);
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
+    expect(quoteFetcher).not.toHaveBeenCalled();
+    expect(swapExecutor).not.toHaveBeenCalled();
   });
 
   it("fails closed for live intent when signer is missing", async () => {
@@ -176,6 +190,8 @@ describe("createExecutionHandler", () => {
     process.env.RPC_MODE = "real";
     disarmMicroLive("test");
 
+    const quoteFetcher = vi.fn();
+    const swapExecutor = vi.fn();
     const handler = await createExecutionHandler({
       rpcClient: {
         sendRawTransaction: async () => "sig",
@@ -185,12 +201,44 @@ describe("createExecutionHandler", () => {
       },
       walletAddress: "11111111111111111111111111111111",
       signer: makeSigner(),
+      quoteFetcher,
+      swapExecutor,
     });
     const result = await handler({ ...baseIntent, executionMode: "live" });
 
     expect(result.success).toBe(false);
     expect(result.failureCode).toBe("micro_live_disarmed");
     expect(result.failClosed).toBe(true);
+    expect(quoteFetcher).not.toHaveBeenCalled();
+    expect(swapExecutor).not.toHaveBeenCalled();
+  });
+
+  it("fails closed without delegating to execution when live trading is disabled", async () => {
+    delete process.env.LIVE_TRADING;
+    process.env.RPC_MODE = "real";
+    armMicroLive("test");
+
+    const quoteFetcher = vi.fn();
+    const swapExecutor = vi.fn();
+    const handler = await createExecutionHandler({
+      rpcClient: {
+        sendRawTransaction: async () => "sig",
+        getTokenInfo: async () => ({ mint: "mint", decimals: 9, exists: true }),
+        getBalance: async () => ({ address: "a", balance: "10000000000", decimals: 9 }),
+        getTransactionReceipt: async () => ({ status: "confirmed" }),
+      },
+      walletAddress: "11111111111111111111111111111111",
+      signer: makeSigner(),
+      quoteFetcher,
+      swapExecutor,
+    });
+    const result = await handler({ ...baseIntent, executionMode: "live" });
+
+    expect(result.success).toBe(false);
+    expect(result.failureCode).toBe("live_not_enabled");
+    expect(result.failClosed).toBe(true);
+    expect(quoteFetcher).not.toHaveBeenCalled();
+    expect(swapExecutor).not.toHaveBeenCalled();
   });
 
   it("blocks live intent when kill switch is active", async () => {
@@ -237,6 +285,87 @@ describe("createExecutionHandler", () => {
 
     const incidents = await incidentRepository.list(10);
     expect(incidents.some((incident) => incident.type === "live_guardrail_refused")).toBe(true);
+  });
+
+  it("persists execution attempts and verification outcomes for a verified live success", async () => {
+    process.env.LIVE_TRADING = "true";
+    process.env.RPC_MODE = "real";
+    armMicroLive("test");
+
+    const executionRepository = new InMemoryExecutionRepository();
+    const swapExecutor = vi.fn().mockResolvedValue({
+      traceId: baseIntent.traceId,
+      timestamp: baseIntent.timestamp,
+      tradeIntentId: baseIntent.idempotencyKey,
+      success: true,
+      txSignature: "sig-verified",
+      actualAmountOut: "200",
+      dryRun: false,
+      executionMode: "live",
+      paperExecution: false,
+      failClosed: false,
+      artifacts: {
+        mode: "live",
+        attemptId: deriveLiveExecutionAttemptId({ ...baseIntent, executionMode: "live" }),
+        verification: {
+          attempted: true,
+          confirmed: true,
+          attempts: 1,
+          maxAttempts: 3,
+          retryMs: 500,
+          timeoutMs: 4000,
+          receiptState: "confirmed",
+        },
+      },
+    });
+    const handler = await createExecutionHandler({
+      rpcClient: {
+        getTokenInfo: async () => ({ mint: "mint", decimals: 9, exists: true }),
+        getBalance: async () => ({ address: "a", balance: "10000000000", decimals: 9 }),
+        sendRawTransaction: async () => "sig-verified",
+        getTransactionReceipt: async () => ({ status: "confirmed" }),
+      },
+      walletAddress: "11111111111111111111111111111111",
+      signer: makeSigner(),
+      quoteFetcher: vi.fn().mockResolvedValue({
+        quoteId: "q-verified",
+        amountOut: "200",
+        minAmountOut: "190",
+        fetchedAt: new Date().toISOString(),
+        slippageBps: 100,
+        rawQuotePayload: { routePlan: [] },
+      }),
+      swapExecutor,
+      executionEvidenceRepository: executionRepository,
+    });
+
+    const result = await handler({ ...baseIntent, executionMode: "live", idempotencyKey: "verified-live" });
+
+    expect(result.success).toBe(true);
+    expect(swapExecutor).toHaveBeenCalledTimes(1);
+
+    const evidence = await executionRepository.listByTradeIntentId("verified-live");
+    expect(evidence.map((record) => record.kind)).toEqual([
+      "decision_summary",
+      "execution_attempt_summary",
+      "execution_summary",
+      "verification_outcome",
+    ]);
+
+    const attempt = evidence.find((record) => record.kind === "execution_attempt_summary");
+    expect(attempt?.details?.attemptId).toBe(
+      deriveLiveExecutionAttemptId({
+        ...baseIntent,
+        executionMode: "live",
+        idempotencyKey: "verified-live",
+      })
+    );
+    expect(attempt?.details?.quoteRequested).toBe(true);
+
+    const verification = evidence.find((record) => record.kind === "verification_outcome");
+    expect(verification?.allowed).toBe(true);
+    expect(verification?.details?.confirmed).toBe(true);
+    expect(verification?.details?.attempts).toBe(1);
   });
 
   it("blocks paused or rolled back rollout posture and marks the refusal as durably reviewable", async () => {

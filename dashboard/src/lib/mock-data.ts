@@ -64,6 +64,7 @@ export function mockHealth(): HealthResponse {
     status: 'OK',
     uptimeMs: 86400000 + Math.random() * 3600000,
     version: '0.1.0',
+    surfaceKind: 'unwired',
     killSwitch: { halted: false },
   };
 }
@@ -76,11 +77,19 @@ export function mockSummary(): SummaryResponse {
     dataQuality: 0.85 + Math.random() * 0.15,
     lastDecisionAt: ago(Math.floor(Math.random() * 30000)),
     tradesToday: 37 + Math.floor(Math.random() * 10),
+    metricProvenance: {
+      riskScore: 'unwired',
+      chaosPassRate: 'unwired',
+      dataQuality: 'unwired',
+      lastDecisionAt: 'unwired',
+      tradesToday: 'unwired',
+    },
   };
 }
 
 export function mockAdapters(): AdaptersResponse {
   return {
+    surfaceKind: 'unwired',
     adapters: [
       {
         id: 'dexscreener',
@@ -162,7 +171,7 @@ export function mockDecisions(): DecisionsResponse {
       token: TOKENS[Math.floor(Math.random() * TOKENS.length)],
       confidence: action === 'allow' ? 0.7 + Math.random() * 0.3 : Math.random() * 0.6,
       reasons,
-      provenanceKind: 'derived' as const,
+      provenanceKind: 'legacy_projection' as const,
       source: 'action_log_projection' as const,
     };
   });
@@ -171,6 +180,7 @@ export function mockDecisions(): DecisionsResponse {
 
 export function mockMetrics(): MetricsResponse {
   return {
+    surfaceKind: 'unwired',
     p95LatencyMs: {
       adapter: 120 + Math.floor(Math.random() * 50),
       quote: 75 + Math.floor(Math.random() * 30),

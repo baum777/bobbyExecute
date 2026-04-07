@@ -163,6 +163,7 @@ export interface HealthResponse {
   status: "OK" | "DEGRADED" | "FAIL";
   uptimeMs: number;
   version: string;
+  surfaceKind: "operational" | "derived" | "default" | "legacy_projection" | "unwired";
   /** Runtime-reported bot state when available from bootstrap wiring. */
   botStatus?: "running" | "paused" | "stopped";
   worker?: import("../../persistence/runtime-visibility-repository.js").RuntimeWorkerVisibility;
@@ -228,7 +229,7 @@ export interface HealthResponse {
 
 /** How a KPI value was produced (for operator honesty; never silent about derivation). */
 export type KpiMetricProvenance =
-  | "wired"
+  | "operational"
   | "derived"
   | "default"
   | "legacy_projection"
@@ -323,9 +324,9 @@ export interface KpiDecision {
   reasons: string[];
   /**
    * canonical = runtime cycle summary + decision envelope (primary).
-   * derived = action log projection (legacy compatibility only).
+   * legacy_projection = action log projection (compatibility surface only).
    */
-  provenanceKind: "canonical" | "derived";
+  provenanceKind: "canonical" | "legacy_projection";
   source: "runtime_cycle_summary" | "action_log_projection";
   /** Present when provenanceKind is canonical. */
   executionMode?: "dry" | "paper" | "live";
@@ -405,9 +406,11 @@ export interface KpiAdapter {
 }
 
 export interface KpiAdaptersResponse {
+  surfaceKind: KpiMetricProvenance;
   adapters: KpiAdapter[];
 }
 
 export interface KpiMetricsResponse {
+  surfaceKind: KpiMetricProvenance;
   p95LatencyMs: Record<string, number>;
 }

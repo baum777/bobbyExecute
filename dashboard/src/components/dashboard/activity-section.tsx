@@ -72,7 +72,9 @@ export function ActivitySection() {
               ))}
             </div>
           )}
-          <p className="mt-2 text-[10px] uppercase tracking-wide text-text-muted">Metric: wired</p>
+          <p className="mt-2 text-[10px] uppercase tracking-wide text-text-muted">
+            Surface: {kpiProvenanceLabel(metrics?.surfaceKind)}
+          </p>
         </CardContent>
       </Card>
     </div>

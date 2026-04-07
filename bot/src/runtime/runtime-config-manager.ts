@@ -828,7 +828,13 @@ export class RuntimeConfigManager {
     };
   }
 
-  async applyBehaviorPatch(input: { patch: RuntimeBehaviorPatch; actor: string; reason?: string; idempotencyKey?: string }): Promise<RuntimeConfigMutationResult> {
+  async applyBehaviorPatch(input: {
+    patch: RuntimeBehaviorPatch;
+    actor: string;
+    reason?: string;
+    idempotencyKey?: string;
+    allowLivePromotion?: boolean;
+  }): Promise<RuntimeConfigMutationResult> {
     return this.enqueue("runtime_config", async () => {
       this.assertInitialized();
       let patch: RuntimeBehaviorPatch;
@@ -857,6 +863,31 @@ export class RuntimeConfigManager {
 
       const base = this.state!;
       const createdAt = new Date().toISOString();
+      if (
+        patch.mode &&
+        (patch.mode === "live" || patch.mode === "live_limited") &&
+        input.allowLivePromotion !== true
+      ) {
+        const rejectionReason = "live mode changes require the live promotion workflow";
+        await this.repository.appendChangeLog({
+          environment: this.environment,
+          versionId: base.requested.version.id,
+          action: "runtime_config",
+          actor: input.actor,
+          accepted: false,
+          beforeConfig: base.requested.version.config,
+          afterConfig: base.requested.version.config,
+          beforeOverlay: base.requested.overlay,
+          afterOverlay: base.requested.overlay,
+          reason: input.reason,
+          rejectionReason,
+          resultVersionId: base.requested.version.id,
+          reloadNonce: base.requested.overlay.reloadNonce,
+          createdAt,
+        });
+        return this.result("runtime_config", false, rejectionReason);
+      }
+
       const nextBehavior = buildRuntimeBehaviorFromSeed(base.requested.version.config, patch);
       const requiresRestart = restartRequiredForPatch(patch);
       const versionNumber = (await this.repository.getLatestVersionNumber(this.environment)) + 1;
@@ -969,7 +1000,12 @@ export class RuntimeConfigManager {
   }
 
   async setMode(mode: RuntimeMode, input: { actor: string; reason?: string } = { actor: "operator" }): Promise<RuntimeConfigMutationResult> {
-    return this.applyBehaviorPatch({ patch: { mode }, actor: input.actor, reason: input.reason ?? `mode set to ${mode}` });
+    return this.applyBehaviorPatch({
+      patch: { mode },
+      actor: input.actor,
+      reason: input.reason ?? `mode set to ${mode}`,
+      allowLivePromotion: true,
+    });
   }
 
   async setPause(input: { scope: "soft" | "hard"; actor: string; reason?: string }): Promise<RuntimeConfigMutationResult> {

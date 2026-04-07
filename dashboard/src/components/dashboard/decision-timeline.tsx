@@ -8,6 +8,7 @@ import { LoadingCard } from '@/components/shared/loading-card';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ErrorCard } from '@/components/shared/error-card';
 import { formatTimestamp } from '@/lib/utils';
+import { kpiProvenanceLabel } from '@/lib/kpi-provenance';
 import { ScrollText } from 'lucide-react';
 
 export function DecisionTimeline() {
@@ -23,11 +24,12 @@ export function DecisionTimeline() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Recent Decisions</CardTitle>
+          <CardTitle>Decision Surface</CardTitle>
           <ScrollText className="h-4 w-4 text-text-muted" />
         </div>
         <p className="text-[10px] text-text-muted pt-1">
-          Derived projection from action logs via GET /kpi/decisions — not a standalone canonical decision record.
+          Canonical runtime-cycle-summary rows are mixed with legacy action-log projections via GET /kpi/decisions.
+          This is not a standalone canonical decision history.
         </p>
       </CardHeader>
       <CardContent>
@@ -56,6 +58,9 @@ export function DecisionTimeline() {
                   <span className="text-xs text-text-muted tabular-nums">
                     {d.confidence.toFixed(2)}
                   </span>
+                  <Badge variant="default" className="text-[9px] px-1.5 py-0">
+                    {kpiProvenanceLabel(d.provenanceKind)}
+                  </Badge>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {d.reasons.slice(0, 2).map((r, i) => (

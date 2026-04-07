@@ -14,6 +14,7 @@ import { LoadingCard } from '@/components/shared/loading-card';
 import { ErrorCard } from '@/components/shared/error-card';
 import { EmptyState } from '@/components/shared/empty-state';
 import { formatTimestampFull, formatTimestamp } from '@/lib/utils';
+import { kpiProvenanceLabel } from '@/lib/kpi-provenance';
 import { Search, X, Clock, FileText, Filter } from 'lucide-react';
 
 const ACTION_FILTERS: Array<DecisionAction | 'all'> = ['all', 'allow', 'block', 'abort'];
@@ -84,8 +85,9 @@ export default function DecisionsPage() {
           </p>
           <p className="mt-1 text-xs text-text-muted max-w-3xl">
             Rows with <span className="font-medium text-text-secondary">canonical</span> come from runtime cycle
-            summaries (decision envelope v3) when available; <span className="font-medium text-text-secondary">derived</span>{' '}
-            rows are legacy action-log projections from the same endpoint.
+            summaries (decision envelope v3) when available;{' '}
+            <span className="font-medium text-text-secondary">legacy</span> rows are action-log projections from the
+            same endpoint.
           </p>
         </div>
 
@@ -166,7 +168,7 @@ export default function DecisionsPage() {
                             conf: {d.confidence.toFixed(2)}
                           </span>
                           <Badge variant="default" className="text-[9px] px-1.5 py-0">
-                            {d.provenanceKind === 'canonical' ? 'canonical' : 'derived'}
+                            {kpiProvenanceLabel(d.provenanceKind)}
                           </Badge>
                           {d.reasonClass ? (
                             <Badge variant="info" className="text-[9px] px-1.5 py-0 font-mono">
@@ -351,8 +353,8 @@ export default function DecisionsPage() {
                     <Clock className="h-3 w-3" />
                     Source:{' '}
                     {selected.provenanceKind === 'canonical'
-                      ? 'runtime_cycle_summary (canonical envelope)'
-                      : 'action_log_projection'}
+                      ? 'runtime_cycle_summary (canonical truth)'
+                      : 'action_log_projection (legacy projection)'}
                   </p>
                   {selected.actionLogAction && (
                     <p className="text-xs text-text-muted">

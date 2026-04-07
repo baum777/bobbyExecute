@@ -187,6 +187,80 @@ describe("Engine authority closure", () => {
     expect(stages).toContain("canonical_trade_complete");
   });
 
+  it("blocks stale ingest inputs deterministically and journals provenance", async () => {
+    const clock = new FakeClock("2026-03-17T12:00:00.000Z");
+    const staleMarketTimestamp = "2026-03-17T11:58:00.000Z";
+    const ingest = async () => ({
+      market: {
+        traceId: "trace-stale",
+        timestamp: staleMarketTimestamp,
+        source: "dexpaprika",
+        poolId: "pool-stale",
+        baseToken: "SOL",
+        quoteToken: "USDC",
+        priceUsd: 100,
+        volume24h: 1_000,
+        liquidity: 100_000,
+        freshnessMs: 120_000,
+        status: "ok",
+        rawPayloadHash: "market-raw-stale",
+      },
+      wallet: {
+        traceId: "trace-stale",
+        timestamp: staleMarketTimestamp,
+        source: "moralis",
+        walletAddress: "wallet-stale",
+        balances: [],
+        totalUsd: 100,
+        rawPayloadHash: "wallet-raw-stale",
+      },
+    });
+    const signalFn = vi.fn(async () => ({ direction: "buy", confidence: 0.9 }));
+    const riskFn = vi.fn(async () => ({ allowed: true }));
+    const executeFn = vi.fn();
+    const verifyFn = vi.fn();
+    const journalWriter = new InMemoryJournalWriter();
+
+    const engineA = new Engine({
+      clock,
+      dryRun: true,
+      journalWriter,
+      journalPolicy: "mandatory",
+    });
+    const stateA = await engineA.run(ingest, signalFn, riskFn, executeFn, verifyFn);
+
+    const engineB = new Engine({
+      clock: new FakeClock("2026-03-17T12:00:00.000Z"),
+      dryRun: true,
+      journalWriter: new InMemoryJournalWriter(),
+      journalPolicy: "mandatory",
+    });
+    const stateB = await engineB.run(ingest, signalFn, riskFn, executeFn, verifyFn);
+
+    expect(stateA.blocked).toBe(true);
+    expect(stateA.blockedReason).toContain("DATA_STALE");
+    expect(stateA.decisionEnvelope?.reasonClass).toBe("DATA_STALE");
+    expect(stateA.decisionEnvelope?.sources).toEqual(["market:dexpaprika", "wallet:moralis"]);
+    expect(stateA.decisionEnvelope?.evidenceRef.marketRawHash).toBe("market-raw-stale");
+    expect(stateA.journalEntry?.output).toMatchObject({
+      blocked: true,
+      provenance: {
+        reasonClass: "DATA_STALE",
+        sources: ["market:dexpaprika", "wallet:moralis"],
+      },
+    });
+
+    expect(stateB.blocked).toBe(true);
+    expect(stateB.blockedReason).toBe(stateA.blockedReason);
+    expect(stateB.decisionEnvelope?.reasonClass).toBe(stateA.decisionEnvelope?.reasonClass);
+    expect(stateB.decisionEnvelope?.sources).toEqual(stateA.decisionEnvelope?.sources);
+    expect(stateB.journalEntry?.output).toMatchObject(stateA.journalEntry?.output as Record<string, unknown>);
+    expect(signalFn).not.toHaveBeenCalled();
+    expect(riskFn).not.toHaveBeenCalled();
+    expect(executeFn).not.toHaveBeenCalled();
+    expect(verifyFn).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed decision envelopes from the coordinator", async () => {
     const clock = new FakeClock("2026-03-17T12:00:00.000Z");
     const { ingest, signalFn, riskFn, executeFn, verifyFn } = makeHandlers();
