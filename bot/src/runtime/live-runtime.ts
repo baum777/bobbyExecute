@@ -14,6 +14,7 @@ import type { IncidentRecord, IncidentRepository } from "../persistence/incident
 import { FileSystemIncidentRepository } from "../persistence/incident-repository.js";
 import {
   FileSystemRuntimeCycleSummaryWriter,
+  buildRuntimeCycleProvenance,
   type RuntimeCycleSummary,
   type RuntimeCycleSummaryWriter,
 } from "../persistence/runtime-cycle-summary-repository.js";
@@ -202,6 +203,7 @@ function toCycleSummary(input: {
   cycleTimestamp: string;
   traceId: string;
   mode: "live";
+  producer?: import("../persistence/runtime-cycle-summary-repository.js").RuntimeCycleProducer;
   outcome: "success" | "blocked" | "error";
   intakeOutcome: "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
   stage: string;
@@ -228,6 +230,12 @@ function toCycleSummary(input: {
     cycleTimestamp: input.cycleTimestamp,
     traceId: input.traceId,
     mode: input.mode,
+    producer:
+      input.producer ?? {
+        name: "live-runtime",
+        kind: "runtime_cycle_summary",
+        canonicalDecisionTruth: false,
+      },
     outcome: input.outcome,
     intakeOutcome: input.intakeOutcome,
     advanced: input.stage !== "ingest",
@@ -248,6 +256,33 @@ function toCycleSummary(input: {
     tradeIntentId: input.tradeIntentId,
     execution: input.execution,
     verification: input.verification,
+    provenance: buildRuntimeCycleProvenance({
+      stage: input.stage,
+      outcome: input.outcome,
+      blocked: input.blocked,
+      blockedReason: input.blockedReason,
+      error: input.error,
+      decisionEnvelope: input.decisionEnvelope,
+      execution: input.execution
+        ? {
+            success: input.execution.success,
+            mode: input.execution.mode,
+            paperExecution: input.execution.paperExecution,
+            actualAmountOut: input.execution.actualAmountOut,
+            error: input.execution.error,
+          }
+        : undefined,
+      verification: input.verification
+        ? {
+            passed: input.verification.passed,
+            mode: input.verification.mode,
+            reason: input.verification.reason,
+          }
+        : undefined,
+      authorityArtifactChain: input.authorityArtifactChain,
+      shadowArtifactChain: input.shadowArtifactChain,
+      cycleTimestamp: input.cycleTimestamp,
+    }),
     shadowArtifactChain: input.shadowArtifactChain,
     authorityArtifactChain: input.authorityArtifactChain,
     incidentIds: input.incidentIds,

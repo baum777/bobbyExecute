@@ -5,6 +5,11 @@ import { assertSchemaReady } from "./schema-migrations.js";
 
 export interface RuntimeWorkerVisibility {
   workerId: string;
+  producer?: {
+    name: "runtime-worker";
+    kind: "runtime_visibility_snapshot";
+    canonicalDecisionTruth: false;
+  };
   lastHeartbeatAt: string;
   lastCycleAt?: string;
   lastSeenReloadNonce?: number;
@@ -17,6 +22,11 @@ export interface RuntimeWorkerVisibility {
 }
 
 export interface RuntimeVisibilitySnapshot {
+  producer?: {
+    name: "runtime-worker";
+    kind: "runtime_visibility_snapshot";
+    canonicalDecisionTruth: false;
+  };
   environment: string;
   worker: RuntimeWorkerVisibility;
   runtime: RuntimeSnapshot;

@@ -26,6 +26,7 @@ export async function loadVisibleRuntimeState(
         runtime: record.snapshot.runtime,
         worker: {
           workerId: record.workerId,
+          producer: record.snapshot.producer,
           lastHeartbeatAt: record.lastHeartbeatAt,
           lastCycleAt: record.lastCycleAt,
           lastSeenReloadNonce: record.lastSeenReloadNonce,

@@ -3,6 +3,9 @@ import { existsSync } from "node:fs";
 import { dirname } from "node:path";
 import type { ExecutionReport, RpcVerificationReport } from "../core/contracts/trade.js";
 import type { DecisionEnvelope } from "../core/contracts/decision-envelope.js";
+import type { DecisionEvidenceRef, DecisionFreshness } from "../core/contracts/decision-envelope.js";
+import type { DecisionReasonClass } from "../core/contracts/decision-reason-class.js";
+import { resolveDecisionReasonClass } from "../core/contracts/decision-reason-class.js";
 
 export type RuntimeCycleIntakeOutcome = "ok" | "stale" | "adapter_error" | "invalid" | "kill_switch_halted";
 export type RuntimeCycleOutcome = "success" | "blocked" | "error";
@@ -38,6 +41,30 @@ export interface RuntimeCycleAdapterHealthSnapshot {
   degraded: boolean;
   degradedAdapterIds: string[];
   unhealthyAdapterIds: string[];
+}
+
+export interface RuntimeCycleReasonBasis {
+  stage: string;
+  outcome: RuntimeCycleOutcome;
+  blockedReason?: string;
+  error?: string;
+  failureStage?: string;
+  failureCode?: string;
+}
+
+export interface RuntimeCycleProvenance {
+  reasonClass?: DecisionReasonClass;
+  sources: string[];
+  freshness?: DecisionFreshness;
+  evidenceRef?: DecisionEvidenceRef;
+  evidenceRefs: string[];
+  reasonBasis: RuntimeCycleReasonBasis;
+}
+
+export interface RuntimeCycleProducer {
+  name: "dry-run-runtime" | "live-runtime";
+  kind: "runtime_cycle_summary";
+  canonicalDecisionTruth: false;
 }
 
 export type RuntimeShadowArtifactStatus = "built" | "blocked" | "error" | "skipped";
@@ -162,6 +189,7 @@ export interface RuntimeCycleSummary {
   cycleTimestamp: string;
   traceId: string;
   mode: "dry" | "paper" | "live";
+  producer?: RuntimeCycleProducer;
   outcome: RuntimeCycleOutcome;
   intakeOutcome: RuntimeCycleIntakeOutcome;
   advanced: boolean;
@@ -180,6 +208,7 @@ export interface RuntimeCycleSummary {
   verificationMode?: "rpc" | "paper-simulated";
   errorOccurred: boolean;
   error?: string;
+  provenance?: RuntimeCycleProvenance;
   decision?: {
     allowed: boolean;
     direction?: string;
@@ -221,6 +250,139 @@ export class InMemoryRuntimeCycleSummaryWriter implements RuntimeCycleSummaryWri
   async getByTraceId(traceId: string): Promise<RuntimeCycleSummary | null> {
     return this.summaries.find((summary) => summary.traceId === traceId) ?? null;
   }
+}
+
+function uniqueSorted(values: readonly string[]): string[] {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
+}
+
+function evidenceRefToRefs(evidenceRef?: DecisionEvidenceRef): string[] {
+  if (!evidenceRef) {
+    return [];
+  }
+
+  return uniqueSorted(
+    Object.entries(evidenceRef)
+      .filter(([, value]) => typeof value === "string" && value.length > 0)
+      .map(([key, value]) => `${key}:${value}`)
+  );
+}
+
+function decisionStageForReasonBasis(stage: string): "ingest" | "signal" | "reasoning" | "risk" | "execute" | "verify" | "journal" | "monitor" {
+  switch (stage) {
+    case "ingest":
+    case "signal":
+    case "reasoning":
+    case "risk":
+    case "execute":
+    case "verify":
+    case "journal":
+    case "monitor":
+      return stage;
+    default:
+      return "journal";
+  }
+}
+
+function collectSources(input: {
+  decisionSources?: string[];
+  authorityArtifactChain?: RuntimeCycleAuthorityArtifactChainSummary;
+  shadowArtifactChain?: RuntimeCycleShadowArtifactChainSummary;
+}): string[] {
+  const sources = new Set<string>(input.decisionSources ?? []);
+
+  for (const ref of [
+    ...(input.authorityArtifactChain?.artifacts.sourceObservationRefs ?? []),
+    ...(input.shadowArtifactChain?.artifacts.sourceObservationRefs ?? []),
+  ]) {
+    const source = ref.split(":")[0]?.trim();
+    if (source) {
+      sources.add(source);
+    }
+  }
+
+  return [...sources].sort((left, right) => left.localeCompare(right));
+}
+
+export function buildRuntimeCycleProvenance(input: {
+  stage: string;
+  outcome: RuntimeCycleOutcome;
+  blocked?: boolean;
+  blockedReason?: string;
+  error?: string;
+  decisionEnvelope?: DecisionEnvelope;
+  execution?: RuntimeCycleExecutionEvidence;
+  verification?: RuntimeCycleVerificationEvidence;
+  authorityArtifactChain?: RuntimeCycleAuthorityArtifactChainSummary;
+  shadowArtifactChain?: RuntimeCycleShadowArtifactChainSummary;
+  cycleTimestamp: string;
+}): RuntimeCycleProvenance {
+  const canonicalEnvelope =
+    input.decisionEnvelope?.schemaVersion === "decision.envelope.v3" ? input.decisionEnvelope : undefined;
+  const sources = collectSources({
+    decisionSources: canonicalEnvelope?.sources,
+    authorityArtifactChain: input.authorityArtifactChain,
+    shadowArtifactChain: input.shadowArtifactChain,
+  });
+  const freshness =
+    canonicalEnvelope?.freshness ??
+    (input.blocked || input.outcome !== "success"
+      ? {
+          marketAgeMs: 0,
+          walletAgeMs: 0,
+          maxAgeMs: 1,
+          observedAt: input.cycleTimestamp,
+        }
+      : undefined);
+  const evidenceRef = canonicalEnvelope?.evidenceRef;
+  const evidenceRefs = uniqueSorted([
+    ...evidenceRefToRefs(evidenceRef),
+    ...(input.authorityArtifactChain?.evidenceRefs ?? []),
+    ...(input.shadowArtifactChain?.evidenceRefs ?? []),
+  ]);
+
+  const reasonText = [input.blockedReason, input.error, input.execution?.error, input.verification?.reason]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(" ");
+  let reasonClass = canonicalEnvelope?.reasonClass;
+
+  if (!reasonClass && /kill[_-]?switch|halted|emergency/i.test(reasonText)) {
+    reasonClass = "RISK_BLOCKED";
+  }
+  if (!reasonClass && input.outcome === "error" && !/DATA_(STALE|MISSING|DISAGREEMENT)/i.test(reasonText)) {
+    reasonClass = "EXECUTION_FAILED";
+  }
+  if (!reasonClass) {
+    reasonClass = resolveDecisionReasonClass({
+      blocked: input.blocked ?? input.outcome !== "success",
+      terminalStage: decisionStageForReasonBasis(input.stage),
+      blockedReason: input.blockedReason ?? input.error,
+      tradeCompleted: input.execution?.success === true,
+    });
+  }
+
+  return {
+    reasonClass,
+    sources,
+    freshness,
+    evidenceRef,
+    evidenceRefs,
+    reasonBasis: {
+      stage: input.stage,
+      outcome: input.outcome,
+      blockedReason: input.blockedReason,
+      error: input.error,
+      failureStage:
+        input.execution?.success === false
+          ? "execute"
+          : input.verification?.passed === false
+            ? "verify"
+            : input.blocked || input.outcome !== "success"
+              ? input.stage
+              : undefined,
+      failureCode: input.blockedReason ?? input.error ?? input.execution?.error ?? input.verification?.reason,
+    },
+  };
 }
 
 export class FileSystemRuntimeCycleSummaryWriter implements RuntimeCycleSummaryWriter {

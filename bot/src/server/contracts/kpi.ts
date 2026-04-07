@@ -125,6 +125,11 @@ export interface RuntimeRecentHistory {
     traceId: string;
     cycleTimestamp: string;
     mode: "dry" | "paper" | "live";
+    producer?: {
+      name: "dry-run-runtime" | "live-runtime";
+      kind: "runtime_cycle_summary";
+      canonicalDecisionTruth: false;
+    };
     outcome: "success" | "blocked" | "error";
     stage: string;
     blocked: boolean;

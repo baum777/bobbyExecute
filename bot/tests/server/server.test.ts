@@ -446,6 +446,7 @@ describe("Server (Wave 3)", () => {
 
   it("counts tradesToday from grounded runtime action entries", async () => {
     const actionLogger = new InMemoryActionLogger();
+    const traceId = "trace-runtime-canonical";
     await actionLogger.append({
       agentId: "engine",
       userId: "system",
@@ -479,6 +480,144 @@ describe("Server (Wave 3)", () => {
       port: PORT + 7,
       host: "127.0.0.1",
       actionLogger,
+      getRuntimeSnapshot: () => ({
+        status: "running",
+        mode: "paper",
+        paperModeActive: true,
+        cycleInFlight: false,
+        counters: {
+          cycleCount: 1,
+          decisionCount: 1,
+          executionCount: 1,
+          blockedCount: 0,
+          errorCount: 0,
+        },
+        lastCycleAt: "2026-03-18T12:02:00.000Z",
+        lastDecisionAt: "2026-03-18T12:02:00.000Z",
+        lastState: {
+          stage: "monitor",
+          traceId,
+          timestamp: "2026-03-18T12:02:00.000Z",
+          blocked: false,
+        },
+        lastCycleSummary: {
+          cycleTimestamp: "2026-03-18T12:02:00.000Z",
+          traceId,
+          mode: "paper",
+          producer: {
+            name: "dry-run-runtime",
+            kind: "runtime_cycle_summary",
+            canonicalDecisionTruth: false,
+          },
+          outcome: "success",
+          intakeOutcome: "ok",
+          advanced: true,
+          stage: "monitor",
+          blocked: false,
+          decisionOccurred: true,
+          signalOccurred: true,
+          riskOccurred: true,
+          chaosOccurred: true,
+          executionOccurred: true,
+          verificationOccurred: true,
+          paperExecutionProduced: true,
+          verificationMode: "paper-simulated",
+          errorOccurred: false,
+          tradeIntentId: "trade-canonical",
+          execution: {
+            success: true,
+            mode: "paper",
+            paperExecution: true,
+            actualAmountOut: "0.95",
+          },
+          verification: {
+            passed: true,
+            mode: "paper-simulated",
+            reason: "PAPER_MODE_SIMULATED_VERIFICATION",
+          },
+          decisionEnvelope: {
+            schemaVersion: "decision.envelope.v3",
+            entrypoint: "engine",
+            flow: "trade",
+            executionMode: "paper",
+            traceId,
+            stage: "monitor",
+            blocked: false,
+            reasonClass: "SUCCESS",
+            sources: ["runtime-cycle-summary"],
+            freshness: {
+              marketAgeMs: 0,
+              walletAgeMs: 0,
+              maxAgeMs: 60_000,
+              observedAt: "2026-03-18T12:02:00.000Z",
+            },
+            evidenceRef: {},
+            decisionHash: "a".repeat(64),
+            resultHash: "b".repeat(64),
+          },
+          incidentIds: [],
+        },
+        recentHistory: {
+          recentCycleCount: 1,
+          cycleOutcomes: { success: 1, blocked: 0, error: 0 },
+          attemptsByMode: { dry: 0, paper: 1, live: 0 },
+          refusalCounts: {},
+          failureStageCounts: {},
+          verificationHealth: { passed: 1, failed: 0, failureReasons: {} },
+          incidentCounts: {},
+          controlActions: [],
+          stateTransitions: [],
+          recentCycles: [
+            {
+              traceId,
+              cycleTimestamp: "2026-03-18T12:02:00.000Z",
+              mode: "paper",
+              producer: {
+                name: "dry-run-runtime",
+                kind: "runtime_cycle_summary",
+                canonicalDecisionTruth: false,
+              },
+              outcome: "success",
+              stage: "monitor",
+              blocked: false,
+              intakeOutcome: "ok",
+              executionOccurred: true,
+              verificationOccurred: true,
+              decisionOccurred: true,
+              errorOccurred: false,
+              decisionEnvelope: {
+                schemaVersion: "decision.envelope.v3",
+                entrypoint: "engine",
+                flow: "trade",
+                executionMode: "paper",
+                traceId,
+                stage: "monitor",
+                blocked: false,
+                reasonClass: "SUCCESS",
+                sources: ["runtime-cycle-summary"],
+                freshness: {
+                  marketAgeMs: 0,
+                  walletAgeMs: 0,
+                  maxAgeMs: 60_000,
+                  observedAt: "2026-03-18T12:02:00.000Z",
+                },
+                evidenceRef: {},
+                decisionHash: "a".repeat(64),
+                resultHash: "b".repeat(64),
+              },
+              decision: {
+                allowed: true,
+                direction: "buy",
+                confidence: 0.9,
+                riskAllowed: true,
+                chaosAllowed: true,
+                tradeIntentId: "trade-canonical",
+              },
+            },
+          ],
+          recentIncidents: [],
+        },
+      }),
     });
 
     try {
@@ -495,7 +634,18 @@ describe("Server (Wave 3)", () => {
       expect(summary.lastDecisionAt).toBe("2026-03-18T12:03:00.000Z");
       expect(summary.metricProvenance?.tradesToday).toBe("derived");
       expect(summary.metricProvenance?.lastDecisionAt).toBe("derived");
+      expect(summary.runtime.recentHistory.recentCycles[0].producer).toMatchObject({
+        name: "dry-run-runtime",
+        kind: "runtime_cycle_summary",
+        canonicalDecisionTruth: false,
+      });
       expect(decisions.decisions[0]).toMatchObject({
+        provenanceKind: "canonical",
+        source: "runtime_cycle_summary",
+        action: "allow",
+        token: "buy",
+      });
+      expect(decisions.decisions[1]).toMatchObject({
         action: "block",
         token: "USDC",
         confidence: 0.2,
@@ -504,7 +654,7 @@ describe("Server (Wave 3)", () => {
         source: "action_log_projection",
         actionLogAction: "risk_blocked",
       });
-      expect(decisions.decisions[1]).toMatchObject({
+      expect(decisions.decisions[2]).toMatchObject({
         action: "allow",
         token: "USDC",
         confidence: 0.8,

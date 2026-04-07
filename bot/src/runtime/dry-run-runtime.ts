@@ -19,10 +19,12 @@ import {
 } from "../adapters/orchestrator/adapter-orchestrator.js";
 import {
   FileSystemRuntimeCycleSummaryWriter,
+  buildRuntimeCycleProvenance,
   type RuntimeCycleAdapterHealthSnapshot,
   type RuntimeCycleDegradedState,
   type RuntimeCycleIntakeOutcome,
   type RuntimeCycleOutcome,
+  type RuntimeCycleProvenance,
   type RuntimeCycleSummary,
   type RuntimeCycleSummaryWriter,
 } from "../persistence/runtime-cycle-summary-repository.js";
@@ -76,6 +78,7 @@ export interface RuntimeRecentCycleSummary {
   traceId: string;
   cycleTimestamp: string;
   mode: "dry" | "paper" | "live";
+  producer?: import("../persistence/runtime-cycle-summary-repository.js").RuntimeCycleProducer;
   outcome: RuntimeCycleOutcome;
   stage: string;
   blocked: boolean;
@@ -88,6 +91,7 @@ export interface RuntimeRecentCycleSummary {
   /** Canonical decision envelope when the cycle was produced by Engine (all modes). */
   decisionEnvelope?: import("../core/contracts/decision-envelope.js").DecisionEnvelope;
   authorityArtifactChain?: import("../persistence/runtime-cycle-summary-repository.js").RuntimeCycleAuthorityArtifactChainSummary;
+  provenance?: RuntimeCycleProvenance;
   decision?: {
     allowed: boolean;
     direction?: string;
@@ -251,10 +255,11 @@ export function buildRuntimeReviewSummary(
       details: incident.details,
     })),
     stateTransitions,
-    recentCycles: recentCycles.map((summary) => ({
+      recentCycles: recentCycles.map((summary) => ({
       traceId: summary.traceId,
       cycleTimestamp: summary.cycleTimestamp,
       mode: summary.mode,
+      producer: summary.producer,
       outcome: summary.outcome,
       stage: summary.stage,
       blocked: summary.blocked,
@@ -266,6 +271,7 @@ export function buildRuntimeReviewSummary(
       errorOccurred: summary.errorOccurred,
       decisionEnvelope: summary.decisionEnvelope,
       authorityArtifactChain: summary.authorityArtifactChain,
+      provenance: summary.provenance,
       decision: summary.decision,
     })),
     recentIncidents: recentIncidentsWindow.map((incident) => ({
@@ -864,12 +870,12 @@ export class DryRunRuntime {
           message: "Runtime paused because kill switch is active",
           details: { reason: "kill_switch_halted", intakeOutcome: "kill_switch_halted", traceId },
         });
-        await this.persistCycleSummary({
-          cycleTimestamp: now,
-          traceId,
-          mode: this.mode,
-          outcome: "blocked",
-          intakeOutcome: "kill_switch_halted",
+          await this.persistCycleSummary({
+            cycleTimestamp: now,
+            traceId,
+            mode: this.mode,
+            outcome: "blocked",
+            intakeOutcome: "kill_switch_halted",
           advanced: false,
           stage: "risk",
           blocked: true,
@@ -880,11 +886,18 @@ export class DryRunRuntime {
           chaosOccurred: false,
           executionOccurred: false,
           verificationOccurred: false,
-          paperExecutionProduced: false,
-          errorOccurred: false,
-          degradedState: this.getCycleDegradedStateSummary(),
-          adapterHealth: this.getCycleAdapterHealthSummary(),
-          shadowArtifactChain: buildRuntimeShadowArtifactChain({
+            paperExecutionProduced: false,
+            errorOccurred: false,
+            provenance: buildRuntimeCycleProvenance({
+              stage: "risk",
+              outcome: "blocked",
+              blocked: true,
+              blockedReason: "RUNTIME_PHASE2_KILL_SWITCH_HALTED",
+              cycleTimestamp: now,
+            }),
+            degradedState: this.getCycleDegradedStateSummary(),
+            adapterHealth: this.getCycleAdapterHealthSummary(),
+            shadowArtifactChain: buildRuntimeShadowArtifactChain({
             mode: this.mode,
             traceId,
             cycleTimestamp: now,
@@ -1242,11 +1255,16 @@ export class DryRunRuntime {
         ? "stale"
         : "adapter_error";
       this.markAdapterDegraded(marketResult.error, now);
-      return {
-        kind: "blocked",
-        summary: {
-          cycleTimestamp: now,
-          traceId,
+        return {
+          kind: "blocked",
+          summary: {
+            cycleTimestamp: now,
+            traceId,
+            producer: {
+              name: "dry-run-runtime",
+              kind: "runtime_cycle_summary",
+              canonicalDecisionTruth: false,
+            },
           mode: this.mode,
           outcome: "blocked",
           intakeOutcome,
@@ -1260,11 +1278,18 @@ export class DryRunRuntime {
           chaosOccurred: false,
           executionOccurred: false,
           verificationOccurred: false,
-          paperExecutionProduced: false,
-          errorOccurred: false,
-          degradedState: this.getCycleDegradedStateSummary(),
-          adapterHealth: this.getCycleAdapterHealthSummary(),
-          incidentIds: [],
+            paperExecutionProduced: false,
+            errorOccurred: false,
+            provenance: buildRuntimeCycleProvenance({
+              stage: "ingest",
+              outcome: "blocked",
+              blocked: true,
+              blockedReason: `PAPER_INGEST_BLOCKED:${marketResult.error}`,
+              cycleTimestamp: now,
+            }),
+            degradedState: this.getCycleDegradedStateSummary(),
+            adapterHealth: this.getCycleAdapterHealthSummary(),
+            incidentIds: [],
         },
       };
     }
@@ -1274,11 +1299,16 @@ export class DryRunRuntime {
     const wallet = await this.fetchPaperWalletSnapshot();
     const walletProviderViolation = getPaperWalletProviderViolation(wallet);
     if (walletProviderViolation) {
-      return {
-        kind: "blocked",
-        summary: {
-          cycleTimestamp: now,
-          traceId,
+        return {
+          kind: "blocked",
+          summary: {
+            cycleTimestamp: now,
+            traceId,
+          producer: {
+            name: "dry-run-runtime",
+            kind: "runtime_cycle_summary",
+            canonicalDecisionTruth: false,
+          },
           mode: this.mode,
           outcome: "blocked",
           intakeOutcome: "invalid",
@@ -1292,21 +1322,33 @@ export class DryRunRuntime {
           chaosOccurred: false,
           executionOccurred: false,
           verificationOccurred: false,
-          paperExecutionProduced: false,
-          errorOccurred: false,
-          degradedState: this.getCycleDegradedStateSummary(),
-          adapterHealth: this.getCycleAdapterHealthSummary(),
-          incidentIds: [],
+            paperExecutionProduced: false,
+            errorOccurred: false,
+            provenance: buildRuntimeCycleProvenance({
+              stage: "ingest",
+              outcome: "blocked",
+              blocked: true,
+              blockedReason: `PAPER_INGEST_BLOCKED:${walletProviderViolation}`,
+              cycleTimestamp: now,
+            }),
+            degradedState: this.getCycleDegradedStateSummary(),
+            adapterHealth: this.getCycleAdapterHealthSummary(),
+            incidentIds: [],
         },
       };
     }
 
     if (!wallet.walletAddress) {
-      return {
-        kind: "blocked",
-        summary: {
-          cycleTimestamp: now,
-          traceId,
+        return {
+          kind: "blocked",
+          summary: {
+            cycleTimestamp: now,
+            traceId,
+          producer: {
+            name: "dry-run-runtime",
+            kind: "runtime_cycle_summary",
+            canonicalDecisionTruth: false,
+          },
           mode: this.mode,
           outcome: "blocked",
           intakeOutcome: "invalid",
@@ -1320,11 +1362,18 @@ export class DryRunRuntime {
           chaosOccurred: false,
           executionOccurred: false,
           verificationOccurred: false,
-          paperExecutionProduced: false,
-          errorOccurred: false,
-          degradedState: this.getCycleDegradedStateSummary(),
-          adapterHealth: this.getCycleAdapterHealthSummary(),
-          incidentIds: [],
+            paperExecutionProduced: false,
+            errorOccurred: false,
+            provenance: buildRuntimeCycleProvenance({
+              stage: "ingest",
+              outcome: "blocked",
+              blocked: true,
+              blockedReason: "PAPER_INGEST_BLOCKED:invalid_wallet_snapshot",
+              cycleTimestamp: now,
+            }),
+            degradedState: this.getCycleDegradedStateSummary(),
+            adapterHealth: this.getCycleAdapterHealthSummary(),
+            incidentIds: [],
         },
       };
     }
@@ -1343,6 +1392,34 @@ export class DryRunRuntime {
     shadowArtifactChain?: RuntimeCycleSummary["shadowArtifactChain"],
     authorityArtifactChain?: RuntimeCycleSummary["authorityArtifactChain"]
   ): RuntimeCycleSummary {
+    const provenance = buildRuntimeCycleProvenance({
+      stage: state.stage,
+      outcome: this.toCycleOutcome(state),
+      blocked: state.blocked === true,
+      blockedReason: state.blockedReason,
+      error: state.error,
+      decisionEnvelope: state.decisionEnvelope,
+      execution: state.executionReport
+        ? {
+            success: state.executionReport.success,
+            mode: state.executionReport.executionMode,
+            paperExecution: state.executionReport.paperExecution,
+            actualAmountOut: state.executionReport.actualAmountOut,
+            error: state.executionReport.error,
+          }
+        : undefined,
+      verification: state.rpcVerification
+        ? {
+            passed: state.rpcVerification.passed,
+            mode: state.rpcVerification.verificationMode,
+            reason: state.rpcVerification.reason,
+          }
+        : undefined,
+      shadowArtifactChain,
+      authorityArtifactChain,
+      cycleTimestamp: this.lastCycleAt ?? state.timestamp,
+    });
+
     return {
       cycleTimestamp: this.lastCycleAt ?? state.timestamp,
       traceId: state.traceId,
@@ -1376,6 +1453,11 @@ export class DryRunRuntime {
       errorOccurred: state.error !== undefined,
       error: state.error,
       tradeIntentId: state.tradeIntent?.idempotencyKey,
+      producer: {
+        name: "dry-run-runtime",
+        kind: "runtime_cycle_summary",
+        canonicalDecisionTruth: false,
+      },
       execution: state.executionReport
         ? {
             success: state.executionReport.success,
@@ -1392,6 +1474,7 @@ export class DryRunRuntime {
             reason: state.rpcVerification.reason,
           }
         : undefined,
+      provenance,
       degradedState: this.getCycleDegradedStateSummary(),
       adapterHealth: this.getCycleAdapterHealthSummary(),
       shadowArtifactChain,

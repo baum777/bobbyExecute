@@ -56,6 +56,11 @@ function buildWorkerVisibility(
   const runtimeConfig = snapshot.runtimeConfig;
   const worker: RuntimeWorkerVisibility = {
     workerId,
+    producer: {
+      name: "runtime-worker",
+      kind: "runtime_visibility_snapshot",
+      canonicalDecisionTruth: false,
+    },
     lastHeartbeatAt: new Date().toISOString(),
     lastCycleAt: snapshot.lastCycleAt,
     lastSeenReloadNonce: runtimeConfig?.reloadNonce,
@@ -74,6 +79,11 @@ function buildWorkerVisibility(
   };
 
   return {
+    producer: {
+      name: "runtime-worker",
+      kind: "runtime_visibility_snapshot",
+      canonicalDecisionTruth: false,
+    },
     environment,
     worker,
     runtime: clone(snapshot),
