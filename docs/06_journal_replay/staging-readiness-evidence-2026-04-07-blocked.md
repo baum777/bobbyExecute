@@ -11,7 +11,7 @@ Record the real checks attempted in this session and preserve the exact blocker 
 
 - Date: `2026-04-07`
 - Operator: `Codex desktop session`
-- Commit SHA: `cf2b97b4000bc93e70069433587f965e8cceeefe`
+- Commit SHA: `347dd13`
 - Environment identifiers:
   - `bobbyexecute-bot-staging.onrender.com`
   - `bobbyexecute-control-staging.onrender.com`
@@ -31,6 +31,16 @@ Record the real checks attempted in this session and preserve the exact blocker 
 | live:preflight | `npm --prefix bot run live:preflight` | yes | blocked | Command completed `premerge` and `build`, then failed closed with `Live-test preflight requires LIVE_TRADING=true.` The generated file `bot/data/journal.live-preflight.json` was updated with `capturedAt:"2026-04-07T05:13:06.033Z"` and `status:"blocked"`. | The session did not have a real staged live overlay; the command ran in the workspace and failed closed. |
 | recovery:db-rehearse | `npm --prefix bot run recovery:db-rehearse` | yes | blocked | Command exited with `source database URL is required.` | This local shell lacks the staging rehearsal context; target rehearsal evidence is already captured separately in `staging-db-rehearsal-evidence-2026-04-07-success.md`. |
 
+## Post-Fix Target Rerun
+
+After committing and pushing the minimal proxy/live-overlay wiring fix to `main`, the target staging surfaces were probed again and still reflected the old blocked state.
+
+| Check | Command or URL | Executed | Result | Evidence captured | Blocker |
+|---|---|---:|---|---|---|
+| GET /health | `https://bobbyexecute-bot-staging.onrender.com/health` | yes | success | HTTP `200 OK`; body still reported `status:"DEGRADED"`, `runtime.mode:"dry"`, `rolloutPosture:"paper_only"`, and `readiness.liveAllowed:false`. Probe timestamp: `2026-04-07T06:47:16Z`. | The deployed staging bot had not yet reflected the live-overlay fix or remained on the pre-change rollout posture. |
+| GET /api/control/status | `https://bobbyexecute-dashboard-staging.onrender.com/api/control/status` | yes | blocked | HTTP `500 Internal Server Error`. Probe timestamp: `2026-04-07T06:47:17Z`. | The dashboard control proxy still failed fast, so the control surface was not yet proving upstream readiness. |
+| GET /api/control/release-gate | `https://bobbyexecute-dashboard-staging.onrender.com/api/control/release-gate` | yes | blocked | HTTP `500 Internal Server Error`. Probe timestamp: `2026-04-07T06:47:17Z`. | Same fast proxy failure class as `/api/control/status`. |
+
 ## Verified Interpretation
 
 - The staging bot health surface is reachable and currently reports dry-mode, paper-only posture.
@@ -40,9 +50,9 @@ Record the real checks attempted in this session and preserve the exact blocker 
 - The local worker-state drill is healthy, but it does not substitute for a target-environment rehearsal.
 - Live preflight remains blocked in this session because the required live overlay is absent.
 - Database rehearsal is already evidenced separately by `staging-db-rehearsal-evidence-2026-04-07-success.md`; the local shell failure here is only a missing staging rehearsal context, not the target proof surface.
-- Inference: the current deployed staging config is intentionally paper-only/dry (`LIVE_TRADING:false`, `TRADING_ENABLED:false`, `LIVE_TEST_MODE:false` in `render.yaml`), so live readiness is not currently backed by the staged environment truth.
+- Inference: before the fix was pushed, the staging blueprint expressed paper-only/dry defaults in `render.yaml`; after the fix was pushed, the target services still reported the pre-change blocked posture at the time of the rerun, so the deployment had not yet cut over or had not yet applied the new env wiring.
 
 ## Result
 
 - Status: blocked
-- Exact blocker: the dashboard control proxy is failing fast before it can return upstream control data, the deployed staging config remains intentionally paper-only/dry, and the workspace-local live preflight still fails closed without a live overlay (`LIVE_TRADING=true`, plus the rest of the live-critical inputs).
+- Exact blocker: the dashboard control proxy is still failing fast before it can return upstream control data, and the target staging services still reported the old paper-only/dry posture after the minimal fix was pushed.
