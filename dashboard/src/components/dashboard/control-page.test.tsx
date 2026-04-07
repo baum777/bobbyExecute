@@ -119,11 +119,13 @@ describe('ControlPage', () => {
     const html = renderToStaticMarkup(<ControlPage />);
 
     expect(html).toContain('Operator Access');
+    expect(html).toContain('Blocked / Restart State');
     expect(html).toContain('Live Promotion Governance');
     expect(html).toContain('Runtime State');
     expect(html).toContain('Kill Switch');
     expect(html).toContain('Reset Kill Switch');
     expect(html).toContain('Halt Trading');
+    expect(html).toContain('After restart');
     expect(html).not.toContain('Delivery Journal');
     expect(html).not.toContain('Restart Alerts');
     expect(html).not.toContain('Rehearsal Freshness');

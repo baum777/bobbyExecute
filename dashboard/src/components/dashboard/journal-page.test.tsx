@@ -47,16 +47,6 @@ describe('JournalPage', () => {
     mocks.useDecisions.mockReturnValue(queryResult({
       decisions: [
         {
-          id: 'canonical-1',
-          timestamp: '2026-04-07T09:55:00.000Z',
-          action: 'allow',
-          token: 'CANON-1',
-          confidence: 0.91,
-          reasons: ['Canonical reason'],
-          provenanceKind: 'canonical',
-          source: 'runtime_cycle_summary',
-        },
-        {
           id: 'legacy-1',
           timestamp: '2026-04-07T09:54:00.000Z',
           action: 'block',
@@ -65,6 +55,16 @@ describe('JournalPage', () => {
           reasons: ['Legacy reason'],
           provenanceKind: 'legacy_projection',
           source: 'action_log_projection',
+        },
+        {
+          id: 'canonical-1',
+          timestamp: '2026-04-07T09:55:00.000Z',
+          action: 'allow',
+          token: 'CANON-1',
+          confidence: 0.91,
+          reasons: ['Canonical reason'],
+          provenanceKind: 'canonical',
+          source: 'runtime_cycle_summary',
         },
       ],
     }));

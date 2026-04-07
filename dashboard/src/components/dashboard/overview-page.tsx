@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ErrorCard } from '@/components/shared/error-card';
 import { LoadingCard } from '@/components/shared/loading-card';
+import { getFirstCanonicalDecision } from '@/lib/decision-provenance';
 import { kpiProvenanceLabel } from '@/lib/kpi-provenance';
 import { relativeTime } from '@/lib/utils';
 import { AlertTriangle, Clock, ShieldAlert, ScrollText } from 'lucide-react';
@@ -21,8 +22,7 @@ export function OverviewPage() {
   const { data: restartAlerts, isLoading: incidentsLoading, error: incidentsError, refetch: refetchIncidents } = useRestartAlerts();
   const { data: decisions, isLoading: decisionsLoading, error: decisionsError, refetch: refetchDecisions } = useDecisions(10);
 
-  const canonicalDecisions = (decisions?.decisions ?? []).filter((decision) => decision.provenanceKind === 'canonical');
-  const latestCanonical = canonicalDecisions[0];
+  const latestCanonical = getFirstCanonicalDecision(decisions?.decisions);
 
   if (controlLoading || gateLoading || incidentsLoading || decisionsLoading) {
     return (
@@ -64,10 +64,26 @@ export function OverviewPage() {
         <p className="text-sm text-text-muted">System overview, release gate summary, attention flags, and canonical history snapshot.</p>
       </div>
 
-      <HeroCards />
-      <ActivitySection />
-
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <Card className={killSwitch?.halted || restart?.required || rehearsal?.blockedByFreshness ? 'border-accent-warning/40' : 'border-border-default'}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Needs Attention</CardTitle>
+                <p className="text-xs text-text-muted pt-1">Immediate runtime and recovery flags.</p>
+              </div>
+              <AlertTriangle className="h-4 w-4 text-text-muted" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>Kill switch: {killSwitch?.halted ? 'halted' : 'active'}</p>
+            <p>Restart: {restart?.required ? 'required' : 'clear'}{restart?.inProgress ? ' (in progress)' : ''}</p>
+            <p>Freshness: {rehearsal?.freshnessStatus?.toUpperCase() ?? '—'}</p>
+            <p>Open alerts: {openAlerts.length}</p>
+            <p className="text-xs text-text-muted">Blocked by freshness: {rehearsal?.blockedByFreshness ? 'yes' : 'no'}</p>
+          </CardContent>
+        </Card>
+
         <Card className={livePromotions?.gate.allowed ? 'border-accent-success/30' : 'border-accent-danger/40'}>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -97,26 +113,9 @@ export function OverviewPage() {
             )}
           </CardContent>
         </Card>
-
-        <Card className={killSwitch?.halted || restart?.required || rehearsal?.blockedByFreshness ? 'border-accent-warning/40' : 'border-border-default'}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Needs Attention</CardTitle>
-                <p className="text-xs text-text-muted pt-1">Immediate runtime and recovery flags.</p>
-              </div>
-              <AlertTriangle className="h-4 w-4 text-text-muted" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p>Kill switch: {killSwitch?.halted ? 'halted' : 'active'}</p>
-            <p>Restart: {restart?.required ? 'required' : 'clear'}{restart?.inProgress ? ' (in progress)' : ''}</p>
-            <p>Freshness: {rehearsal?.freshnessStatus?.toUpperCase() ?? '—'}</p>
-            <p>Open alerts: {openAlerts.length}</p>
-            <p className="text-xs text-text-muted">Blocked by freshness: {rehearsal?.blockedByFreshness ? 'yes' : 'no'}</p>
-          </CardContent>
-        </Card>
       </div>
+
+      <HeroCards />
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <Card>
@@ -167,10 +166,10 @@ export function OverviewPage() {
         </Card>
       </div>
 
+      <ActivitySection />
+
       <div className="rounded border border-border-subtle bg-bg-surface-hover/30 p-3 text-xs text-text-muted">
-        {controlStatus?.restart?.required ? 'Restart required' : 'Restart not required'} · {controlStatus?.liveControl?.mode ?? 'unknown'} mode ·
-        {' '}
-        Surface labels remain explicit and non-authoritative.
+        {controlStatus?.restart?.required ? 'Restart required' : 'Restart not required'} · {controlStatus?.liveControl?.mode ?? 'unknown'} mode · Surface labels remain explicit and non-authoritative.
       </div>
     </div>
   );

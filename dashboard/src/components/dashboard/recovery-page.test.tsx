@@ -131,5 +131,6 @@ describe('RecoveryPage', () => {
     expect(html).toContain('Incident Timeline');
     expect(html).toContain('Replay Entry Points');
     expect(html).toContain('Replay Rows');
+    expect(html).toContain('<details');
   });
 });

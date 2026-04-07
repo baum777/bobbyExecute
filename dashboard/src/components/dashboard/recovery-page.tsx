@@ -190,21 +190,22 @@ export function RecoveryPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Replay Entry Points</CardTitle>
-              <RotateCcw className="h-4 w-4 text-text-muted" />
+        <details className="rounded-lg border border-border-default bg-bg-surface p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-text-secondary">Replay Entry Points</p>
+              <p className="text-xs text-text-muted pt-1">Collapsed by default on smaller screens.</p>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+            <RotateCcw className="h-4 w-4 text-text-muted" />
+          </summary>
+          <div className="space-y-2 pt-3 text-sm">
             <p>Deliveries matched: {deliveries?.deliveries.length ?? 0}</p>
             <p>Trend rows: {deliveryTrends?.destinations.length ?? 0}</p>
             <p>Sent: {deliverySummary?.destinations.reduce((sum, row) => sum + row.sentCount, 0) ?? 0}</p>
             <p>Failed: {deliverySummary?.destinations.reduce((sum, row) => sum + row.failedCount, 0) ?? 0}</p>
             <p className="text-xs text-text-muted">Use the delivery timeline below to replay the incident trail.</p>
-          </CardContent>
-        </Card>
+          </div>
+        </details>
       </div>
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">

@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { LoadingCard } from '@/components/shared/loading-card';
 import { ErrorCard } from '@/components/shared/error-card';
 import { AdapterStatusBadge, DecisionActionBadge } from '@/components/shared/status-badge';
+import { getFirstCanonicalDecision, getLegacyProjectionDecisionRows } from '@/lib/decision-provenance';
 import { kpiProvenanceLabel } from '@/lib/kpi-provenance';
 import { formatTimestamp, relativeTime } from '@/lib/utils';
 import { Gauge, Layers3, RefreshCw, Cpu, ScrollText, Plug } from 'lucide-react';
@@ -31,7 +32,8 @@ export function AdvancedPage() {
   const { data: adapters, isLoading: adaptersLoading, error: adaptersError, refetch: refetchAdapters } = useAdapters();
   const { data: decisions, isLoading: decisionsLoading } = useDecisions(5);
 
-  const latestDecisionId = decisions?.decisions?.[0]?.id;
+  const decisionRows = decisions?.decisions ?? [];
+  const latestDecisionId = getFirstCanonicalDecision(decisionRows)?.id;
   const decisionAdvisory = useDecisionAdvisory(latestDecisionId);
 
   if (metricsLoading || adaptersLoading || decisionsLoading || decisionAdvisory.isLoading) {
@@ -59,7 +61,7 @@ export function AdvancedPage() {
   const advisory = decisionAdvisory.data;
   const auditCount = advisory?.audits.length ?? 0;
   const adapterRows = adapters?.adapters ?? [];
-  const legacyProjectionRows = (decisions?.decisions ?? []).filter((decision) => decision.provenanceKind === 'legacy_projection');
+  const legacyProjectionRows = getLegacyProjectionDecisionRows(decisionRows);
 
   return (
     <div className="space-y-6">
@@ -190,24 +192,22 @@ export function AdvancedPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Deferred Groups</CardTitle>
-                <p className="text-xs text-text-muted pt-1">Not active in V1; shown explicitly as deferred.</p>
-              </div>
-              <Layers3 className="h-4 w-4 text-text-muted" />
+        <details className="rounded-lg border border-border-default bg-bg-surface p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-text-secondary">Deferred Groups</p>
+              <p className="text-xs text-text-muted pt-1">Not active in V1; shown explicitly as deferred.</p>
             </div>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
+            <Layers3 className="h-4 w-4 text-text-muted" />
+          </summary>
+          <div className="flex flex-wrap gap-2 pt-3">
             {DEFERRED_GROUPS.map((group) => (
               <Badge key={group} variant="default">
                 {group}
               </Badge>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </details>
       </div>
 
       <Card>

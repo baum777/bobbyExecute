@@ -183,6 +183,38 @@ export function ControlPage() {
         and advanced diagnostics are separated onto their own routes.
       </div>
 
+      <Card className="border-accent-warning/40 md:hidden">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-text-primary font-semibold text-base">Blocked / Restart State</CardTitle>
+              <p className="text-xs text-text-muted mt-0.5">Mobile-first safety and restart summary.</p>
+            </div>
+            <ShieldAlert className="h-5 w-5 text-accent-warning" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-2">
+              <p className="text-[10px] uppercase tracking-wide text-text-muted">release_gate</p>
+              <p className="mt-1 text-text-primary">{livePromotions?.gate.allowed ? 'allowed' : 'blocked'}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-2">
+              <p className="text-[10px] uppercase tracking-wide text-text-muted">kill_switch</p>
+              <p className="mt-1 text-text-primary">{killSwitch?.halted ? 'halted' : 'active'}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-2">
+              <p className="text-[10px] uppercase tracking-wide text-text-muted">blocked</p>
+              <p className="mt-1 text-text-primary">{livePromotions?.gate.reasons.filter((reason) => reason.severity === 'blocked').length ?? 0}</p>
+            </div>
+            <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-2">
+              <p className="text-[10px] uppercase tracking-wide text-text-muted">restart_required</p>
+              <p className="mt-1 text-text-primary">{restart?.required ? 'yes' : 'no'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-border-default">
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -239,6 +271,8 @@ export function ControlPage() {
                 />
                 <Button
                   type="button"
+                  size="lg"
+                  className="w-full md:w-auto"
                   onClick={handleLogin}
                   disabled={login.isPending || operatorUsername.trim().length === 0 || operatorPassword.length === 0}
                 >
@@ -327,9 +361,15 @@ export function ControlPage() {
                       disabled={!operatorCanAdmin}
                     />
                   </div>
-                  <Button type="button" onClick={handleRequestLivePromotion} disabled={!operatorCanAdmin || requestLivePromotion.isPending}>
-                    {requestLivePromotion.isPending ? 'Requesting...' : 'Request promotion'}
-                  </Button>
+                    <Button
+                      type="button"
+                      size="lg"
+                      className="w-full md:w-auto"
+                      onClick={handleRequestLivePromotion}
+                      disabled={!operatorCanAdmin || requestLivePromotion.isPending}
+                    >
+                      {requestLivePromotion.isPending ? 'Requesting...' : 'Request promotion'}
+                    </Button>
                 </div>
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-text-secondary">Promotion requests</p>
@@ -410,7 +450,7 @@ export function ControlPage() {
                 {restart?.inProgress ? 'IN PROGRESS' : restart?.required ? 'RESTART REQUIRED' : 'READY'}
               </Badge>
               <span className="text-xs text-text-muted">Mode: {runtimeConfig?.appliedMode ?? '—'}</span>
-              <span className="text-xs text-text-muted">Pending version: {restart?.pendingVersionId ?? runtimeConfig?.requestedVersionId ?? '—'}</span>
+              <span className="text-xs text-text-muted">After restart: {restart?.pendingVersionId ?? runtimeConfig?.requestedVersionId ?? '—'}</span>
               <span className="text-xs text-text-muted">Live control: {liveControl?.mode ?? '—'}</span>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
@@ -452,8 +492,8 @@ export function ControlPage() {
               />
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
-                  variant="default"
                   size="lg"
+                  variant="default"
                   className="w-full sm:w-auto"
                   disabled={!operatorCanAdmin || restartWorker.isPending}
                   onClick={handleRestartWorker}
@@ -583,6 +623,7 @@ export function ControlPage() {
                 <div className="flex gap-2">
                   <Button
                     variant="default"
+                    size="lg"
                     className="flex-1"
                     disabled={resetInput !== RESET_CONFIRM_TEXT || resetKillSwitch.isPending || !operatorCanAdmin}
                     onClick={handleReset}

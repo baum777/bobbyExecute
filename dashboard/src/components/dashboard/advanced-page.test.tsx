@@ -37,16 +37,6 @@ describe('AdvancedPage', () => {
     mocks.useDecisions.mockReturnValue(queryResult({
       decisions: [
         {
-          id: 'canon-1',
-          timestamp: '2026-04-07T09:00:00.000Z',
-          action: 'allow',
-          token: 'CANON-1',
-          confidence: 0.9,
-          reasons: ['canonical'],
-          provenanceKind: 'canonical',
-          source: 'runtime_cycle_summary',
-        },
-        {
           id: 'legacy-1',
           timestamp: '2026-04-07T08:59:00.000Z',
           action: 'block',
@@ -55,6 +45,16 @@ describe('AdvancedPage', () => {
           reasons: ['projection'],
           provenanceKind: 'legacy_projection',
           source: 'action_log_projection',
+        },
+        {
+          id: 'canon-1',
+          timestamp: '2026-04-07T09:00:00.000Z',
+          action: 'allow',
+          token: 'CANON-1',
+          confidence: 0.9,
+          reasons: ['canonical'],
+          provenanceKind: 'canonical',
+          source: 'runtime_cycle_summary',
         },
       ],
     }));
@@ -81,10 +81,12 @@ describe('AdvancedPage', () => {
 
     const html = renderToStaticMarkup(<AdvancedPage />);
 
+    expect(mocks.useDecisionAdvisory).toHaveBeenCalledWith('canon-1');
     expect(html).toContain('Adapter Inspector');
     expect(html).toContain('AI Sources');
     expect(html).toContain('Legacy Projection Feed');
     expect(html).toContain('Deferred Groups');
+    expect(html).toContain('<details');
     expect(html).toContain('LEGACY-1');
     expect(html).not.toContain('CANON-1');
     expect(html).not.toContain('Adapter Health');

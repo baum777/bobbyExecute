@@ -1,13 +1,18 @@
+'use client';
+
+import { useState } from 'react';
 import { Topbar } from './topbar';
 import { Navigation } from './navigation';
 
 export function Shell({ children }: { children: React.ReactNode }) {
+  const [tabletNavOpen, setTabletNavOpen] = useState(false);
+
   return (
-    <div className="min-h-screen bg-bg-primary text-text-primary retro-scanlines">
-      <Topbar />
-      <div className="flex">
-        <Navigation />
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 min-h-[calc(100vh-3.5rem)] overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-bg-primary text-text-primary retro-scanlines">
+      <Topbar onOpenNavigation={() => setTabletNavOpen(true)} />
+      <div className="flex flex-1 min-h-0">
+        <Navigation tabletNavOpen={tabletNavOpen} onTabletNavOpenChange={setTabletNavOpen} />
+        <main className="flex-1 min-h-0 overflow-x-hidden p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8 lg:pb-6 lg:p-6">
           {children}
         </main>
       </div>

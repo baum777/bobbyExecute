@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { ErrorCard } from '@/components/shared/error-card';
 import { LoadingCard } from '@/components/shared/loading-card';
 import { DecisionActionBadge } from '@/components/shared/status-badge';
+import { getCanonicalDecisionRows } from '@/lib/decision-provenance';
 import { formatTimestamp } from '@/lib/utils';
 import { kpiProvenanceLabel } from '@/lib/kpi-provenance';
 import type { DecisionAction } from '@/types/api';
@@ -20,10 +21,7 @@ export function CanonicalDecisionHistory() {
   const { data, isLoading, error, refetch } = useDecisions(50);
   const [actionFilter, setActionFilter] = useState<DecisionAction | 'all'>('all');
 
-  const canonicalDecisions = useMemo(
-    () => (data?.decisions ?? []).filter((decision) => decision.provenanceKind === 'canonical'),
-    [data]
-  );
+  const canonicalDecisions = useMemo(() => getCanonicalDecisionRows(data?.decisions), [data]);
 
   const visibleDecisions = useMemo(
     () =>
@@ -137,6 +135,9 @@ export function CanonicalDecisionHistory() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-text-primary">{decision.token}</span>
+                      <Badge variant="default" className="text-[9px] px-1.5 py-0">
+                        {kpiProvenanceLabel(decision.provenanceKind)}
+                      </Badge>
                       <span className="text-xs text-text-muted">{formatTimestamp(decision.timestamp)}</span>
                     </div>
                     <p className="text-xs text-text-muted">
