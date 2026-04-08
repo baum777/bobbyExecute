@@ -188,14 +188,17 @@ async function buildDefaultIngestHandler(config: Config): Promise<() => Promise<
       recoveryTimeMs: config.circuitBreakerRecoveryMs,
     },
     dexpaprika: { baseUrl: config.dexpaprikaBaseUrl, network: "solana" },
-    moralis: { baseUrl: config.moralisBaseUrl, apiKey: config.moralisApiKey, chain: "solana" },
   });
+  const rpcClient = createRpcClient({ rpcUrl: config.rpcUrl });
 
   return createIngestHandler({
-    dexpaprika: adapterBundle.dexpaprika,
-    moralis: adapterBundle.moralis,
+    discovery: adapterBundle.dexscreener,
+    marketData: adapterBundle.dexpaprika,
+    rpcClient,
     walletAddress: config.walletAddress!,
     defaultTokenId: DEFAULT_LIVE_TOKEN_ID,
+    discoveryProvider: config.discoveryProvider,
+    marketDataProvider: config.marketDataProvider,
   } satisfies IngestAgentConfig);
 }
 

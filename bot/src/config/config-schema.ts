@@ -17,6 +17,15 @@ export type RpcMode = z.infer<typeof RpcModeSchema>;
 export const SignerModeSchema = z.enum(["disabled", "remote"]);
 export type SignerMode = z.infer<typeof SignerModeSchema>;
 
+export const DiscoveryProviderSchema = z.enum(["dexscreener", "moralis"]);
+export type DiscoveryProvider = z.infer<typeof DiscoveryProviderSchema>;
+
+export const MarketDataProviderSchema = z.enum(["dexpaprika", "dexscreener", "moralis"]);
+export type MarketDataProvider = z.infer<typeof MarketDataProviderSchema>;
+
+export const StreamingProviderSchema = z.enum(["dexpaprika", "off"]);
+export type StreamingProvider = z.infer<typeof StreamingProviderSchema>;
+
 export const ConfigSchema = z
   .object({
     // Environment
@@ -50,6 +59,10 @@ export const ConfigSchema = z
     signerTimeoutMs: z.coerce.number().int().min(100).default(10_000),
 
     // Adapter endpoints (optional in dev/test)
+    discoveryProvider: z.enum(["dexscreener", "moralis"]).default("dexscreener"),
+    marketDataProvider: z.enum(["dexpaprika", "dexscreener", "moralis"]).default("dexpaprika"),
+    streamingProvider: z.enum(["dexpaprika", "off"]).default("dexpaprika"),
+    moralisEnabled: z.boolean().default(false),
     dexpaprikaBaseUrl: z
       .string()
       .url()
@@ -116,6 +129,20 @@ export const ConfigSchema = z
       });
     }
 
+    if (data.discoveryProvider !== "dexscreener") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true requires DISCOVERY_PROVIDER=dexscreener.",
+      });
+    }
+
+    if (data.marketDataProvider !== "dexpaprika") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true requires MARKET_DATA_PROVIDER=dexpaprika.",
+      });
+    }
+
     if (data.signerMode !== "remote") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -148,6 +175,13 @@ export const ConfigSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "LIVE_TRADING=true (executionMode=live) requires OPERATOR_READ_TOKEN.",
+      });
+    }
+
+    if (data.moralisEnabled && !data.moralisApiKey) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true requires MORALIS_API_KEY when MORALIS_ENABLED=true.",
       });
     }
 
@@ -205,6 +239,10 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     executionMode: parseExecutionMode(env),
     rpcMode: parseRpcMode(env),
     rpcUrl: env.RPC_URL ?? "https://api.mainnet-beta.solana.com",
+    discoveryProvider: env.DISCOVERY_PROVIDER,
+    marketDataProvider: env.MARKET_DATA_PROVIDER,
+    streamingProvider: env.STREAMING_PROVIDER,
+    moralisEnabled: env.MORALIS_ENABLED?.toLowerCase() === "true",
     dexpaprikaBaseUrl: env.DEXPAPRIKA_BASE_URL,
     moralisBaseUrl: normalizeMoralisBaseUrl(env.MORALIS_BASE_URL),
     moralisApiKey: env.MORALIS_API_KEY,

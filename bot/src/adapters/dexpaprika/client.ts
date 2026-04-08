@@ -61,6 +61,15 @@ export class DexPaprikaClient {
     return raw;
   }
 
+  async getTokenPoolsWithHash(tokenId: string): Promise<{
+    raw: unknown;
+    rawPayloadHash: string;
+  }> {
+    const raw = await this.getTokenPools(tokenId);
+    const rawPayloadHash = sha256(JSON.stringify(raw));
+    return { raw, rawPayloadHash };
+  }
+
   async getPools(limit = 10): Promise<unknown> {
     const url = `${this.baseUrl}/networks/${this.network}/pools?limit=${limit}`;
     const res = await this._fetch(url);
@@ -72,6 +81,60 @@ export class DexPaprikaClient {
       validateFreshness(raw, this.maxStalenessMs);
     }
     return raw;
+  }
+
+  async getPool(poolAddress: string): Promise<unknown> {
+    const url = `${this.baseUrl}/networks/${this.network}/pools/${poolAddress}`;
+    const res = await this._fetch(url);
+    if (!res.ok) throw new Error(`DexPaprika error: ${res.status} ${res.statusText}`);
+    const raw = await res.json();
+    validateFreshness(raw, this.maxStalenessMs);
+    return raw;
+  }
+
+  async getPoolWithHash(poolAddress: string): Promise<{
+    raw: unknown;
+    rawPayloadHash: string;
+  }> {
+    const raw = await this.getPool(poolAddress);
+    const rawPayloadHash = sha256(JSON.stringify(raw));
+    return { raw, rawPayloadHash };
+  }
+
+  async getPoolOhlcv(poolAddress: string): Promise<unknown> {
+    const url = `${this.baseUrl}/networks/${this.network}/pools/${poolAddress}/ohlcv`;
+    const res = await this._fetch(url);
+    if (!res.ok) throw new Error(`DexPaprika error: ${res.status} ${res.statusText}`);
+    const raw = await res.json();
+    validateFreshness(raw, this.maxStalenessMs);
+    return raw;
+  }
+
+  async getPoolOhlcvWithHash(poolAddress: string): Promise<{
+    raw: unknown;
+    rawPayloadHash: string;
+  }> {
+    const raw = await this.getPoolOhlcv(poolAddress);
+    const rawPayloadHash = sha256(JSON.stringify(raw));
+    return { raw, rawPayloadHash };
+  }
+
+  async getPoolTransactions(poolAddress: string): Promise<unknown> {
+    const url = `${this.baseUrl}/networks/${this.network}/pools/${poolAddress}/transactions`;
+    const res = await this._fetch(url);
+    if (!res.ok) throw new Error(`DexPaprika error: ${res.status} ${res.statusText}`);
+    const raw = await res.json();
+    validateFreshness(raw, this.maxStalenessMs);
+    return raw;
+  }
+
+  async getPoolTransactionsWithHash(poolAddress: string): Promise<{
+    raw: unknown;
+    rawPayloadHash: string;
+  }> {
+    const raw = await this.getPoolTransactions(poolAddress);
+    const rawPayloadHash = sha256(JSON.stringify(raw));
+    return { raw, rawPayloadHash };
   }
 
   /** Returns raw response + hash for audit. */

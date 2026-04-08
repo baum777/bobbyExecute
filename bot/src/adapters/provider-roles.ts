@@ -1,46 +1,68 @@
 import type { WalletSnapshot } from "../core/contracts/wallet.js";
+import { sha256 } from "../core/determinism/hash.js";
+import type { RpcClient } from "./rpc-verify/client.js";
 import { mapTokenToMarketSnapshot } from "./dexpaprika/mapper.js";
 import type { DexPaprikaTokenResponse } from "./dexpaprika/types.js";
-import { mapMoralisToWalletSnapshot } from "./moralis/mapper.js";
-import type { MoralisTokenBalance } from "./moralis/types.js";
 import type { MarketAdapterFetch } from "./orchestrator/adapter-orchestrator.js";
 
+export const PRIMARY_DISCOVERY_PROVIDER_ID = "dexscreener" as const;
 export const PRIMARY_MARKET_PROVIDER_ID = "dexpaprika" as const;
-export const PRIMARY_WALLET_PROVIDER_ID = "moralis" as const;
+export const PRIMARY_WALLET_PROVIDER_ID = "rpc" as const;
+export const MORALIS_FALLBACK_PROVIDER_ID = "moralis" as const;
 export const OPTIONAL_INTELLIGENCE_PROVIDER_ID = "dexcheck" as const;
 
 export const CANONICAL_PROVIDER_ROLE_SPLIT = {
-  dexpaprika: {
-    providerId: PRIMARY_MARKET_PROVIDER_ID,
-    plane: "market",
+  dexscreener: {
+    providerId: PRIMARY_DISCOVERY_PROVIDER_ID,
+    plane: "discovery",
     priority: "primary",
     requiredForPaperRuntime: true,
     responsibilities: [
-      "token ingest",
+      "token search",
+      "token to candidate pair resolution",
+      "initial pair shortlist",
+      "boost / order / profile metadata",
+      "discovery evidence support",
+    ],
+  },
+  dexpaprika: {
+    providerId: PRIMARY_MARKET_PROVIDER_ID,
+    plane: "market_data",
+    priority: "primary",
+    requiredForPaperRuntime: true,
+    responsibilities: [
       "pool ingest",
-      "pair ingest",
-      "swap ingest",
-      "liquidity ingest",
-      "price ingest",
-      "volume ingest",
-      "paper-mode market truth",
+      "token latest snapshot",
+      "pool latest snapshot",
+      "ohlcv",
+      "recent pool transactions",
+      "advanced pool filtering",
+      "batched prices",
+      "paper-mode normalized market data",
       "market freshness baseline",
     ],
   },
-  moralis: {
+  rpc: {
     providerId: PRIMARY_WALLET_PROVIDER_ID,
     plane: "wallet",
     priority: "primary",
     requiredForPaperRuntime: true,
     responsibilities: [
       "wallet snapshots",
-      "holder metrics",
-      "top holders",
-      "historical holders",
-      "token search",
-      "pair enrichment",
-      "solana enrichment",
-      "secondary market cross-check",
+      "native balance",
+      "token balances",
+      "onchain verification support",
+      "derived wallet normalization",
+    ],
+  },
+  moralis: {
+    providerId: MORALIS_FALLBACK_PROVIDER_ID,
+    plane: "wallet",
+    priority: "fallback_only",
+    requiredForPaperRuntime: false,
+    responsibilities: [
+      "disabled fallback wallet snapshots",
+      "legacy cross-check support only when explicitly enabled",
     ],
   },
   dexcheck: {
@@ -96,7 +118,7 @@ export function getPaperWalletProviderViolation(
   wallet: Pick<WalletSnapshot, "source">
 ): string | null {
   if (wallet.source !== PRIMARY_WALLET_PROVIDER_ID) {
-    return "Paper runtime wallet and holder intake must come from Moralis.";
+    return "Paper runtime wallet and holder intake must come from RPC-derived snapshots.";
   }
 
   return null;
@@ -149,28 +171,52 @@ export function createCanonicalPaperMarketAdapters(params: {
   ];
 }
 
+function normalizeAtomicBalance(balance: string, decimals: number): number {
+  const raw = Number.parseFloat(balance);
+  if (!Number.isFinite(raw) || decimals < 0) {
+    return 0;
+  }
+  return raw / 10 ** decimals;
+}
+
 export function createCanonicalPaperWalletSnapshotFetcher(params: {
-  moralis: {
-    getBalancesWithHash: (walletAddress: string) => Promise<{
-      raw: unknown;
-      rawPayloadHash: string;
-    }>;
-  };
+  rpcClient: Pick<RpcClient, "getBalance">;
   walletAddress: string;
+  tokenMint?: string;
+  tokenPriceUsd?: number;
 }): () => Promise<WalletSnapshot> {
   return async () => {
     const timestamp = new Date().toISOString();
     const traceId = `paper-${PRIMARY_WALLET_PROVIDER_ID}-${timestamp}`;
-    const wallet = await params.moralis.getBalancesWithHash(params.walletAddress);
+    const trackedMint = params.tokenMint ?? "So11111111111111111111111111111111111111112";
+    const balance = await params.rpcClient.getBalance(params.walletAddress, trackedMint);
+    const normalizedAmount = normalizeAtomicBalance(balance.balance, balance.decimals);
+    const amountUsd =
+      typeof params.tokenPriceUsd === "number" && Number.isFinite(params.tokenPriceUsd)
+        ? normalizedAmount * params.tokenPriceUsd
+        : undefined;
 
-    return mapMoralisToWalletSnapshot(
-      wallet.raw as {
-        result?: MoralisTokenBalance[];
-      },
-      params.walletAddress,
+    return {
       traceId,
       timestamp,
-      wallet.rawPayloadHash
-    );
+      source: "rpc",
+      walletAddress: params.walletAddress,
+      balances: [
+        {
+          mint: trackedMint,
+          symbol: trackedMint === "So11111111111111111111111111111111111111112" ? "SOL" : trackedMint,
+          decimals: balance.decimals,
+          amount: balance.balance,
+          amountUsd,
+        },
+      ],
+      totalUsd: amountUsd,
+      rawPayloadHash: sha256(JSON.stringify({
+        walletAddress: params.walletAddress,
+        trackedMint,
+        balance,
+        tokenPriceUsd: params.tokenPriceUsd ?? null,
+      })),
+    } satisfies WalletSnapshot;
   };
 }

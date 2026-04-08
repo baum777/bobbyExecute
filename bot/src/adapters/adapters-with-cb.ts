@@ -44,7 +44,8 @@ export interface AdaptersWithCbResult {
  * Consecutive failures open the breaker; requireHealthy blocks when open (fail-closed).
  * When useFallbackCache=true, adapter failures return cached data when available.
  * Canonical paper/runtime roles are defined separately:
- * DexPaprika = primary market, Moralis = primary wallet/holder/search, DexCheck = optional intelligence-only.
+ * DexScreener = primary discovery, DexPaprika = primary market, RPC = primary wallet source,
+ * Moralis = fallback-only wallet/holder/search, DexCheck = optional intelligence-only.
  */
 export function createAdaptersWithCircuitBreaker(
   config: AdaptersWithCbConfig = {}

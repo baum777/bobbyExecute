@@ -112,8 +112,17 @@ function collectEnvBlockers(config: Config, rolloutPosture: LiveTestPreflightRep
   if (config.controlToken && config.operatorReadToken && config.controlToken === config.operatorReadToken) {
     blockers.push("CONTROL_TOKEN and OPERATOR_READ_TOKEN must be distinct.");
   }
-  if (!config.moralisApiKey) {
-    blockers.push("MORALIS_API_KEY is required.");
+  if (config.discoveryProvider !== "dexscreener") {
+    blockers.push("DISCOVERY_PROVIDER must be dexscreener.");
+  }
+  if (config.marketDataProvider !== "dexpaprika") {
+    blockers.push("MARKET_DATA_PROVIDER must be dexpaprika.");
+  }
+  if (config.streamingProvider !== "dexpaprika" && config.streamingProvider !== "off") {
+    blockers.push("STREAMING_PROVIDER must be dexpaprika or off.");
+  }
+  if (config.moralisEnabled && !config.moralisApiKey) {
+    blockers.push("MORALIS_API_KEY is required when MORALIS_ENABLED=true.");
   }
   if (!config.jupiterApiKey) {
     blockers.push("JUPITER_API_KEY is required.");

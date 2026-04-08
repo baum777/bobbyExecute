@@ -62,7 +62,31 @@ export class DexScreenerClient {
    * Returns all pairs matching the token address across all DEXes
    */
   async getTokenPairs(tokenAddress: string): Promise<DexScreenerTokenResponse> {
-    const url = `${this.baseUrl}/dex/tokens/${tokenAddress}`;
+    return this.getTokenPairsV1("solana", tokenAddress);
+  }
+
+  /**
+   * Get token pairs for a token on a specific chain.
+   * GET /latest/dex/token-pairs/v1/{chainId}/{tokenAddress}
+   */
+  async getTokenPairsV1(chainId: string, tokenAddress: string): Promise<DexScreenerTokenResponse> {
+    const url = `${this.baseUrl}/dex/token-pairs/v1/${chainId}/${tokenAddress}`;
+    const res = await this._fetch(url);
+    if (!res.ok) {
+      throw new Error(`DexScreener error: ${res.status} ${res.statusText}`);
+    }
+    const raw = (await res.json()) as DexScreenerTokenResponse;
+    this.validateResponseFreshness(raw);
+    return raw;
+  }
+
+  /**
+   * Batch token lookup for one or more addresses.
+   * GET /latest/dex/tokens/v1/{chainId}/{tokenAddresses}
+   */
+  async getTokensV1(chainId: string, tokenAddresses: readonly string[]): Promise<DexScreenerTokenResponse> {
+    const tokenList = tokenAddresses.map((token) => token.trim()).filter(Boolean).join(",");
+    const url = `${this.baseUrl}/dex/tokens/v1/${chainId}/${tokenList}`;
     const res = await this._fetch(url);
     if (!res.ok) {
       throw new Error(`DexScreener error: ${res.status} ${res.statusText}`);
@@ -79,6 +103,14 @@ export class DexScreenerClient {
    * Returns detailed information about a specific trading pair
    */
   async getPair(chainId: string, pairId: string): Promise<{ pair: DexScreenerPairInfo | null }> {
+    return this.getPairLatest(chainId, pairId);
+  }
+
+  /**
+   * Get specific pair by chain and pair address.
+   * GET /latest/dex/pairs/{chainId}/{pairId}
+   */
+  async getPairLatest(chainId: string, pairId: string): Promise<{ pair: DexScreenerPairInfo | null }> {
     const url = `${this.baseUrl}/dex/pairs/${chainId}/${pairId}`;
     const res = await this._fetch(url);
     if (!res.ok) {
@@ -150,6 +182,24 @@ export class DexScreenerClient {
     return { raw, rawPayloadHash };
   }
 
+  async getTokenPairsV1WithHash(chainId: string, tokenAddress: string): Promise<{
+    raw: DexScreenerTokenResponse;
+    rawPayloadHash: string;
+  }> {
+    const raw = await this.getTokenPairsV1(chainId, tokenAddress);
+    const rawPayloadHash = sha256(JSON.stringify(raw));
+    return { raw, rawPayloadHash };
+  }
+
+  async getTokensV1WithHash(chainId: string, tokenAddresses: readonly string[]): Promise<{
+    raw: DexScreenerTokenResponse;
+    rawPayloadHash: string;
+  }> {
+    const raw = await this.getTokensV1(chainId, tokenAddresses);
+    const rawPayloadHash = sha256(JSON.stringify(raw));
+    return { raw, rawPayloadHash };
+  }
+
   /**
    * Search with SHA-256 hash for audit trail
    * 
@@ -172,6 +222,15 @@ export class DexScreenerClient {
     rawPayloadHash: string;
   }> {
     const raw = await this.getPair(chainId, pairId);
+    const rawPayloadHash = sha256(JSON.stringify(raw));
+    return { raw, rawPayloadHash };
+  }
+
+  async getPairLatestWithHash(chainId: string, pairId: string): Promise<{
+    raw: { pair: DexScreenerPairInfo | null };
+    rawPayloadHash: string;
+  }> {
+    const raw = await this.getPairLatest(chainId, pairId);
     const rawPayloadHash = sha256(JSON.stringify(raw));
     return { raw, rawPayloadHash };
   }

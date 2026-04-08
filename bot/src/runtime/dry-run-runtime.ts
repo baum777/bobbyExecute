@@ -6,6 +6,7 @@ import type { RuntimeConfigManager } from "./runtime-config-manager.js";
 import type { ExecutionReport, RpcVerificationReport, TradeIntent } from "../core/contracts/trade.js";
 import type { MarketSnapshot } from "../core/contracts/market.js";
 import type { WalletSnapshot } from "../core/contracts/wallet.js";
+import type { RpcClient } from "../adapters/rpc-verify/client.js";
 import { isKillSwitchHalted, triggerKillSwitch } from "../governance/kill-switch.js";
 import { CircuitBreaker } from "../governance/circuit-breaker.js";
 import { FileSystemJournalWriter, type JournalWriter } from "../journal-writer/writer.js";
@@ -330,6 +331,7 @@ export interface DryRunRuntimeDeps {
   paperMarketAdapters?: MarketAdapterFetch[];
   paperAdapterCircuitBreaker?: AdapterOrchestratorConfig["circuitBreaker"];
   maxPaperMarketStalenessMs?: number;
+  rpcClient?: Pick<RpcClient, "getBalance">;
   fetchPaperWalletSnapshot?: () => Promise<WalletSnapshot>;
   cycleSummaryWriter?: RuntimeCycleSummaryWriter;
   incidentRecorder?: IncidentRecorder;
@@ -420,7 +422,7 @@ export class DryRunRuntime {
       (async () => ({
         traceId: "paper-wallet-unavailable",
         timestamp: this.clock.now().toISOString(),
-        source: "moralis",
+        source: "rpc",
         walletAddress: this.config.walletAddress ?? "paper-wallet",
         balances: [],
         totalUsd: 0,
@@ -981,7 +983,7 @@ export class DryRunRuntime {
           cycleWallet = {
             traceId: `runtime-${now}`,
             timestamp: now,
-            source: "moralis",
+            source: "rpc",
             walletAddress: this.config.walletAddress ?? "dry-run-wallet",
             balances: [],
             totalUsd: 0,

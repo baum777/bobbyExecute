@@ -95,8 +95,16 @@ export function assertLiveTradingPrerequisites(config: Config): void {
     throw new Error("LIVE_TRADING=true requires OPERATOR_READ_TOKEN.");
   }
 
-  if (!config.moralisApiKey) {
-    throw new Error("LIVE_TRADING=true requires MORALIS_API_KEY.");
+  if (config.discoveryProvider !== "dexscreener") {
+    throw new Error("LIVE_TRADING=true requires DISCOVERY_PROVIDER=dexscreener.");
+  }
+
+  if (config.marketDataProvider !== "dexpaprika") {
+    throw new Error("LIVE_TRADING=true requires MARKET_DATA_PROVIDER=dexpaprika.");
+  }
+
+  if (config.moralisEnabled && !config.moralisApiKey) {
+    throw new Error("LIVE_TRADING=true requires MORALIS_API_KEY when MORALIS_ENABLED=true.");
   }
 
   if (!config.jupiterApiKey) {

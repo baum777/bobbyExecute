@@ -1,6 +1,6 @@
 /**
- * Wallet/portfolio contracts - normalized from Moralis.
- * PROPOSED for onchain trading bot.
+ * Wallet/portfolio contracts - normalized from direct RPC or legacy wallet providers.
+ * Wallet snapshots remain non-authoritative and are normalized before runtime use.
  */
 import { z } from "zod";
 
@@ -15,7 +15,7 @@ export const TokenBalanceSchema = z.object({
 export const WalletSnapshotSchema = z.object({
   traceId: z.string(),
   timestamp: z.string().datetime(),
-  source: z.literal("moralis"),
+  source: z.enum(["rpc", "moralis"]),
   walletAddress: z.string(),
   balances: z.array(TokenBalanceSchema),
   totalUsd: z.number().optional(),

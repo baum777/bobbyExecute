@@ -36,6 +36,14 @@ environments:
             value: required
           - key: RPC_MODE
             value: real
+          - key: DISCOVERY_PROVIDER
+            value: dexscreener
+          - key: MARKET_DATA_PROVIDER
+            value: dexpaprika
+          - key: STREAMING_PROVIDER
+            value: dexpaprika
+          - key: MORALIS_ENABLED
+            value: "false"
           - key: ROLLOUT_POSTURE
             value: micro_live
           - key: MAX_SLIPPAGE_PERCENT
@@ -99,6 +107,14 @@ environments:
             value: remote
           - key: RPC_MODE
             value: real
+          - key: DISCOVERY_PROVIDER
+            value: dexscreener
+          - key: MARKET_DATA_PROVIDER
+            value: dexpaprika
+          - key: STREAMING_PROVIDER
+            value: dexpaprika
+          - key: MORALIS_ENABLED
+            value: "false"
           - key: ROLLOUT_POSTURE
             value: micro_live
           - key: WALLET_ADDRESS
@@ -177,6 +193,14 @@ environments:
             value: required
           - key: RPC_MODE
             value: real
+          - key: DISCOVERY_PROVIDER
+            value: dexscreener
+          - key: MARKET_DATA_PROVIDER
+            value: dexpaprika
+          - key: STREAMING_PROVIDER
+            value: dexpaprika
+          - key: MORALIS_ENABLED
+            value: "false"
           - key: ROLLOUT_POSTURE
             value: micro_live
           - key: MAX_SLIPPAGE_PERCENT

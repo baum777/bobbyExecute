@@ -1,18 +1,18 @@
 /**
- * DexScreener Response Mapper
- * Version: 1.0.0 | Owner: Kimi Swarm | Layer: adapters/dexscreener | Last Updated: 2026-03-05
- * 
- * Maps DexScreener API responses to canonical contracts:
- * - MarketSnapshot (for individual pairs)
- * - NormalizedTokenV1[] (for TokenUniverse)
+ * DexScreener response mappers.
+ *
+ * Legacy helpers remain for existing MarketSnapshot consumers.
+ * New helpers normalize discovery output into provider-agnostic contracts
+ * without promoting raw API payloads to canonical truth.
  */
 import type { NormalizedTokenV1 } from "../../core/contracts/normalized-token.js";
+import type {
+  CandidatePairSearchResultV1,
+  NormalizedPairCandidateV1,
+} from "../../core/contracts/provider-market-data.js";
 import type { MarketSnapshot } from "../../core/contracts/market.js";
 import type { DexScreenerPairInfo, DexScreenerTokenResponse } from "./types.js";
 
-/**
- * Map a single DexScreener pair to MarketSnapshot
- */
 export function mapPairToMarketSnapshot(
   pair: DexScreenerPairInfo,
   traceId: string,
@@ -35,9 +35,104 @@ export function mapPairToMarketSnapshot(
   };
 }
 
+export function mapPairToNormalizedPairCandidate(
+  pair: DexScreenerPairInfo,
+  tokenId: string,
+  observedAt: string,
+  rawPayloadHash?: string
+): NormalizedPairCandidateV1 {
+  const priceUsd = parseFloat(pair.priceUsd);
+  const liquidityUsd = pair.liquidity?.usd;
+  const volume24hUsd = pair.volume?.h24;
+  const hasPrice = Number.isFinite(priceUsd) && priceUsd > 0;
+  const hasLiquidity = typeof liquidityUsd === "number" && Number.isFinite(liquidityUsd) && liquidityUsd >= 0;
+  const hasVolume = typeof volume24hUsd === "number" && Number.isFinite(volume24hUsd) && volume24hUsd >= 0;
+
+  return {
+    schema_version: "normalized_pair_candidate.v1",
+    provider: "dexscreener",
+    kind: "discovery",
+    chain: "solana",
+    tokenId,
+    pairId: pair.pairAddress,
+    dexId: pair.dexId,
+    baseTokenAddress: pair.baseToken.address,
+    baseTokenSymbol: pair.baseToken.symbol,
+    quoteTokenAddress: pair.quoteToken.address,
+    quoteTokenSymbol: pair.quoteToken.symbol,
+    ...(hasPrice ? { priceUsd } : {}),
+    ...(hasLiquidity ? { liquidityUsd } : {}),
+    ...(hasVolume ? { volume24hUsd } : {}),
+    freshnessMs: 0,
+    observedAt,
+    ...(rawPayloadHash ? { rawPayloadHash } : {}),
+    status: hasPrice && hasLiquidity ? "ok" : "partial",
+    metadata: {
+      url: pair.url,
+      chainId: pair.chainId,
+      pairCreatedAt: pair.pairCreatedAt,
+      priceNative: pair.priceNative,
+    },
+  };
+}
+
+export function mapTokenPairsToCandidatePairSearchResult(
+  response: DexScreenerTokenResponse,
+  query: string,
+  tokenId: string,
+  fetchedAt: string,
+  rawPayloadHash?: string
+): CandidatePairSearchResultV1 {
+  const candidates = (response.pairs ?? []).map((pair) =>
+    mapPairToNormalizedPairCandidate(pair, tokenId, fetchedAt, rawPayloadHash)
+  );
+  const selected = selectCanonicalPairCandidate(candidates, tokenId);
+
+  return {
+    schema_version: "candidate_pair_search_result.v1",
+    provider: "dexscreener",
+    kind: "discovery",
+    query,
+    chain: "solana",
+    tokenId,
+    observedAt: fetchedAt,
+    fetchedAt,
+    ...(selected ? { selectedPairId: selected.pairId, canonicalTokenId: selected.baseTokenAddress } : {}),
+    candidates,
+    ...(rawPayloadHash ? { rawPayloadHash } : {}),
+    status: candidates.length > 0 ? "ok" : "partial",
+  };
+}
+
+export function selectCanonicalPairCandidate(
+  candidates: readonly NormalizedPairCandidateV1[],
+  tokenId: string
+): NormalizedPairCandidateV1 | undefined {
+  const ranked = candidates
+    .filter((candidate) => candidate.chain === "solana")
+    .filter((candidate) => candidate.baseTokenAddress === tokenId)
+    .sort((left, right) => {
+      const leftLiquidity = left.liquidityUsd ?? 0;
+      const rightLiquidity = right.liquidityUsd ?? 0;
+      if (rightLiquidity !== leftLiquidity) {
+        return rightLiquidity - leftLiquidity;
+      }
+
+      const leftVolume = left.volume24hUsd ?? 0;
+      const rightVolume = right.volume24hUsd ?? 0;
+      if (rightVolume !== leftVolume) {
+        return rightVolume - leftVolume;
+      }
+
+      return (right.priceUsd ?? 0) - (left.priceUsd ?? 0);
+    });
+
+  return ranked[0];
+}
+
 /**
  * Map DexScreener response to array of NormalizedTokenV1
- * 
+ *
  * Groups pairs by base token and creates canonical token entries.
  * Used for TokenUniverse building.
  */
@@ -64,8 +159,8 @@ export function mapPairsToTokenUniverse(
 
   return Array.from(byToken.entries()).map(([address, pairs]) => {
     const primaryPair = pairs[0];
-    const allLiquidity = pairs.reduce((sum, p) => sum + (p.liquidity?.usd || 0), 0);
-    const allVolume = pairs.reduce((sum, p) => sum + (p.volume?.h24 || 0), 0);
+    void traceId;
+    void rawPayloadHash;
 
     return {
       schema_version: "normalized_token.v1",
@@ -85,7 +180,7 @@ export function mapPairsToTokenUniverse(
         name: primaryPair.baseToken.name,
         decimals: undefined, // Not provided by DexScreener API
         logoUrl: undefined,
-        tags: [...new Set(pairs.map(p => p.dexId))], // Unique DEX IDs
+        tags: [...new Set(pairs.map((p) => p.dexId))], // Unique DEX IDs
       },
       discovered_at: timestamp,
       last_updated: timestamp,
@@ -95,7 +190,7 @@ export function mapPairsToTokenUniverse(
 
 /**
  * Calculate confidence score based on available data
- * 
+ *
  * Factors:
  * - Number of pairs (more = better, up to 5)
  * - Total liquidity (higher = better, up to $1M)
@@ -103,34 +198,34 @@ export function mapPairsToTokenUniverse(
  */
 function calculateConfidence(pairs: DexScreenerPairInfo[]): number {
   if (pairs.length === 0) return 0;
-  
+
   const totalLiquidity = pairs.reduce((sum, p) => sum + (p.liquidity?.usd || 0), 0);
   const totalVolume = pairs.reduce((sum, p) => sum + (p.volume?.h24 || 0), 0);
-  
+
   // Liquidity score: logarithmic scale, capped at $1M
-  const liquidityScore = totalLiquidity > 0 
+  const liquidityScore = totalLiquidity > 0
     ? Math.min(1, Math.log10(totalLiquidity) / 6) // log10(1M) = 6
     : 0;
-  
+
   // Pair count score: more pairs = higher confidence (up to 5)
   const pairCountScore = Math.min(1, pairs.length / 5);
-  
+
   // Volume score: logarithmic scale, capped at $100K
   const volumeScore = totalVolume > 0
     ? Math.min(1, Math.log10(totalVolume) / 5) // log10(100K) = 5
     : 0;
-  
+
   // Weighted combination
   // 50% liquidity, 30% pair count, 20% volume
   const rawScore = (liquidityScore * 0.5) + (pairCountScore * 0.3) + (volumeScore * 0.2);
-  
+
   // Scale to 0.5-1.0 range (minimum 0.5 for any valid data)
   return 0.5 + (rawScore * 0.5);
 }
 
 /**
  * Extract trending tokens from DexScreener response
- * 
+ *
  * Sorts by volume and returns top N tokens
  */
 export function extractTrendingTokens(
@@ -143,11 +238,11 @@ export function extractTrendingTokens(
 
   // Group by token and aggregate metrics
   const byToken = new Map<string, { symbol: string; address: string; volume24h: number; liquidity: number }>();
-  
+
   for (const pair of response.pairs) {
     const addr = pair.baseToken.address;
     const existing = byToken.get(addr);
-    
+
     if (existing) {
       existing.volume24h += pair.volume?.h24 || 0;
       existing.liquidity += pair.liquidity?.usd || 0;

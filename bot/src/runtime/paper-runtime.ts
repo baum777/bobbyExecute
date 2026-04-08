@@ -6,6 +6,7 @@ import {
   createCanonicalPaperWalletSnapshotFetcher,
 } from "../adapters/provider-roles.js";
 import { createAdaptersWithCircuitBreaker } from "../adapters/adapters-with-cb.js";
+import { createRpcClient } from "../adapters/rpc-verify/client.js";
 import { FileSystemActionLogger } from "../observability/action-log.js";
 import { createDryRunRuntime, type DryRunRuntime, type DryRunRuntimeDeps } from "./dry-run-runtime.js";
 
@@ -35,8 +36,8 @@ export function createPaperRuntime(config: Config, runtimeDeps?: PaperRuntimeDep
       recoveryTimeMs: config.circuitBreakerRecoveryMs,
     },
     dexpaprika: { baseUrl: config.dexpaprikaBaseUrl, network: "solana" },
-    moralis: { baseUrl: config.moralisBaseUrl, apiKey: config.moralisApiKey, chain: "solana" },
   });
+  const rpcClient = runtimeDeps?.rpcClient ?? createRpcClient({ rpcUrl: config.rpcUrl });
   const paperMarketAdapters =
     runtimeDeps?.paperMarketAdapters ??
     createCanonicalPaperMarketAdapters({
@@ -59,7 +60,7 @@ export function createPaperRuntime(config: Config, runtimeDeps?: PaperRuntimeDep
     fetchPaperWalletSnapshot:
       runtimeDeps?.fetchPaperWalletSnapshot ??
       createCanonicalPaperWalletSnapshotFetcher({
-        moralis: adapterBundle.moralis,
+        rpcClient,
         walletAddress: config.walletAddress,
       }),
   });
