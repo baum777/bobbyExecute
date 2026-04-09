@@ -35,6 +35,7 @@ function liveConfigEnv(): Record<string, string | undefined> {
   return {
     NODE_ENV: "test",
     LIVE_TRADING: "true",
+    DRY_RUN: "false",
     RPC_MODE: "real",
     TRADING_ENABLED: "true",
     LIVE_TEST_MODE: "true",

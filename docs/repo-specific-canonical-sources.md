@@ -23,6 +23,7 @@ The Tier 1 architecture and boundary docs above now also carry the Dashboard V1 
 
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/glossary/architecture-terms.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/forensics-evidence-plane.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/signing-architecture.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/workflow-consumers.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/journal-memory-casebook-architecture.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/journal-memory-validation-gates.md`

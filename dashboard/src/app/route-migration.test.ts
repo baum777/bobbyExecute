@@ -21,7 +21,7 @@ describe('dashboard route migration', () => {
   });
 
   it('redirects the root route to /overview', async () => {
-    await expectRedirect('./page', '/overview');
+    await expectRedirect('./page', '/control');
   });
 
   it('redirects legacy adapters to /advanced', async () => {

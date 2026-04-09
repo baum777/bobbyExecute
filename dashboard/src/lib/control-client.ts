@@ -39,6 +39,14 @@ function isReadOnlyRequest(method: string | undefined): boolean {
   return method == null || method === "GET" || method === "HEAD";
 }
 
+function normalizeRequestBody(body: BodyInit | null | undefined): BodyInit | undefined {
+  if (typeof body === "string" && body.length === 0) {
+    return undefined;
+  }
+
+  return body ?? undefined;
+}
+
 export function resolveControlServiceRequestToken(
   env: NodeJS.ProcessEnv = process.env,
   method: string | undefined = undefined
@@ -63,11 +71,12 @@ export function buildControlRequestHeaders(
   initHeaders: HeadersInit | undefined,
   env: NodeJS.ProcessEnv = process.env,
   operatorHeaders: HeadersInit | undefined = undefined,
-  method: string | undefined = undefined
+  method: string | undefined = undefined,
+  body: BodyInit | null | undefined = undefined
 ): Headers {
   const headers = new Headers(initHeaders);
   headers.set("authorization", `Bearer ${resolveControlServiceRequestToken(env, method)}`);
-  if (!headers.has("content-type")) {
+  if (normalizeRequestBody(body) !== undefined && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
   }
   const forwardedOperatorHeaders = new Headers(operatorHeaders);
@@ -91,9 +100,11 @@ export async function forwardControlRequest(
   operatorHeaders: HeadersInit | undefined = undefined
 ): Promise<Response> {
   const url = buildControlServiceUrl(path, env);
-  const headers = buildControlRequestHeaders(init.headers, env, operatorHeaders, init.method);
+  const body = normalizeRequestBody(init.body);
+  const headers = buildControlRequestHeaders(init.headers, env, operatorHeaders, init.method, body);
   return fetch(url, {
     ...init,
+    body,
     headers,
     cache: "no-store",
   });

@@ -71,13 +71,32 @@ function buildDeliveryQueryString(query: WorkerRestartDeliveryQuery = {}): strin
   return encoded ? `?${encoded}` : '';
 }
 
+function normalizeRequestBody(body: BodyInit | null | undefined): BodyInit | undefined {
+  if (typeof body === 'string' && body.length === 0) {
+    return undefined;
+  }
+
+  return body ?? undefined;
+}
+
+function buildJsonRequestInit(options?: RequestInit): RequestInit {
+  const body = normalizeRequestBody(options?.body);
+  const headers = new Headers(options?.headers);
+
+  if (body !== undefined && !headers.has('content-type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return {
+    ...options,
+    body,
+    headers,
+  };
+}
+
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    ...buildJsonRequestInit(options),
   });
 
   if (!response.ok) {
@@ -101,11 +120,7 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
 
 async function fetchProxyApi<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api/control${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    ...buildJsonRequestInit(options),
   });
 
   if (!response.ok) {
@@ -129,11 +144,7 @@ async function fetchProxyApi<T>(path: string, options?: RequestInit): Promise<T>
 
 async function fetchAuthApi<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api/auth${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    ...buildJsonRequestInit(options),
   });
 
   if (!response.ok) {

@@ -65,6 +65,7 @@ describe("Swap Safety (M0)", () => {
   const origEnv = {
     LIVE_TRADING: process.env.LIVE_TRADING,
     RPC_MODE: process.env.RPC_MODE,
+    RPC_URL: process.env.RPC_URL,
     TRADING_ENABLED: process.env.TRADING_ENABLED,
     LIVE_TEST_MODE: process.env.LIVE_TEST_MODE,
     JUPITER_API_KEY: process.env.JUPITER_API_KEY,
@@ -74,6 +75,7 @@ describe("Swap Safety (M0)", () => {
     vi.stubGlobal("fetch", vi.fn());
     delete process.env.LIVE_TRADING;
     delete process.env.RPC_MODE;
+    delete process.env.RPC_URL;
     delete process.env.TRADING_ENABLED;
     delete process.env.LIVE_TEST_MODE;
     delete process.env.JUPITER_API_KEY;
@@ -84,6 +86,8 @@ describe("Swap Safety (M0)", () => {
     else delete process.env.LIVE_TRADING;
     if (origEnv.RPC_MODE !== undefined) process.env.RPC_MODE = origEnv.RPC_MODE;
     else delete process.env.RPC_MODE;
+    if (origEnv.RPC_URL !== undefined) process.env.RPC_URL = origEnv.RPC_URL;
+    else delete process.env.RPC_URL;
     if (origEnv.TRADING_ENABLED !== undefined) process.env.TRADING_ENABLED = origEnv.TRADING_ENABLED;
     else delete process.env.TRADING_ENABLED;
     if (origEnv.LIVE_TEST_MODE !== undefined) process.env.LIVE_TEST_MODE = origEnv.LIVE_TEST_MODE;
@@ -146,6 +150,7 @@ describe("Swap Safety (M0)", () => {
   it("passes JUPITER_API_KEY through live quote and swap requests", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
     process.env.TRADING_ENABLED = "true";
     process.env.LIVE_TEST_MODE = "true";
     process.env.JUPITER_API_KEY = "jupiter-test-key";
@@ -193,6 +198,7 @@ describe("Swap Safety (M0)", () => {
   it("fails clearly when JUPITER_API_KEY is missing in live mode", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
     process.env.TRADING_ENABLED = "true";
     process.env.LIVE_TEST_MODE = "true";
     delete process.env.JUPITER_API_KEY;
@@ -223,6 +229,7 @@ describe("Swap Safety (M0)", () => {
   it("keeps live artifacts deterministic for the same input", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
     process.env.LIVE_QUOTE_MAX_AGE_MS = "999999999999";
 
     const quote = makeFreshQuote({
@@ -285,6 +292,7 @@ describe("Swap Safety (M0)", () => {
   it("retries verification without creating duplicate send effects", async () => {
     process.env.LIVE_TRADING = "true";
     process.env.RPC_MODE = "real";
+    process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
     process.env.LIVE_QUOTE_MAX_AGE_MS = "999999999999";
     process.env.LIVE_VERIFY_MAX_ATTEMPTS = "3";
     process.env.LIVE_VERIFY_RETRY_MS = "0";
