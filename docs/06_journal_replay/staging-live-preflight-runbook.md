@@ -17,7 +17,7 @@ Verified code surfaces that define the preflight gate:
 - `bot/src/runtime/live-runtime.ts` later consumes the same safety state at runtime start; preflight is necessary but not sufficient for running the worker.
 - `bot/src/runtime/live-control.ts` models the live-test round state machine that runtime start uses after preflight.
 - `bot/src/recovery/worker-state-manifest.ts` derives worker-local artifact paths from `JOURNAL_PATH`.
-- `.env.example` and `render.yaml` are intentionally non-live by default and must be overridden in the rehearsal environment.
+- `.env.example` and `render.yaml` now default the provider stack to `DISCOVERY_PROVIDER=dexscreener`, `MARKET_DATA_PROVIDER=dexpaprika`, `STREAMING_PROVIDER=dexpaprika`, and `MORALIS_ENABLED=false`; staging overrides still must supply the live-mode secrets and mounted state.
 
 Important truth boundary:
 
@@ -66,13 +66,16 @@ Companion preparation and evidence artifacts:
 | `LIVE_TEST_MODE` | `true` | Live preflight requires the live-test guardrail mode. |
 | `RPC_MODE` | `real` | Live trading requires real RPC mode. |
 | `RUNTIME_POLICY_AUTHORITY` | `ts-env` | YAML is not authoritative at boot. |
+| `DISCOVERY_PROVIDER` | `dexscreener` | Default discovery source for token and pair lookup. |
+| `MARKET_DATA_PROVIDER` | `dexpaprika` | Default normalized market-data source. |
+| `STREAMING_PROVIDER` | `dexpaprika` | Default streaming source when streaming is enabled. |
+| `MORALIS_ENABLED` | `false` | Moralis remains deferred and disabled by default. |
 | `WALLET_ADDRESS` | non-empty wallet address | Required for live mode. |
 | `SIGNER_MODE` | `remote` | Live mode requires a remote signing boundary. |
 | `SIGNER_URL` | valid URL | Required when `SIGNER_MODE=remote`. |
 | `SIGNER_AUTH_TOKEN` | non-empty secret | Required when `SIGNER_MODE=remote`. |
 | `CONTROL_TOKEN` | non-empty secret | Required live-control token. |
 | `OPERATOR_READ_TOKEN` | non-empty secret | Required operator-read token. |
-| `MORALIS_API_KEY` | non-empty secret | Required live-mode adapter input. |
 | `JUPITER_API_KEY` | non-empty secret | Required live-mode adapter input. |
 | `JOURNAL_PATH` | mounted journal path | Drives the file-backed worker state check. |
 
@@ -89,7 +92,7 @@ Companion preparation and evidence artifacts:
 |---|---|---|
 | `SIGNER_URL` | required | Use the staging signer endpoint. The config gate only requires a valid URL, but the documented boundary is remote signing. |
 | `RPC_URL` | explicit staging value strongly recommended | The config defaults to mainnet-beta, but staging should use an explicit live RPC target. |
-| `MORALIS_BASE_URL` | optional override | Default is `https://solana-gateway.moralis.io`. |
+| `MORALIS_BASE_URL` | optional override | Default is `https://solana-gateway.moralis.io`. Moralis is fallback-only unless `MORALIS_ENABLED=true`. |
 | `JUPITER_QUOTE_URL` | optional override | Default is `https://api.jup.ag/swap/v1`. |
 | `JUPITER_SWAP_URL` | optional override | Default is `https://api.jup.ag/swap/v1`. |
 
@@ -145,7 +148,9 @@ Boot-critical files must exist, be non-empty, and parse to the expected shapes. 
 - `LIVE_TEST_MODE` is not `true`.
 - `RPC_MODE` is not `real`.
 - `SIGNER_MODE` is not `remote`.
-- `SIGNER_URL`, `SIGNER_AUTH_TOKEN`, `WALLET_ADDRESS`, `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, `MORALIS_API_KEY`, or `JUPITER_API_KEY` are missing.
+- `DISCOVERY_PROVIDER`, `MARKET_DATA_PROVIDER`, or `STREAMING_PROVIDER` are not set to the default staging values.
+- `MORALIS_ENABLED=true` and `MORALIS_API_KEY` is missing.
+- `SIGNER_URL`, `SIGNER_AUTH_TOKEN`, `WALLET_ADDRESS`, `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, or `JUPITER_API_KEY` are missing.
 - `CONTROL_TOKEN` equals `OPERATOR_READ_TOKEN`.
 - `ROLLOUT_POSTURE` is invalid.
 - `ROLLOUT_POSTURE` is `paper_only` or `paused_or_rolled_back` when attempting to proceed from preflight to live runtime start (fail-closed live posture).
@@ -155,7 +160,7 @@ Boot-critical files must exist, be non-empty, and parse to the expected shapes. 
 
 1. Prepare a staging-only environment overlay outside the repo. Do not edit checked-in `.env.example` for rehearsal secrets.
 2. Set the live-mode and policy env vars first: `RUNTIME_POLICY_AUTHORITY=ts-env`, `LIVE_TRADING=true`, `TRADING_ENABLED=true`, `LIVE_TEST_MODE=true`, and `RPC_MODE=real`.
-3. Inject the remaining required inputs: `WALLET_ADDRESS`, `SIGNER_MODE=remote`, `SIGNER_URL`, `SIGNER_AUTH_TOKEN`, `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, `MORALIS_API_KEY`, `JUPITER_API_KEY`, and `JOURNAL_PATH`.
+3. Inject the remaining required inputs: `DISCOVERY_PROVIDER=dexscreener`, `MARKET_DATA_PROVIDER=dexpaprika`, `STREAMING_PROVIDER=dexpaprika`, `MORALIS_ENABLED=false`, `WALLET_ADDRESS`, `SIGNER_MODE=remote`, `SIGNER_URL`, `SIGNER_AUTH_TOKEN`, `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, `JUPITER_API_KEY`, and `JOURNAL_PATH`.
 4. Provision the mounted disk or directory for `JOURNAL_PATH`, then create or restore the nine required artifact files above.
 5. Apply explicit staging overrides such as `ROLLOUT_POSTURE=micro_live`, `RPC_URL`, and the three live-test caps.
 6. Optional but useful: run `npm --prefix bot run recovery:worker-state` to inspect the same file-backed state view that live preflight consumes.

@@ -1,0 +1,11 @@
+[
+  {
+    "key": "ingest-2026-04-09T07-28-05-299Z-intent",
+    "value": {
+      "status": "failed",
+      "traceId": "trace-2026-04-09T07-28-411000718",
+      "failureCode": "controlled_execution_stub"
+    },
+    "createdAt": "2026-04-09T07:28:10.991Z"
+  }
+]

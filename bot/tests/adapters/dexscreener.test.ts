@@ -131,16 +131,16 @@ describe("DexScreener Client", () => {
   });
 
   it("getTokenPairs builds correct URL and returns JSON", async () => {
-    const mockJson = { schemaVersion: "1.0", pairs: [] };
+    const mockJson = [];
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockJson),
     });
     const client = new DexScreenerClient();
     const result = await client.getTokenPairs("mint123");
-    expect(result).toEqual(mockJson);
+    expect(result).toEqual({ schemaVersion: "1.0", pairs: [] });
     expect(fetch).toHaveBeenCalledWith(
-      "https://api.dexscreener.com/latest/dex/tokens/mint123",
+      "https://api.dexscreener.com/token-pairs/v1/solana/mint123",
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
@@ -158,14 +158,14 @@ describe("DexScreener Client", () => {
   });
 
   it("getTokenPairsWithHash returns raw and rawPayloadHash", async () => {
-    const mockJson = { schemaVersion: "1.0", pairs: [mockPair] };
+    const mockJson = [mockPair];
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockJson),
     });
     const client = new DexScreenerClient();
     const { raw, rawPayloadHash } = await client.getTokenPairsWithHash("mintA");
-    expect(raw).toEqual(mockJson);
+    expect(raw).toEqual({ schemaVersion: "1.0", pairs: [mockPair] });
     expect(rawPayloadHash).toBeDefined();
     expect(typeof rawPayloadHash).toBe("string");
     expect(rawPayloadHash.length).toBe(64);
@@ -176,7 +176,7 @@ describe("DexScreener Client", () => {
     const client = new DexScreenerClient({ baseUrl: "https://custom.api/v1" });
     await client.getTokenPairs("mint");
     expect(fetch).toHaveBeenCalledWith(
-      "https://custom.api/v1/dex/tokens/mint",
+      "https://custom.api/v1/token-pairs/v1/solana/mint",
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });

@@ -26,6 +26,14 @@ export type MarketDataProvider = z.infer<typeof MarketDataProviderSchema>;
 export const StreamingProviderSchema = z.enum(["dexpaprika", "off"]);
 export type StreamingProvider = z.infer<typeof StreamingProviderSchema>;
 
+function parseBoolEnv(raw: string | undefined, fallback: boolean): boolean {
+  if (raw == null || raw.trim() === "") {
+    return fallback;
+  }
+
+  return raw.trim().toLowerCase() === "true";
+}
+
 export const ConfigSchema = z
   .object({
     // Environment
@@ -34,9 +42,9 @@ export const ConfigSchema = z
       .default("development"),
 
     // Feature flags
-    dryRun: z.coerce.boolean().default(true),
-    tradingEnabled: z.coerce.boolean().default(false),
-    liveTestMode: z.coerce.boolean().default(false),
+    dryRun: z.boolean().default(true),
+    tradingEnabled: z.boolean().default(false),
+    liveTestMode: z.boolean().default(false),
     runtimePolicyAuthority: z.enum(["ts-env", "yaml"]).default("ts-env"),
 
     // Execution mode semantics (from LIVE_TRADING env)
@@ -232,9 +240,9 @@ function normalizeMoralisBaseUrl(raw: string | undefined): string | undefined {
 export function parseConfig(env: Record<string, string | undefined>): Config {
   const raw = {
     nodeEnv: env.NODE_ENV,
-    dryRun: env.DRY_RUN,
-    tradingEnabled: env.TRADING_ENABLED,
-    liveTestMode: env.LIVE_TEST_MODE,
+    dryRun: parseBoolEnv(env.DRY_RUN, true),
+    tradingEnabled: parseBoolEnv(env.TRADING_ENABLED, false),
+    liveTestMode: parseBoolEnv(env.LIVE_TEST_MODE, false),
     runtimePolicyAuthority: env.RUNTIME_POLICY_AUTHORITY,
     executionMode: parseExecutionMode(env),
     rpcMode: parseRpcMode(env),
@@ -242,7 +250,7 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     discoveryProvider: env.DISCOVERY_PROVIDER,
     marketDataProvider: env.MARKET_DATA_PROVIDER,
     streamingProvider: env.STREAMING_PROVIDER,
-    moralisEnabled: env.MORALIS_ENABLED?.toLowerCase() === "true",
+    moralisEnabled: parseBoolEnv(env.MORALIS_ENABLED, false),
     dexpaprikaBaseUrl: env.DEXPAPRIKA_BASE_URL,
     moralisBaseUrl: normalizeMoralisBaseUrl(env.MORALIS_BASE_URL),
     moralisApiKey: env.MORALIS_API_KEY,

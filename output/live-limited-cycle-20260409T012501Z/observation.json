@@ -1,0 +1,3031 @@
+{
+  "capturedAt": "2026-04-09T07:28:14.354Z",
+  "runtimeEnvironment": "controlled-live-limited",
+  "workerId": "controlled-17488",
+  "sourceDir": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T011755Z",
+  "evidenceDir": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z",
+  "bootCheck": {
+    "basePath": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal",
+    "journalPath": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.jsonl",
+    "artifacts": [
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.jsonl",
+        "present": true,
+        "label": "worker journal",
+        "category": "operational_evidence",
+        "bootCritical": false,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": false,
+        "recoveryExpectation": "Retain the append-only journal for audit and replay review.",
+        "lostArtifactImpact": "Evidence gap only. The worker can still boot, but historical replay fidelity is reduced."
+      },
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.actions.jsonl",
+        "present": false,
+        "label": "paper action log",
+        "category": "operational_evidence",
+        "bootCritical": false,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": true,
+        "recoveryExpectation": "Retain when paper mode is used; it is operator evidence, not control truth.",
+        "lostArtifactImpact": "Paper-mode evidence gap only. Safe boot is unaffected."
+      },
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.runtime-cycles.jsonl",
+        "present": true,
+        "label": "runtime cycle summary stream",
+        "category": "reconstructible_derivative_state",
+        "bootCritical": false,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": false,
+        "recoveryExpectation": "Retain for incident review. If lost, later cycles are still safe, but the historical slice is gone.",
+        "lostArtifactImpact": "Historical reconstruction gap only."
+      },
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.incidents.jsonl",
+        "present": true,
+        "label": "incident journal",
+        "category": "operational_evidence",
+        "bootCritical": false,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": false,
+        "recoveryExpectation": "Retain as operator evidence. It is not authoritative control state.",
+        "lostArtifactImpact": "Incident evidence gap only."
+      },
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.execution-evidence.jsonl",
+        "present": false,
+        "label": "execution evidence",
+        "category": "operational_evidence",
+        "bootCritical": false,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": false,
+        "recoveryExpectation": "Retain to preserve execution auditability and replay context.",
+        "lostArtifactImpact": "Execution evidence gap only."
+      },
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.kill-switch.json",
+        "present": true,
+        "label": "kill switch state",
+        "category": "canonical_durable_state",
+        "bootCritical": true,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": false,
+        "recoveryExpectation": "Restore exact state before boot. If absent, the worker must fail closed.",
+        "lostArtifactImpact": "Safe boot is blocked until the operator restores or re-arms the state.",
+        "valid": true
+      },
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.live-control.json",
+        "present": true,
+        "label": "live control state",
+        "category": "canonical_durable_state",
+        "bootCritical": true,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": false,
+        "recoveryExpectation": "Restore exact state before boot. The worker cannot infer live-control truth from Postgres.",
+        "lostArtifactImpact": "Safe boot is blocked until the operator restores or re-seeds the state explicitly.",
+        "valid": true
+      },
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.daily-loss.json",
+        "present": true,
+        "label": "daily loss state",
+        "category": "canonical_durable_state",
+        "bootCritical": true,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": false,
+        "recoveryExpectation": "Restore exact state before boot. Loss accounting must not be guessed.",
+        "lostArtifactImpact": "Safe boot is blocked until the operator restores or re-seeds the state explicitly.",
+        "valid": true
+      },
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.idempotency.json",
+        "present": true,
+        "label": "idempotency cache",
+        "category": "canonical_durable_state",
+        "bootCritical": true,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": false,
+        "recoveryExpectation": "Restore exact state before boot. Duplicate suppression is safety-critical in live posture.",
+        "lostArtifactImpact": "Safe boot is blocked until the operator restores or re-seeds the state explicitly.",
+        "valid": true
+      }
+    ],
+    "bootCriticalMissing": [],
+    "bootCriticalInvalid": [],
+    "recoveryDrillMissing": [
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.actions.jsonl",
+        "present": false,
+        "label": "paper action log",
+        "category": "operational_evidence",
+        "bootCritical": false,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": true,
+        "recoveryExpectation": "Retain when paper mode is used; it is operator evidence, not control truth.",
+        "lostArtifactImpact": "Paper-mode evidence gap only. Safe boot is unaffected."
+      },
+      {
+        "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.execution-evidence.jsonl",
+        "present": false,
+        "label": "execution evidence",
+        "category": "operational_evidence",
+        "bootCritical": false,
+        "requiredForRecoveryDrill": true,
+        "optionalInPaperMode": false,
+        "recoveryExpectation": "Retain to preserve execution auditability and replay context.",
+        "lostArtifactImpact": "Execution evidence gap only."
+      }
+    ],
+    "safeBoot": true,
+    "message": "Worker disk recovery prerequisites are present and valid."
+  },
+  "result": {
+    "bootCheck": {
+      "basePath": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal",
+      "journalPath": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.jsonl",
+      "artifacts": [
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.jsonl",
+          "present": true,
+          "label": "worker journal",
+          "category": "operational_evidence",
+          "bootCritical": false,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": false,
+          "recoveryExpectation": "Retain the append-only journal for audit and replay review.",
+          "lostArtifactImpact": "Evidence gap only. The worker can still boot, but historical replay fidelity is reduced."
+        },
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.actions.jsonl",
+          "present": false,
+          "label": "paper action log",
+          "category": "operational_evidence",
+          "bootCritical": false,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": true,
+          "recoveryExpectation": "Retain when paper mode is used; it is operator evidence, not control truth.",
+          "lostArtifactImpact": "Paper-mode evidence gap only. Safe boot is unaffected."
+        },
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.runtime-cycles.jsonl",
+          "present": true,
+          "label": "runtime cycle summary stream",
+          "category": "reconstructible_derivative_state",
+          "bootCritical": false,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": false,
+          "recoveryExpectation": "Retain for incident review. If lost, later cycles are still safe, but the historical slice is gone.",
+          "lostArtifactImpact": "Historical reconstruction gap only."
+        },
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.incidents.jsonl",
+          "present": true,
+          "label": "incident journal",
+          "category": "operational_evidence",
+          "bootCritical": false,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": false,
+          "recoveryExpectation": "Retain as operator evidence. It is not authoritative control state.",
+          "lostArtifactImpact": "Incident evidence gap only."
+        },
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.execution-evidence.jsonl",
+          "present": false,
+          "label": "execution evidence",
+          "category": "operational_evidence",
+          "bootCritical": false,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": false,
+          "recoveryExpectation": "Retain to preserve execution auditability and replay context.",
+          "lostArtifactImpact": "Execution evidence gap only."
+        },
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.kill-switch.json",
+          "present": true,
+          "label": "kill switch state",
+          "category": "canonical_durable_state",
+          "bootCritical": true,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": false,
+          "recoveryExpectation": "Restore exact state before boot. If absent, the worker must fail closed.",
+          "lostArtifactImpact": "Safe boot is blocked until the operator restores or re-arms the state.",
+          "valid": true
+        },
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.live-control.json",
+          "present": true,
+          "label": "live control state",
+          "category": "canonical_durable_state",
+          "bootCritical": true,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": false,
+          "recoveryExpectation": "Restore exact state before boot. The worker cannot infer live-control truth from Postgres.",
+          "lostArtifactImpact": "Safe boot is blocked until the operator restores or re-seeds the state explicitly.",
+          "valid": true
+        },
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.daily-loss.json",
+          "present": true,
+          "label": "daily loss state",
+          "category": "canonical_durable_state",
+          "bootCritical": true,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": false,
+          "recoveryExpectation": "Restore exact state before boot. Loss accounting must not be guessed.",
+          "lostArtifactImpact": "Safe boot is blocked until the operator restores or re-seeds the state explicitly.",
+          "valid": true
+        },
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.idempotency.json",
+          "present": true,
+          "label": "idempotency cache",
+          "category": "canonical_durable_state",
+          "bootCritical": true,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": false,
+          "recoveryExpectation": "Restore exact state before boot. Duplicate suppression is safety-critical in live posture.",
+          "lostArtifactImpact": "Safe boot is blocked until the operator restores or re-seeds the state explicitly.",
+          "valid": true
+        }
+      ],
+      "bootCriticalMissing": [],
+      "bootCriticalInvalid": [],
+      "recoveryDrillMissing": [
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.actions.jsonl",
+          "present": false,
+          "label": "paper action log",
+          "category": "operational_evidence",
+          "bootCritical": false,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": true,
+          "recoveryExpectation": "Retain when paper mode is used; it is operator evidence, not control truth.",
+          "lostArtifactImpact": "Paper-mode evidence gap only. Safe boot is unaffected."
+        },
+        {
+          "path": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.execution-evidence.jsonl",
+          "present": false,
+          "label": "execution evidence",
+          "category": "operational_evidence",
+          "bootCritical": false,
+          "requiredForRecoveryDrill": true,
+          "optionalInPaperMode": false,
+          "recoveryExpectation": "Retain to preserve execution auditability and replay context.",
+          "lostArtifactImpact": "Execution evidence gap only."
+        }
+      ],
+      "safeBoot": true,
+      "message": "Worker disk recovery prerequisites are present and valid."
+    },
+    "config": {
+      "executionMode": "live",
+      "rpcMode": "real",
+      "liveTestMode": true,
+      "rolloutPosture": "micro_live",
+      "journalPath": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.jsonl"
+    },
+    "runtimeStart": {
+      "success": true
+    },
+    "runtimeSnapshotBeforeServer": {
+      "status": "running",
+      "mode": "live",
+      "paperModeActive": false,
+      "cycleInFlight": false,
+      "liveControl": {
+        "mode": "live",
+        "liveTestMode": true,
+        "roundStatus": "running",
+        "roundStartedAt": "2026-04-09T07:28:05.286Z",
+        "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+        "lastTransitionBy": "runtime_start",
+        "posture": "live_disarmed",
+        "rolloutPosture": "micro_live",
+        "rolloutConfigured": true,
+        "rolloutConfigValid": true,
+        "rolloutLastReasonAt": "2026-04-09T07:28:05.261Z",
+        "executionMode": "live",
+        "liveEnabled": true,
+        "armed": false,
+        "killSwitchActive": false,
+        "blocked": false,
+        "disarmed": true,
+        "stopped": false,
+        "degraded": false,
+        "manualRearmRequired": false,
+        "lastReasonAt": "2026-04-09T07:28:05.261Z",
+        "lastOperatorActionAt": "2026-04-09T07:28:05.261Z",
+        "caps": {
+          "requireArm": true,
+          "maxNotionalPerTrade": 25,
+          "maxTradesPerWindow": 2,
+          "windowMs": 3600000,
+          "cooldownMs": 60000,
+          "maxInFlight": 1,
+          "failuresToBlock": 3,
+          "failureWindowMs": 900000,
+          "maxDailyNotional": 50,
+          "allowlistTokens": []
+        },
+        "counters": {
+          "inFlight": 0,
+          "tradesInWindow": 0,
+          "failuresInWindow": 0,
+          "dailyNotional": 0,
+          "tradesToday": 0,
+          "dailyLossUsd": 0
+        }
+      },
+      "counters": {
+        "cycleCount": 1,
+        "decisionCount": 1,
+        "executionCount": 0,
+        "blockedCount": 1,
+        "errorCount": 0
+      },
+      "lastCycleAt": "2026-04-09T07:28:05.294Z",
+      "lastDecisionAt": "2026-04-09T07:28:05.294Z",
+      "lastState": {
+        "stage": "verify",
+        "traceId": "trace-2026-04-09T07-28-411000718",
+        "timestamp": "2026-04-09T07:28:05.295Z",
+        "market": {
+          "schema_version": "market.v1",
+          "traceId": "ingest-2026-04-09T07-28-05-299Z",
+          "timestamp": "2026-04-09T07:28:05.299Z",
+          "source": "dexpaprika",
+          "poolId": "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
+          "baseToken": "SOL",
+          "quoteToken": "USDC",
+          "priceUsd": 82.22356757958244,
+          "volume24h": 103923515.97504398,
+          "liquidity": 626316005.7550142,
+          "freshnessMs": 0,
+          "rawPayloadHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a"
+        },
+        "wallet": {
+          "traceId": "ingest-2026-04-09T07-28-05-299Z",
+          "timestamp": "2026-04-09T07:28:05.299Z",
+          "source": "rpc",
+          "walletAddress": "11111111111111111111111111111111",
+          "balances": [
+            {
+              "mint": "So11111111111111111111111111111111111111112",
+              "symbol": "SOL",
+              "decimals": 9,
+              "amount": "1",
+              "amountUsd": 8.28660682085597e-8
+            }
+          ],
+          "totalUsd": 8.28660682085597e-8,
+          "rawPayloadHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+        },
+        "signal": {
+          "direction": "buy",
+          "confidence": 0.5175925925925927
+        },
+        "tradeIntent": {
+          "traceId": "trace-2026-04-09T07-28-411000718",
+          "timestamp": "2026-04-09T07:28:05.295Z",
+          "idempotencyKey": "ingest-2026-04-09T07-28-05-299Z-intent",
+          "tokenIn": "SOL",
+          "tokenOut": "USDC",
+          "amountIn": "1",
+          "minAmountOut": "78.11238920060332",
+          "slippagePercent": 1,
+          "dryRun": false,
+          "executionMode": "live"
+        },
+        "journalEntry": {
+          "traceId": "trace-2026-04-09T07-28-411000718",
+          "timestamp": "2026-04-09T07:28:11.002Z",
+          "stage": "canonical_trade_blocked",
+          "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+          "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73",
+          "input": {
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "live",
+              "traceId": "trace-2026-04-09T07-28-411000718",
+              "stage": "verify",
+              "blocked": true,
+              "blockedReason": "controlled observation: execution stubbed",
+              "reasonClass": "EXECUTION_FAILED",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 5593,
+                "walletAgeMs": 5593,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-09T07:28:05.295Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+              },
+              "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+              "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+            },
+            "market": {
+              "schema_version": "market.v1",
+              "traceId": "ingest-2026-04-09T07-28-05-299Z",
+              "timestamp": "2026-04-09T07:28:05.299Z",
+              "source": "dexpaprika",
+              "poolId": "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
+              "baseToken": "SOL",
+              "quoteToken": "USDC",
+              "priceUsd": 82.22356757958244,
+              "volume24h": 103923515.97504398,
+              "liquidity": 626316005.7550142,
+              "freshnessMs": 0,
+              "rawPayloadHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a"
+            },
+            "wallet": {
+              "traceId": "ingest-2026-04-09T07-28-05-299Z",
+              "timestamp": "2026-04-09T07:28:05.299Z",
+              "source": "rpc",
+              "walletAddress": "11111111111111111111111111111111",
+              "balances": [
+                {
+                  "mint": "So11111111111111111111111111111111111111112",
+                  "symbol": "SOL",
+                  "decimals": 9,
+                  "amount": "1",
+                  "amountUsd": 8.28660682085597e-8
+                }
+              ],
+              "totalUsd": 8.28660682085597e-8,
+              "rawPayloadHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+            },
+            "signal": {
+              "direction": "buy",
+              "confidence": 0.5175925925925927
+            },
+            "intent": {
+              "traceId": "trace-2026-04-09T07-28-411000718",
+              "timestamp": "2026-04-09T07:28:05.295Z",
+              "idempotencyKey": "ingest-2026-04-09T07-28-05-299Z-intent",
+              "tokenIn": "SOL",
+              "tokenOut": "USDC",
+              "amountIn": "1",
+              "minAmountOut": "78.11238920060332",
+              "slippagePercent": 1,
+              "dryRun": false,
+              "executionMode": "live"
+            }
+          },
+          "output": {
+            "execReport": {
+              "traceId": "trace-2026-04-09T07-28-411000718",
+              "timestamp": "2026-04-09T07:28:05.295Z",
+              "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+              "success": false,
+              "error": "controlled observation: execution stubbed",
+              "executionMode": "live",
+              "dryRun": false,
+              "failClosed": true,
+              "failureStage": "controlled_observation",
+              "failureCode": "controlled_execution_stub",
+              "artifacts": {
+                "mode": "stub"
+              }
+            },
+            "rpcVerify": {
+              "traceId": "trace-2026-04-09T07-28-411000718",
+              "timestamp": "2026-04-09T07:28:05.295Z",
+              "passed": false,
+              "checks": {},
+              "reason": "controlled observation: execution stubbed",
+              "verificationMode": "rpc"
+            },
+            "blocked": true,
+            "provenance": {
+              "reasonClass": "EXECUTION_FAILED",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 5593,
+                "walletAgeMs": 5593,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-09T07:28:05.295Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+              }
+            }
+          },
+          "blocked": true,
+          "reason": "controlled observation: execution stubbed"
+        },
+        "riskAllowed": true,
+        "chaosAllowed": true,
+        "chaosReportHash": "be481ea2f1b447c4fb407ba5b1d3d69f3227d378d792444c52e64bd4d9eae0e9",
+        "executionReport": {
+          "traceId": "trace-2026-04-09T07-28-411000718",
+          "timestamp": "2026-04-09T07:28:05.295Z",
+          "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+          "success": false,
+          "error": "controlled observation: execution stubbed",
+          "executionMode": "live",
+          "dryRun": false,
+          "failClosed": true,
+          "failureStage": "controlled_observation",
+          "failureCode": "controlled_execution_stub",
+          "artifacts": {
+            "mode": "stub"
+          }
+        },
+        "rpcVerification": {
+          "traceId": "trace-2026-04-09T07-28-411000718",
+          "timestamp": "2026-04-09T07:28:05.295Z",
+          "passed": false,
+          "checks": {},
+          "reason": "controlled observation: execution stubbed",
+          "verificationMode": "rpc"
+        },
+        "blocked": true,
+        "blockedReason": "controlled observation: execution stubbed",
+        "decisionEnvelope": {
+          "schemaVersion": "decision.envelope.v3",
+          "entrypoint": "engine",
+          "flow": "trade",
+          "executionMode": "live",
+          "traceId": "trace-2026-04-09T07-28-411000718",
+          "stage": "verify",
+          "blocked": true,
+          "blockedReason": "controlled observation: execution stubbed",
+          "reasonClass": "EXECUTION_FAILED",
+          "sources": [
+            "chaos:gate",
+            "execute:engine",
+            "market:dexpaprika",
+            "risk:engine",
+            "signal:engine",
+            "verify:rpc",
+            "wallet:rpc"
+          ],
+          "freshness": {
+            "marketAgeMs": 5593,
+            "walletAgeMs": 5593,
+            "maxAgeMs": 60000,
+            "observedAt": "2026-04-09T07:28:05.295Z"
+          },
+          "evidenceRef": {
+            "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+            "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+            "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+          },
+          "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+          "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+        }
+      },
+      "lastCycleSummary": {
+        "cycleTimestamp": "2026-04-09T07:28:05.294Z",
+        "traceId": "trace-2026-04-09T07-28-411000718",
+        "mode": "live",
+        "producer": {
+          "name": "live-runtime",
+          "kind": "runtime_cycle_summary",
+          "canonicalDecisionTruth": false
+        },
+        "outcome": "blocked",
+        "intakeOutcome": "ok",
+        "advanced": true,
+        "stage": "verify",
+        "blocked": true,
+        "blockedReason": "controlled observation: execution stubbed",
+        "decisionOccurred": true,
+        "signalOccurred": true,
+        "riskOccurred": true,
+        "chaosOccurred": true,
+        "executionOccurred": true,
+        "verificationOccurred": true,
+        "paperExecutionProduced": false,
+        "errorOccurred": false,
+        "decision": {
+          "allowed": false,
+          "direction": "buy",
+          "confidence": 0.5175925925925927,
+          "riskAllowed": true,
+          "chaosAllowed": true,
+          "reason": "controlled observation: execution stubbed",
+          "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+        },
+        "decisionEnvelope": {
+          "schemaVersion": "decision.envelope.v3",
+          "entrypoint": "engine",
+          "flow": "trade",
+          "executionMode": "live",
+          "traceId": "trace-2026-04-09T07-28-411000718",
+          "stage": "verify",
+          "blocked": true,
+          "blockedReason": "controlled observation: execution stubbed",
+          "reasonClass": "EXECUTION_FAILED",
+          "sources": [
+            "chaos:gate",
+            "execute:engine",
+            "market:dexpaprika",
+            "risk:engine",
+            "signal:engine",
+            "verify:rpc",
+            "wallet:rpc"
+          ],
+          "freshness": {
+            "marketAgeMs": 5593,
+            "walletAgeMs": 5593,
+            "maxAgeMs": 60000,
+            "observedAt": "2026-04-09T07:28:05.295Z"
+          },
+          "evidenceRef": {
+            "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+            "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+            "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+          },
+          "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+          "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+        },
+        "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+        "execution": {
+          "success": false,
+          "mode": "live",
+          "error": "controlled observation: execution stubbed"
+        },
+        "verification": {
+          "passed": false,
+          "mode": "rpc",
+          "reason": "controlled observation: execution stubbed"
+        },
+        "provenance": {
+          "reasonClass": "EXECUTION_FAILED",
+          "sources": [
+            "chaos:gate",
+            "execute:engine",
+            "market",
+            "market:dexpaprika",
+            "risk:engine",
+            "signal:engine",
+            "verify:rpc",
+            "wallet",
+            "wallet:rpc"
+          ],
+          "freshness": {
+            "marketAgeMs": 5593,
+            "walletAgeMs": 5593,
+            "maxAgeMs": 60000,
+            "observedAt": "2026-04-09T07:28:05.295Z"
+          },
+          "evidenceRef": {
+            "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+            "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+            "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+          },
+          "evidenceRefs": [
+            "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:6f015eb842ce1ca1",
+            "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+            "discovery_evidence:SOL:6f015eb842ce1ca1",
+            "discovery_evidence:SOL:fb5149dcc5b25cad",
+            "evidence_status:COLLECTED",
+            "evidence:discovery_evidence:SOL:6f015eb842ce1ca1",
+            "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+            "marketRawHash:69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+            "quality:pass:none",
+            "signalPackHash:e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d",
+            "sources:market=OK@0|wallet=OK@0",
+            "universe:included:none",
+            "walletRawHash:309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+          ],
+          "reasonBasis": {
+            "stage": "verify",
+            "outcome": "blocked",
+            "blockedReason": "controlled observation: execution stubbed",
+            "failureStage": "execute",
+            "failureCode": "controlled observation: execution stubbed"
+          }
+        },
+        "shadowArtifactChain": {
+          "artifactMode": "shadow",
+          "derivedOnly": true,
+          "nonAuthoritative": true,
+          "authorityInfluence": false,
+          "canonicalDecisionHistory": false,
+          "chainVersion": "shadow_artifact_chain.v1",
+          "status": "built",
+          "inputRefs": [
+            "constructed_signal_set:ac977b277596ca225131c528c61a4f6d795dcdadeec74f4519933299b0883f8a",
+            "cqd:aef526633a7b401d22156518c072b1ae5600dfe9c8777548e35a4bce99dab4ab",
+            "data_quality:shadow-data-quality:trace-2026-04-09T07-28-411000718",
+            "market:ingest-2026-04-09T07-28-05-299Z",
+            "runtime_trace:trace-2026-04-09T07-28-411000718",
+            "signal_pack:3f323314cf59f15e7799bad8a84f95ed95c4fc3fd5659cf40d0fb67125bec3a2",
+            "trend_reversal_observation:23ff1db6f4f647280afcb837abf2333f09885751896e195bfa6764068297c52e",
+            "wallet:ingest-2026-04-09T07-28-05-299Z"
+          ],
+          "evidenceRefs": [
+            "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:6f015eb842ce1ca1",
+            "discovery_evidence:SOL:6f015eb842ce1ca1",
+            "evidence_status:COLLECTED",
+            "evidence:discovery_evidence:SOL:6f015eb842ce1ca1",
+            "quality:pass:none",
+            "sources:market=OK@0|wallet=OK@0",
+            "universe:included:none"
+          ],
+          "parity": {
+            "oldAuthority": {
+              "blocked": true,
+              "blockedReason": "controlled observation: execution stubbed",
+              "signalDirection": "buy",
+              "signalConfidence": 0.5175925925925927,
+              "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+            },
+            "shadowDerived": {
+              "blocked": false,
+              "qualityStatus": "pass",
+              "scoreComposite": -0.14583333333333331,
+              "scoreConfidence": 0.8493827160493828,
+              "cqdHash": "aef526633a7b401d22156518c072b1ae5600dfe9c8777548e35a4bce99dab4ab"
+            },
+            "deltas": {
+              "blockedMismatch": true,
+              "confidenceDelta": 0.33179012345679004
+            }
+          },
+          "artifacts": {
+            "sourceObservationCount": 2,
+            "sourceObservationRefs": [
+              "market:ingest-2026-04-09T07-28-05-299Z",
+              "wallet:ingest-2026-04-09T07-28-05-299Z"
+            ],
+            "staleSources": [],
+            "discoveryEvidenceRef": "discovery_evidence:SOL:6f015eb842ce1ca1",
+            "discoveryEvidenceHash": "6f015eb842ce1ca168eae29d5683bf50f42b705244de6d6f085ba0cea5c75962",
+            "qualityStatus": "pass",
+            "qualityReasonCodes": [],
+            "qualityMissingCriticalFields": [],
+            "qualityStaleSources": [],
+            "qualityCrossSourceConfidence": 0.9555555555555556,
+            "cqdHash": "aef526633a7b401d22156518c072b1ae5600dfe9c8777548e35a4bce99dab4ab",
+            "cqdAnomalyFlags": [],
+            "constructedSignalSetPayloadHash": "ac977b277596ca225131c528c61a4f6d795dcdadeec74f4519933299b0883f8a",
+            "constructedSignalSetBuildStatus": "built",
+            "scoreCardPayloadHash": "00b18f54207678b4a9eeb10a5523480cff61d6d7fbefb0a2536c18b145c72664",
+            "scoreCardBuildStatus": "degraded"
+          }
+        },
+        "authorityArtifactChain": {
+          "artifactMode": "authority",
+          "derivedOnly": false,
+          "nonAuthoritative": false,
+          "authorityInfluence": true,
+          "canonicalDecisionHistory": false,
+          "chainVersion": "authority_artifact_chain.v1",
+          "status": "built",
+          "inputRefs": [
+            "candidate_token:SOL:1775719685294",
+            "constructed_signal_set:5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+            "cqd:c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+            "data_quality:authority-data-quality:ingest-2026-04-09T07-28-05-299Z",
+            "discovery_evidence:fb5149dcc5b25cad",
+            "market:ingest-2026-04-09T07-28-05-299Z",
+            "runtime_mode:live",
+            "runtime_trace:ingest-2026-04-09T07-28-05-299Z",
+            "score_card:41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+            "universe_build_result:included",
+            "wallet:ingest-2026-04-09T07-28-05-299Z"
+          ],
+          "evidenceRefs": [
+            "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+            "discovery_evidence:SOL:fb5149dcc5b25cad",
+            "evidence_status:COLLECTED",
+            "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+            "quality:pass:none",
+            "sources:market=OK@0|wallet=OK@0",
+            "universe:included:none"
+          ],
+          "decision": {
+            "blocked": false,
+            "direction": "buy",
+            "confidence": 0.5175925925925927,
+            "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+          },
+          "artifacts": {
+            "sourceObservationCount": 2,
+            "sourceObservationRefs": [
+              "market:ingest-2026-04-09T07-28-05-299Z",
+              "wallet:ingest-2026-04-09T07-28-05-299Z"
+            ],
+            "discoveryEvidenceRef": "discovery_evidence:SOL:fb5149dcc5b25cad",
+            "discoveryEvidenceHash": "fb5149dcc5b25cad540fd33b7d8907e41514550d4a9e1ab74bc6dd01e69a3e5d",
+            "dataQualityStatus": "pass",
+            "dataQualityReasonCodes": [],
+            "dataQualityMissingCriticalFields": [],
+            "dataQualityStaleSources": [],
+            "dataQualityCrossSourceConfidence": 0.9555555555555556,
+            "cqdHash": "c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+            "cqdAnomalyFlags": [],
+            "constructedSignalSetPayloadHash": "5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+            "constructedSignalSetBuildStatus": "degraded",
+            "scoreCardPayloadHash": "41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+            "scoreCardBuildStatus": "degraded",
+            "scoreComposite": 0.08083333333333333,
+            "scoreConfidence": 0.5175925925925927
+          }
+        },
+        "incidentIds": []
+      },
+      "recentHistory": {
+        "recentCycleCount": 1,
+        "cycleOutcomes": {
+          "success": 0,
+          "blocked": 1,
+          "error": 0
+        },
+        "attemptsByMode": {
+          "dry": 0,
+          "paper": 0,
+          "live": 1
+        },
+        "refusalCounts": {
+          "controlled observation: execution stubbed": 3
+        },
+        "failureStageCounts": {
+          "live": 1
+        },
+        "verificationHealth": {
+          "passed": 0,
+          "failed": 1,
+          "failureReasons": {
+            "controlled observation: execution stubbed": 1
+          }
+        },
+        "incidentCounts": {
+          "live_execution_refused": 1
+        },
+        "controlActions": [],
+        "stateTransitions": [],
+        "recentCycles": [
+          {
+            "traceId": "trace-2026-04-09T07-28-411000718",
+            "cycleTimestamp": "2026-04-09T07:28:05.294Z",
+            "mode": "live",
+            "producer": {
+              "name": "live-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "blocked",
+            "stage": "verify",
+            "blocked": true,
+            "blockedReason": "controlled observation: execution stubbed",
+            "intakeOutcome": "ok",
+            "executionOccurred": true,
+            "verificationOccurred": true,
+            "decisionOccurred": true,
+            "errorOccurred": false,
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "live",
+              "traceId": "trace-2026-04-09T07-28-411000718",
+              "stage": "verify",
+              "blocked": true,
+              "blockedReason": "controlled observation: execution stubbed",
+              "reasonClass": "EXECUTION_FAILED",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 5593,
+                "walletAgeMs": 5593,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-09T07:28:05.295Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+              },
+              "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+              "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+            },
+            "authorityArtifactChain": {
+              "artifactMode": "authority",
+              "derivedOnly": false,
+              "nonAuthoritative": false,
+              "authorityInfluence": true,
+              "canonicalDecisionHistory": false,
+              "chainVersion": "authority_artifact_chain.v1",
+              "status": "built",
+              "inputRefs": [
+                "candidate_token:SOL:1775719685294",
+                "constructed_signal_set:5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                "cqd:c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                "data_quality:authority-data-quality:ingest-2026-04-09T07-28-05-299Z",
+                "discovery_evidence:fb5149dcc5b25cad",
+                "market:ingest-2026-04-09T07-28-05-299Z",
+                "runtime_mode:live",
+                "runtime_trace:ingest-2026-04-09T07-28-05-299Z",
+                "score_card:41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                "universe_build_result:included",
+                "wallet:ingest-2026-04-09T07-28-05-299Z"
+              ],
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                "discovery_evidence:SOL:fb5149dcc5b25cad",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                "quality:pass:none",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none"
+              ],
+              "decision": {
+                "blocked": false,
+                "direction": "buy",
+                "confidence": 0.5175925925925927,
+                "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+              },
+              "artifacts": {
+                "sourceObservationCount": 2,
+                "sourceObservationRefs": [
+                  "market:ingest-2026-04-09T07-28-05-299Z",
+                  "wallet:ingest-2026-04-09T07-28-05-299Z"
+                ],
+                "discoveryEvidenceRef": "discovery_evidence:SOL:fb5149dcc5b25cad",
+                "discoveryEvidenceHash": "fb5149dcc5b25cad540fd33b7d8907e41514550d4a9e1ab74bc6dd01e69a3e5d",
+                "dataQualityStatus": "pass",
+                "dataQualityReasonCodes": [],
+                "dataQualityMissingCriticalFields": [],
+                "dataQualityStaleSources": [],
+                "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                "cqdHash": "c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                "cqdAnomalyFlags": [],
+                "constructedSignalSetPayloadHash": "5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                "constructedSignalSetBuildStatus": "degraded",
+                "scoreCardPayloadHash": "41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                "scoreCardBuildStatus": "degraded",
+                "scoreComposite": 0.08083333333333333,
+                "scoreConfidence": 0.5175925925925927
+              }
+            },
+            "provenance": {
+              "reasonClass": "EXECUTION_FAILED",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 5593,
+                "walletAgeMs": 5593,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-09T07:28:05.295Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+              },
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:6f015eb842ce1ca1",
+                "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                "discovery_evidence:SOL:6f015eb842ce1ca1",
+                "discovery_evidence:SOL:fb5149dcc5b25cad",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:6f015eb842ce1ca1",
+                "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                "marketRawHash:69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                "quality:pass:none",
+                "signalPackHash:e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none",
+                "walletRawHash:309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+              ],
+              "reasonBasis": {
+                "stage": "verify",
+                "outcome": "blocked",
+                "blockedReason": "controlled observation: execution stubbed",
+                "failureStage": "execute",
+                "failureCode": "controlled observation: execution stubbed"
+              }
+            },
+            "decision": {
+              "allowed": false,
+              "direction": "buy",
+              "confidence": 0.5175925925925927,
+              "riskAllowed": true,
+              "chaosAllowed": true,
+              "reason": "controlled observation: execution stubbed",
+              "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+            }
+          }
+        ],
+        "recentIncidents": [
+          {
+            "id": "incident-2026-04-09T07-28-11-007Z-1",
+            "at": "2026-04-09T07:28:11.007Z",
+            "severity": "critical",
+            "type": "live_execution_refused",
+            "message": "controlled observation: execution stubbed",
+            "details": {
+              "traceId": "trace-2026-04-09T07-28-411000718",
+              "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+              "failureStage": "controlled_observation",
+              "failureCode": "controlled_execution_stub"
+            }
+          }
+        ]
+      }
+    },
+    "providerProbes": {
+      "dexscreener": {
+        "success": true,
+        "payloadHash": "5e0790263799c687368b5db72167dbae14ffb78b54e4ea6c4d75517f56d19b83"
+      },
+      "dexpaprika": {
+        "success": true,
+        "payloadHash": "cd95b8256e0d917fca505a25e466ce9894335d28f4381768646ee381fad74604"
+      }
+    },
+    "http": {
+      "health": {
+        "status": 200,
+        "ok": true,
+        "body": {
+          "status": "OK",
+          "uptimeMs": 525,
+          "version": "0.1.0",
+          "surfaceKind": "derived",
+          "botStatus": "running",
+          "worker": {
+            "workerId": "controlled-17488",
+            "producer": {
+              "name": "runtime-worker",
+              "kind": "runtime_visibility_snapshot",
+              "canonicalDecisionTruth": false
+            },
+            "lastHeartbeatAt": "2026-04-09T07:28:11.038Z",
+            "lastCycleAt": "2026-04-09T07:28:05.294Z",
+            "degraded": false,
+            "degradedReason": "controlled observation: execution stubbed",
+            "observedAt": "2026-04-09T07:28:11.038Z"
+          },
+          "runtime": {
+            "status": "running",
+            "mode": "live",
+            "paperModeActive": false,
+            "cycleInFlight": false,
+            "counters": {
+              "cycleCount": 1,
+              "decisionCount": 1,
+              "executionCount": 0,
+              "blockedCount": 1,
+              "errorCount": 0
+            },
+            "lastCycleAt": "2026-04-09T07:28:05.294Z",
+            "lastDecisionAt": "2026-04-09T07:28:05.294Z",
+            "lastBlockedReason": "controlled observation: execution stubbed",
+            "lastEngineStage": "verify",
+            "lastIntakeOutcome": "ok",
+            "liveControl": {
+              "mode": "live",
+              "liveTestMode": true,
+              "roundStatus": "running",
+              "roundStartedAt": "2026-04-09T07:28:05.286Z",
+              "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+              "lastTransitionBy": "runtime_start",
+              "posture": "live_disarmed",
+              "rolloutPosture": "micro_live",
+              "rolloutConfigured": true,
+              "rolloutConfigValid": true,
+              "rolloutLastReasonAt": "2026-04-09T07:28:05.261Z",
+              "caps": {
+                "requireArm": true,
+                "maxNotionalPerTrade": 25,
+                "maxTradesPerWindow": 2,
+                "windowMs": 3600000,
+                "cooldownMs": 60000,
+                "maxInFlight": 1,
+                "failuresToBlock": 3,
+                "failureWindowMs": 900000,
+                "maxDailyNotional": 50,
+                "allowlistTokens": []
+              },
+              "armed": false,
+              "killSwitchActive": false,
+              "blocked": false,
+              "disarmed": true,
+              "stopped": false,
+              "lastOperatorActionAt": "2026-04-09T07:28:05.261Z",
+              "counters": {
+                "inFlight": 0,
+                "tradesInWindow": 0,
+                "failuresInWindow": 0,
+                "dailyNotional": 0,
+                "tradesToday": 0,
+                "dailyLossUsd": 0
+              }
+            },
+            "readiness": {
+              "posture": "healthy_for_posture",
+              "liveAllowed": false,
+              "paperSafe": false,
+              "liveTestMode": true,
+              "rolloutPosture": "micro_live",
+              "rolloutConfigured": true,
+              "rolloutConfigValid": true,
+              "roundStatus": "running",
+              "roundStartedAt": "2026-04-09T07:28:05.286Z",
+              "blocked": false,
+              "disarmed": true,
+              "stopped": false,
+              "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+              "canArmMicroLive": true,
+              "canUseStagedLiveCandidate": false,
+              "blockers": []
+            },
+            "recentHistory": {
+              "recentCycleCount": 1,
+              "cycleOutcomes": {
+                "success": 0,
+                "blocked": 1,
+                "error": 0
+              },
+              "attemptsByMode": {
+                "dry": 0,
+                "paper": 0,
+                "live": 1
+              },
+              "refusalCounts": {
+                "controlled observation: execution stubbed": 3
+              },
+              "failureStageCounts": {
+                "live": 1
+              },
+              "verificationHealth": {
+                "passed": 0,
+                "failed": 1,
+                "failureReasons": {
+                  "controlled observation: execution stubbed": 1
+                }
+              },
+              "incidentCounts": {
+                "live_execution_refused": 1
+              },
+              "controlActions": [],
+              "stateTransitions": [],
+              "recentCycles": [
+                {
+                  "traceId": "trace-2026-04-09T07-28-411000718",
+                  "cycleTimestamp": "2026-04-09T07:28:05.294Z",
+                  "mode": "live",
+                  "producer": {
+                    "name": "live-runtime",
+                    "kind": "runtime_cycle_summary",
+                    "canonicalDecisionTruth": false
+                  },
+                  "outcome": "blocked",
+                  "stage": "verify",
+                  "blocked": true,
+                  "blockedReason": "controlled observation: execution stubbed",
+                  "intakeOutcome": "ok",
+                  "executionOccurred": true,
+                  "verificationOccurred": true,
+                  "decisionOccurred": true,
+                  "errorOccurred": false,
+                  "decisionEnvelope": {
+                    "schemaVersion": "decision.envelope.v3",
+                    "entrypoint": "engine",
+                    "flow": "trade",
+                    "executionMode": "live",
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "stage": "verify",
+                    "blocked": true,
+                    "blockedReason": "controlled observation: execution stubbed",
+                    "reasonClass": "EXECUTION_FAILED",
+                    "sources": [
+                      "chaos:gate",
+                      "execute:engine",
+                      "market:dexpaprika",
+                      "risk:engine",
+                      "signal:engine",
+                      "verify:rpc",
+                      "wallet:rpc"
+                    ],
+                    "freshness": {
+                      "marketAgeMs": 5593,
+                      "walletAgeMs": 5593,
+                      "maxAgeMs": 60000,
+                      "observedAt": "2026-04-09T07:28:05.295Z"
+                    },
+                    "evidenceRef": {
+                      "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                      "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                    },
+                    "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+                    "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+                  },
+                  "authorityArtifactChain": {
+                    "artifactMode": "authority",
+                    "derivedOnly": false,
+                    "nonAuthoritative": false,
+                    "authorityInfluence": true,
+                    "canonicalDecisionHistory": false,
+                    "chainVersion": "authority_artifact_chain.v1",
+                    "status": "built",
+                    "inputRefs": [
+                      "candidate_token:SOL:1775719685294",
+                      "constructed_signal_set:5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                      "cqd:c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                      "data_quality:authority-data-quality:ingest-2026-04-09T07-28-05-299Z",
+                      "discovery_evidence:fb5149dcc5b25cad",
+                      "market:ingest-2026-04-09T07-28-05-299Z",
+                      "runtime_mode:live",
+                      "runtime_trace:ingest-2026-04-09T07-28-05-299Z",
+                      "score_card:41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                      "universe_build_result:included",
+                      "wallet:ingest-2026-04-09T07-28-05-299Z"
+                    ],
+                    "evidenceRefs": [
+                      "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                      "discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "evidence_status:COLLECTED",
+                      "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "quality:pass:none",
+                      "sources:market=OK@0|wallet=OK@0",
+                      "universe:included:none"
+                    ],
+                    "decision": {
+                      "blocked": false,
+                      "direction": "buy",
+                      "confidence": 0.5175925925925927,
+                      "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+                    },
+                    "artifacts": {
+                      "sourceObservationCount": 2,
+                      "sourceObservationRefs": [
+                        "market:ingest-2026-04-09T07-28-05-299Z",
+                        "wallet:ingest-2026-04-09T07-28-05-299Z"
+                      ],
+                      "discoveryEvidenceRef": "discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "discoveryEvidenceHash": "fb5149dcc5b25cad540fd33b7d8907e41514550d4a9e1ab74bc6dd01e69a3e5d",
+                      "dataQualityStatus": "pass",
+                      "dataQualityReasonCodes": [],
+                      "dataQualityMissingCriticalFields": [],
+                      "dataQualityStaleSources": [],
+                      "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                      "cqdHash": "c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                      "cqdAnomalyFlags": [],
+                      "constructedSignalSetPayloadHash": "5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                      "constructedSignalSetBuildStatus": "degraded",
+                      "scoreCardPayloadHash": "41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                      "scoreCardBuildStatus": "degraded",
+                      "scoreComposite": 0.08083333333333333,
+                      "scoreConfidence": 0.5175925925925927
+                    }
+                  },
+                  "provenance": {
+                    "reasonClass": "EXECUTION_FAILED",
+                    "sources": [
+                      "chaos:gate",
+                      "execute:engine",
+                      "market",
+                      "market:dexpaprika",
+                      "risk:engine",
+                      "signal:engine",
+                      "verify:rpc",
+                      "wallet",
+                      "wallet:rpc"
+                    ],
+                    "freshness": {
+                      "marketAgeMs": 5593,
+                      "walletAgeMs": 5593,
+                      "maxAgeMs": 60000,
+                      "observedAt": "2026-04-09T07:28:05.295Z"
+                    },
+                    "evidenceRef": {
+                      "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                      "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                    },
+                    "evidenceRefs": [
+                      "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:6f015eb842ce1ca1",
+                      "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                      "discovery_evidence:SOL:6f015eb842ce1ca1",
+                      "discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "evidence_status:COLLECTED",
+                      "evidence:discovery_evidence:SOL:6f015eb842ce1ca1",
+                      "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "marketRawHash:69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "quality:pass:none",
+                      "signalPackHash:e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d",
+                      "sources:market=OK@0|wallet=OK@0",
+                      "universe:included:none",
+                      "walletRawHash:309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+                    ],
+                    "reasonBasis": {
+                      "stage": "verify",
+                      "outcome": "blocked",
+                      "blockedReason": "controlled observation: execution stubbed",
+                      "failureStage": "execute",
+                      "failureCode": "controlled observation: execution stubbed"
+                    }
+                  },
+                  "decision": {
+                    "allowed": false,
+                    "direction": "buy",
+                    "confidence": 0.5175925925925927,
+                    "riskAllowed": true,
+                    "chaosAllowed": true,
+                    "reason": "controlled observation: execution stubbed",
+                    "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+                  }
+                }
+              ],
+              "recentIncidents": [
+                {
+                  "id": "incident-2026-04-09T07-28-11-007Z-1",
+                  "at": "2026-04-09T07:28:11.007Z",
+                  "severity": "critical",
+                  "type": "live_execution_refused",
+                  "message": "controlled observation: execution stubbed",
+                  "details": {
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+                    "failureStage": "controlled_observation",
+                    "failureCode": "controlled_execution_stub"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "controlStatus": {
+        "status": 200,
+        "ok": true,
+        "body": {
+          "success": true,
+          "runtime": {
+            "status": "running",
+            "mode": "live",
+            "paperModeActive": false,
+            "cycleInFlight": false,
+            "liveControl": {
+              "mode": "live",
+              "liveTestMode": true,
+              "roundStatus": "running",
+              "roundStartedAt": "2026-04-09T07:28:05.286Z",
+              "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+              "lastTransitionBy": "runtime_start",
+              "posture": "live_disarmed",
+              "rolloutPosture": "micro_live",
+              "rolloutConfigured": true,
+              "rolloutConfigValid": true,
+              "rolloutLastReasonAt": "2026-04-09T07:28:05.261Z",
+              "executionMode": "live",
+              "liveEnabled": true,
+              "armed": false,
+              "killSwitchActive": false,
+              "blocked": false,
+              "disarmed": true,
+              "stopped": false,
+              "degraded": false,
+              "manualRearmRequired": false,
+              "lastReasonAt": "2026-04-09T07:28:05.261Z",
+              "lastOperatorActionAt": "2026-04-09T07:28:05.261Z",
+              "caps": {
+                "requireArm": true,
+                "maxNotionalPerTrade": 25,
+                "maxTradesPerWindow": 2,
+                "windowMs": 3600000,
+                "cooldownMs": 60000,
+                "maxInFlight": 1,
+                "failuresToBlock": 3,
+                "failureWindowMs": 900000,
+                "maxDailyNotional": 50,
+                "allowlistTokens": []
+              },
+              "counters": {
+                "inFlight": 0,
+                "tradesInWindow": 0,
+                "failuresInWindow": 0,
+                "dailyNotional": 0,
+                "tradesToday": 0,
+                "dailyLossUsd": 0
+              }
+            },
+            "counters": {
+              "cycleCount": 1,
+              "decisionCount": 1,
+              "executionCount": 0,
+              "blockedCount": 1,
+              "errorCount": 0
+            },
+            "lastCycleAt": "2026-04-09T07:28:05.294Z",
+            "lastDecisionAt": "2026-04-09T07:28:05.294Z",
+            "lastState": {
+              "stage": "verify",
+              "traceId": "trace-2026-04-09T07-28-411000718",
+              "timestamp": "2026-04-09T07:28:05.295Z",
+              "market": {
+                "schema_version": "market.v1",
+                "traceId": "ingest-2026-04-09T07-28-05-299Z",
+                "timestamp": "2026-04-09T07:28:05.299Z",
+                "source": "dexpaprika",
+                "poolId": "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
+                "baseToken": "SOL",
+                "quoteToken": "USDC",
+                "priceUsd": 82.22356757958244,
+                "volume24h": 103923515.97504398,
+                "liquidity": 626316005.7550142,
+                "freshnessMs": 0,
+                "rawPayloadHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a"
+              },
+              "wallet": {
+                "traceId": "ingest-2026-04-09T07-28-05-299Z",
+                "timestamp": "2026-04-09T07:28:05.299Z",
+                "source": "rpc",
+                "walletAddress": "11111111111111111111111111111111",
+                "balances": [
+                  {
+                    "mint": "So11111111111111111111111111111111111111112",
+                    "symbol": "SOL",
+                    "decimals": 9,
+                    "amount": "1",
+                    "amountUsd": 8.28660682085597e-8
+                  }
+                ],
+                "totalUsd": 8.28660682085597e-8,
+                "rawPayloadHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+              },
+              "signal": {
+                "direction": "buy",
+                "confidence": 0.5175925925925927
+              },
+              "tradeIntent": {
+                "traceId": "trace-2026-04-09T07-28-411000718",
+                "timestamp": "2026-04-09T07:28:05.295Z",
+                "idempotencyKey": "ingest-2026-04-09T07-28-05-299Z-intent",
+                "tokenIn": "SOL",
+                "tokenOut": "USDC",
+                "amountIn": "1",
+                "minAmountOut": "78.11238920060332",
+                "slippagePercent": 1,
+                "dryRun": false,
+                "executionMode": "live"
+              },
+              "journalEntry": {
+                "traceId": "trace-2026-04-09T07-28-411000718",
+                "timestamp": "2026-04-09T07:28:11.002Z",
+                "stage": "canonical_trade_blocked",
+                "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+                "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73",
+                "input": {
+                  "decisionEnvelope": {
+                    "schemaVersion": "decision.envelope.v3",
+                    "entrypoint": "engine",
+                    "flow": "trade",
+                    "executionMode": "live",
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "stage": "verify",
+                    "blocked": true,
+                    "blockedReason": "controlled observation: execution stubbed",
+                    "reasonClass": "EXECUTION_FAILED",
+                    "sources": [
+                      "chaos:gate",
+                      "execute:engine",
+                      "market:dexpaprika",
+                      "risk:engine",
+                      "signal:engine",
+                      "verify:rpc",
+                      "wallet:rpc"
+                    ],
+                    "freshness": {
+                      "marketAgeMs": 5593,
+                      "walletAgeMs": 5593,
+                      "maxAgeMs": 60000,
+                      "observedAt": "2026-04-09T07:28:05.295Z"
+                    },
+                    "evidenceRef": {
+                      "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                      "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                    },
+                    "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+                    "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+                  },
+                  "market": {
+                    "schema_version": "market.v1",
+                    "traceId": "ingest-2026-04-09T07-28-05-299Z",
+                    "timestamp": "2026-04-09T07:28:05.299Z",
+                    "source": "dexpaprika",
+                    "poolId": "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
+                    "baseToken": "SOL",
+                    "quoteToken": "USDC",
+                    "priceUsd": 82.22356757958244,
+                    "volume24h": 103923515.97504398,
+                    "liquidity": 626316005.7550142,
+                    "freshnessMs": 0,
+                    "rawPayloadHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a"
+                  },
+                  "wallet": {
+                    "traceId": "ingest-2026-04-09T07-28-05-299Z",
+                    "timestamp": "2026-04-09T07:28:05.299Z",
+                    "source": "rpc",
+                    "walletAddress": "11111111111111111111111111111111",
+                    "balances": [
+                      {
+                        "mint": "So11111111111111111111111111111111111111112",
+                        "symbol": "SOL",
+                        "decimals": 9,
+                        "amount": "1",
+                        "amountUsd": 8.28660682085597e-8
+                      }
+                    ],
+                    "totalUsd": 8.28660682085597e-8,
+                    "rawPayloadHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+                  },
+                  "signal": {
+                    "direction": "buy",
+                    "confidence": 0.5175925925925927
+                  },
+                  "intent": {
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "timestamp": "2026-04-09T07:28:05.295Z",
+                    "idempotencyKey": "ingest-2026-04-09T07-28-05-299Z-intent",
+                    "tokenIn": "SOL",
+                    "tokenOut": "USDC",
+                    "amountIn": "1",
+                    "minAmountOut": "78.11238920060332",
+                    "slippagePercent": 1,
+                    "dryRun": false,
+                    "executionMode": "live"
+                  }
+                },
+                "output": {
+                  "execReport": {
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "timestamp": "2026-04-09T07:28:05.295Z",
+                    "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+                    "success": false,
+                    "error": "controlled observation: execution stubbed",
+                    "executionMode": "live",
+                    "dryRun": false,
+                    "failClosed": true,
+                    "failureStage": "controlled_observation",
+                    "failureCode": "controlled_execution_stub",
+                    "artifacts": {
+                      "mode": "stub"
+                    }
+                  },
+                  "rpcVerify": {
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "timestamp": "2026-04-09T07:28:05.295Z",
+                    "passed": false,
+                    "checks": {},
+                    "reason": "controlled observation: execution stubbed",
+                    "verificationMode": "rpc"
+                  },
+                  "blocked": true,
+                  "provenance": {
+                    "reasonClass": "EXECUTION_FAILED",
+                    "sources": [
+                      "chaos:gate",
+                      "execute:engine",
+                      "market:dexpaprika",
+                      "risk:engine",
+                      "signal:engine",
+                      "verify:rpc",
+                      "wallet:rpc"
+                    ],
+                    "freshness": {
+                      "marketAgeMs": 5593,
+                      "walletAgeMs": 5593,
+                      "maxAgeMs": 60000,
+                      "observedAt": "2026-04-09T07:28:05.295Z"
+                    },
+                    "evidenceRef": {
+                      "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                      "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                    }
+                  }
+                },
+                "blocked": true,
+                "reason": "controlled observation: execution stubbed"
+              },
+              "riskAllowed": true,
+              "chaosAllowed": true,
+              "chaosReportHash": "be481ea2f1b447c4fb407ba5b1d3d69f3227d378d792444c52e64bd4d9eae0e9",
+              "executionReport": {
+                "traceId": "trace-2026-04-09T07-28-411000718",
+                "timestamp": "2026-04-09T07:28:05.295Z",
+                "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+                "success": false,
+                "error": "controlled observation: execution stubbed",
+                "executionMode": "live",
+                "dryRun": false,
+                "failClosed": true,
+                "failureStage": "controlled_observation",
+                "failureCode": "controlled_execution_stub",
+                "artifacts": {
+                  "mode": "stub"
+                }
+              },
+              "rpcVerification": {
+                "traceId": "trace-2026-04-09T07-28-411000718",
+                "timestamp": "2026-04-09T07:28:05.295Z",
+                "passed": false,
+                "checks": {},
+                "reason": "controlled observation: execution stubbed",
+                "verificationMode": "rpc"
+              },
+              "blocked": true,
+              "blockedReason": "controlled observation: execution stubbed",
+              "decisionEnvelope": {
+                "schemaVersion": "decision.envelope.v3",
+                "entrypoint": "engine",
+                "flow": "trade",
+                "executionMode": "live",
+                "traceId": "trace-2026-04-09T07-28-411000718",
+                "stage": "verify",
+                "blocked": true,
+                "blockedReason": "controlled observation: execution stubbed",
+                "reasonClass": "EXECUTION_FAILED",
+                "sources": [
+                  "chaos:gate",
+                  "execute:engine",
+                  "market:dexpaprika",
+                  "risk:engine",
+                  "signal:engine",
+                  "verify:rpc",
+                  "wallet:rpc"
+                ],
+                "freshness": {
+                  "marketAgeMs": 5593,
+                  "walletAgeMs": 5593,
+                  "maxAgeMs": 60000,
+                  "observedAt": "2026-04-09T07:28:05.295Z"
+                },
+                "evidenceRef": {
+                  "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                  "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                  "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                },
+                "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+                "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+              }
+            },
+            "lastCycleSummary": {
+              "cycleTimestamp": "2026-04-09T07:28:05.294Z",
+              "traceId": "trace-2026-04-09T07-28-411000718",
+              "mode": "live",
+              "producer": {
+                "name": "live-runtime",
+                "kind": "runtime_cycle_summary",
+                "canonicalDecisionTruth": false
+              },
+              "outcome": "blocked",
+              "intakeOutcome": "ok",
+              "advanced": true,
+              "stage": "verify",
+              "blocked": true,
+              "blockedReason": "controlled observation: execution stubbed",
+              "decisionOccurred": true,
+              "signalOccurred": true,
+              "riskOccurred": true,
+              "chaosOccurred": true,
+              "executionOccurred": true,
+              "verificationOccurred": true,
+              "paperExecutionProduced": false,
+              "errorOccurred": false,
+              "decision": {
+                "allowed": false,
+                "direction": "buy",
+                "confidence": 0.5175925925925927,
+                "riskAllowed": true,
+                "chaosAllowed": true,
+                "reason": "controlled observation: execution stubbed",
+                "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+              },
+              "decisionEnvelope": {
+                "schemaVersion": "decision.envelope.v3",
+                "entrypoint": "engine",
+                "flow": "trade",
+                "executionMode": "live",
+                "traceId": "trace-2026-04-09T07-28-411000718",
+                "stage": "verify",
+                "blocked": true,
+                "blockedReason": "controlled observation: execution stubbed",
+                "reasonClass": "EXECUTION_FAILED",
+                "sources": [
+                  "chaos:gate",
+                  "execute:engine",
+                  "market:dexpaprika",
+                  "risk:engine",
+                  "signal:engine",
+                  "verify:rpc",
+                  "wallet:rpc"
+                ],
+                "freshness": {
+                  "marketAgeMs": 5593,
+                  "walletAgeMs": 5593,
+                  "maxAgeMs": 60000,
+                  "observedAt": "2026-04-09T07:28:05.295Z"
+                },
+                "evidenceRef": {
+                  "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                  "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                  "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                },
+                "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+                "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+              },
+              "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+              "execution": {
+                "success": false,
+                "mode": "live",
+                "error": "controlled observation: execution stubbed"
+              },
+              "verification": {
+                "passed": false,
+                "mode": "rpc",
+                "reason": "controlled observation: execution stubbed"
+              },
+              "provenance": {
+                "reasonClass": "EXECUTION_FAILED",
+                "sources": [
+                  "chaos:gate",
+                  "execute:engine",
+                  "market",
+                  "market:dexpaprika",
+                  "risk:engine",
+                  "signal:engine",
+                  "verify:rpc",
+                  "wallet",
+                  "wallet:rpc"
+                ],
+                "freshness": {
+                  "marketAgeMs": 5593,
+                  "walletAgeMs": 5593,
+                  "maxAgeMs": 60000,
+                  "observedAt": "2026-04-09T07:28:05.295Z"
+                },
+                "evidenceRef": {
+                  "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                  "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                  "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                },
+                "evidenceRefs": [
+                  "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:6f015eb842ce1ca1",
+                  "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                  "discovery_evidence:SOL:6f015eb842ce1ca1",
+                  "discovery_evidence:SOL:fb5149dcc5b25cad",
+                  "evidence_status:COLLECTED",
+                  "evidence:discovery_evidence:SOL:6f015eb842ce1ca1",
+                  "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                  "marketRawHash:69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                  "quality:pass:none",
+                  "signalPackHash:e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d",
+                  "sources:market=OK@0|wallet=OK@0",
+                  "universe:included:none",
+                  "walletRawHash:309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+                ],
+                "reasonBasis": {
+                  "stage": "verify",
+                  "outcome": "blocked",
+                  "blockedReason": "controlled observation: execution stubbed",
+                  "failureStage": "execute",
+                  "failureCode": "controlled observation: execution stubbed"
+                }
+              },
+              "shadowArtifactChain": {
+                "artifactMode": "shadow",
+                "derivedOnly": true,
+                "nonAuthoritative": true,
+                "authorityInfluence": false,
+                "canonicalDecisionHistory": false,
+                "chainVersion": "shadow_artifact_chain.v1",
+                "status": "built",
+                "inputRefs": [
+                  "constructed_signal_set:ac977b277596ca225131c528c61a4f6d795dcdadeec74f4519933299b0883f8a",
+                  "cqd:aef526633a7b401d22156518c072b1ae5600dfe9c8777548e35a4bce99dab4ab",
+                  "data_quality:shadow-data-quality:trace-2026-04-09T07-28-411000718",
+                  "market:ingest-2026-04-09T07-28-05-299Z",
+                  "runtime_trace:trace-2026-04-09T07-28-411000718",
+                  "signal_pack:3f323314cf59f15e7799bad8a84f95ed95c4fc3fd5659cf40d0fb67125bec3a2",
+                  "trend_reversal_observation:23ff1db6f4f647280afcb837abf2333f09885751896e195bfa6764068297c52e",
+                  "wallet:ingest-2026-04-09T07-28-05-299Z"
+                ],
+                "evidenceRefs": [
+                  "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:6f015eb842ce1ca1",
+                  "discovery_evidence:SOL:6f015eb842ce1ca1",
+                  "evidence_status:COLLECTED",
+                  "evidence:discovery_evidence:SOL:6f015eb842ce1ca1",
+                  "quality:pass:none",
+                  "sources:market=OK@0|wallet=OK@0",
+                  "universe:included:none"
+                ],
+                "parity": {
+                  "oldAuthority": {
+                    "blocked": true,
+                    "blockedReason": "controlled observation: execution stubbed",
+                    "signalDirection": "buy",
+                    "signalConfidence": 0.5175925925925927,
+                    "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+                  },
+                  "shadowDerived": {
+                    "blocked": false,
+                    "qualityStatus": "pass",
+                    "scoreComposite": -0.14583333333333331,
+                    "scoreConfidence": 0.8493827160493828,
+                    "cqdHash": "aef526633a7b401d22156518c072b1ae5600dfe9c8777548e35a4bce99dab4ab"
+                  },
+                  "deltas": {
+                    "blockedMismatch": true,
+                    "confidenceDelta": 0.33179012345679004
+                  }
+                },
+                "artifacts": {
+                  "sourceObservationCount": 2,
+                  "sourceObservationRefs": [
+                    "market:ingest-2026-04-09T07-28-05-299Z",
+                    "wallet:ingest-2026-04-09T07-28-05-299Z"
+                  ],
+                  "staleSources": [],
+                  "discoveryEvidenceRef": "discovery_evidence:SOL:6f015eb842ce1ca1",
+                  "discoveryEvidenceHash": "6f015eb842ce1ca168eae29d5683bf50f42b705244de6d6f085ba0cea5c75962",
+                  "qualityStatus": "pass",
+                  "qualityReasonCodes": [],
+                  "qualityMissingCriticalFields": [],
+                  "qualityStaleSources": [],
+                  "qualityCrossSourceConfidence": 0.9555555555555556,
+                  "cqdHash": "aef526633a7b401d22156518c072b1ae5600dfe9c8777548e35a4bce99dab4ab",
+                  "cqdAnomalyFlags": [],
+                  "constructedSignalSetPayloadHash": "ac977b277596ca225131c528c61a4f6d795dcdadeec74f4519933299b0883f8a",
+                  "constructedSignalSetBuildStatus": "built",
+                  "scoreCardPayloadHash": "00b18f54207678b4a9eeb10a5523480cff61d6d7fbefb0a2536c18b145c72664",
+                  "scoreCardBuildStatus": "degraded"
+                }
+              },
+              "authorityArtifactChain": {
+                "artifactMode": "authority",
+                "derivedOnly": false,
+                "nonAuthoritative": false,
+                "authorityInfluence": true,
+                "canonicalDecisionHistory": false,
+                "chainVersion": "authority_artifact_chain.v1",
+                "status": "built",
+                "inputRefs": [
+                  "candidate_token:SOL:1775719685294",
+                  "constructed_signal_set:5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                  "cqd:c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                  "data_quality:authority-data-quality:ingest-2026-04-09T07-28-05-299Z",
+                  "discovery_evidence:fb5149dcc5b25cad",
+                  "market:ingest-2026-04-09T07-28-05-299Z",
+                  "runtime_mode:live",
+                  "runtime_trace:ingest-2026-04-09T07-28-05-299Z",
+                  "score_card:41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                  "universe_build_result:included",
+                  "wallet:ingest-2026-04-09T07-28-05-299Z"
+                ],
+                "evidenceRefs": [
+                  "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                  "discovery_evidence:SOL:fb5149dcc5b25cad",
+                  "evidence_status:COLLECTED",
+                  "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                  "quality:pass:none",
+                  "sources:market=OK@0|wallet=OK@0",
+                  "universe:included:none"
+                ],
+                "decision": {
+                  "blocked": false,
+                  "direction": "buy",
+                  "confidence": 0.5175925925925927,
+                  "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+                },
+                "artifacts": {
+                  "sourceObservationCount": 2,
+                  "sourceObservationRefs": [
+                    "market:ingest-2026-04-09T07-28-05-299Z",
+                    "wallet:ingest-2026-04-09T07-28-05-299Z"
+                  ],
+                  "discoveryEvidenceRef": "discovery_evidence:SOL:fb5149dcc5b25cad",
+                  "discoveryEvidenceHash": "fb5149dcc5b25cad540fd33b7d8907e41514550d4a9e1ab74bc6dd01e69a3e5d",
+                  "dataQualityStatus": "pass",
+                  "dataQualityReasonCodes": [],
+                  "dataQualityMissingCriticalFields": [],
+                  "dataQualityStaleSources": [],
+                  "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                  "cqdHash": "c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                  "cqdAnomalyFlags": [],
+                  "constructedSignalSetPayloadHash": "5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                  "constructedSignalSetBuildStatus": "degraded",
+                  "scoreCardPayloadHash": "41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                  "scoreCardBuildStatus": "degraded",
+                  "scoreComposite": 0.08083333333333333,
+                  "scoreConfidence": 0.5175925925925927
+                }
+              },
+              "incidentIds": []
+            },
+            "recentHistory": {
+              "recentCycleCount": 1,
+              "cycleOutcomes": {
+                "success": 0,
+                "blocked": 1,
+                "error": 0
+              },
+              "attemptsByMode": {
+                "dry": 0,
+                "paper": 0,
+                "live": 1
+              },
+              "refusalCounts": {
+                "controlled observation: execution stubbed": 3
+              },
+              "failureStageCounts": {
+                "live": 1
+              },
+              "verificationHealth": {
+                "passed": 0,
+                "failed": 1,
+                "failureReasons": {
+                  "controlled observation: execution stubbed": 1
+                }
+              },
+              "incidentCounts": {
+                "live_execution_refused": 1
+              },
+              "controlActions": [],
+              "stateTransitions": [],
+              "recentCycles": [
+                {
+                  "traceId": "trace-2026-04-09T07-28-411000718",
+                  "cycleTimestamp": "2026-04-09T07:28:05.294Z",
+                  "mode": "live",
+                  "producer": {
+                    "name": "live-runtime",
+                    "kind": "runtime_cycle_summary",
+                    "canonicalDecisionTruth": false
+                  },
+                  "outcome": "blocked",
+                  "stage": "verify",
+                  "blocked": true,
+                  "blockedReason": "controlled observation: execution stubbed",
+                  "intakeOutcome": "ok",
+                  "executionOccurred": true,
+                  "verificationOccurred": true,
+                  "decisionOccurred": true,
+                  "errorOccurred": false,
+                  "decisionEnvelope": {
+                    "schemaVersion": "decision.envelope.v3",
+                    "entrypoint": "engine",
+                    "flow": "trade",
+                    "executionMode": "live",
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "stage": "verify",
+                    "blocked": true,
+                    "blockedReason": "controlled observation: execution stubbed",
+                    "reasonClass": "EXECUTION_FAILED",
+                    "sources": [
+                      "chaos:gate",
+                      "execute:engine",
+                      "market:dexpaprika",
+                      "risk:engine",
+                      "signal:engine",
+                      "verify:rpc",
+                      "wallet:rpc"
+                    ],
+                    "freshness": {
+                      "marketAgeMs": 5593,
+                      "walletAgeMs": 5593,
+                      "maxAgeMs": 60000,
+                      "observedAt": "2026-04-09T07:28:05.295Z"
+                    },
+                    "evidenceRef": {
+                      "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                      "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                    },
+                    "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+                    "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+                  },
+                  "authorityArtifactChain": {
+                    "artifactMode": "authority",
+                    "derivedOnly": false,
+                    "nonAuthoritative": false,
+                    "authorityInfluence": true,
+                    "canonicalDecisionHistory": false,
+                    "chainVersion": "authority_artifact_chain.v1",
+                    "status": "built",
+                    "inputRefs": [
+                      "candidate_token:SOL:1775719685294",
+                      "constructed_signal_set:5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                      "cqd:c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                      "data_quality:authority-data-quality:ingest-2026-04-09T07-28-05-299Z",
+                      "discovery_evidence:fb5149dcc5b25cad",
+                      "market:ingest-2026-04-09T07-28-05-299Z",
+                      "runtime_mode:live",
+                      "runtime_trace:ingest-2026-04-09T07-28-05-299Z",
+                      "score_card:41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                      "universe_build_result:included",
+                      "wallet:ingest-2026-04-09T07-28-05-299Z"
+                    ],
+                    "evidenceRefs": [
+                      "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                      "discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "evidence_status:COLLECTED",
+                      "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "quality:pass:none",
+                      "sources:market=OK@0|wallet=OK@0",
+                      "universe:included:none"
+                    ],
+                    "decision": {
+                      "blocked": false,
+                      "direction": "buy",
+                      "confidence": 0.5175925925925927,
+                      "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+                    },
+                    "artifacts": {
+                      "sourceObservationCount": 2,
+                      "sourceObservationRefs": [
+                        "market:ingest-2026-04-09T07-28-05-299Z",
+                        "wallet:ingest-2026-04-09T07-28-05-299Z"
+                      ],
+                      "discoveryEvidenceRef": "discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "discoveryEvidenceHash": "fb5149dcc5b25cad540fd33b7d8907e41514550d4a9e1ab74bc6dd01e69a3e5d",
+                      "dataQualityStatus": "pass",
+                      "dataQualityReasonCodes": [],
+                      "dataQualityMissingCriticalFields": [],
+                      "dataQualityStaleSources": [],
+                      "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                      "cqdHash": "c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                      "cqdAnomalyFlags": [],
+                      "constructedSignalSetPayloadHash": "5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                      "constructedSignalSetBuildStatus": "degraded",
+                      "scoreCardPayloadHash": "41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                      "scoreCardBuildStatus": "degraded",
+                      "scoreComposite": 0.08083333333333333,
+                      "scoreConfidence": 0.5175925925925927
+                    }
+                  },
+                  "provenance": {
+                    "reasonClass": "EXECUTION_FAILED",
+                    "sources": [
+                      "chaos:gate",
+                      "execute:engine",
+                      "market",
+                      "market:dexpaprika",
+                      "risk:engine",
+                      "signal:engine",
+                      "verify:rpc",
+                      "wallet",
+                      "wallet:rpc"
+                    ],
+                    "freshness": {
+                      "marketAgeMs": 5593,
+                      "walletAgeMs": 5593,
+                      "maxAgeMs": 60000,
+                      "observedAt": "2026-04-09T07:28:05.295Z"
+                    },
+                    "evidenceRef": {
+                      "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                      "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                    },
+                    "evidenceRefs": [
+                      "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:6f015eb842ce1ca1",
+                      "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                      "discovery_evidence:SOL:6f015eb842ce1ca1",
+                      "discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "evidence_status:COLLECTED",
+                      "evidence:discovery_evidence:SOL:6f015eb842ce1ca1",
+                      "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "marketRawHash:69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "quality:pass:none",
+                      "signalPackHash:e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d",
+                      "sources:market=OK@0|wallet=OK@0",
+                      "universe:included:none",
+                      "walletRawHash:309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+                    ],
+                    "reasonBasis": {
+                      "stage": "verify",
+                      "outcome": "blocked",
+                      "blockedReason": "controlled observation: execution stubbed",
+                      "failureStage": "execute",
+                      "failureCode": "controlled observation: execution stubbed"
+                    }
+                  },
+                  "decision": {
+                    "allowed": false,
+                    "direction": "buy",
+                    "confidence": 0.5175925925925927,
+                    "riskAllowed": true,
+                    "chaosAllowed": true,
+                    "reason": "controlled observation: execution stubbed",
+                    "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+                  }
+                }
+              ],
+              "recentIncidents": [
+                {
+                  "id": "incident-2026-04-09T07-28-11-007Z-1",
+                  "at": "2026-04-09T07:28:11.007Z",
+                  "severity": "critical",
+                  "type": "live_execution_refused",
+                  "message": "controlled observation: execution stubbed",
+                  "details": {
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+                    "failureStage": "controlled_observation",
+                    "failureCode": "controlled_execution_stub"
+                  }
+                }
+              ]
+            }
+          },
+          "worker": {
+            "workerId": "controlled-17488",
+            "producer": {
+              "name": "runtime-worker",
+              "kind": "runtime_visibility_snapshot",
+              "canonicalDecisionTruth": false
+            },
+            "lastHeartbeatAt": "2026-04-09T07:28:11.038Z",
+            "lastCycleAt": "2026-04-09T07:28:05.294Z",
+            "degraded": false,
+            "degradedReason": "controlled observation: execution stubbed",
+            "observedAt": "2026-04-09T07:28:11.038Z"
+          },
+          "runtimeConfig": {
+            "environment": "controlled-live-limited",
+            "configured": true,
+            "seedSource": "boot",
+            "requestedMode": "live_limited",
+            "appliedMode": "live_limited",
+            "requestedExecutionMode": "live",
+            "appliedExecutionMode": "live",
+            "rolloutPosture": "micro_live",
+            "executionToggles": {
+              "tradingEnabled": true,
+              "liveTestMode": true,
+              "dryRun": false
+            },
+            "filters": {
+              "allowlistTokens": [],
+              "denylistTokens": []
+            },
+            "adapterToggles": {
+              "executionEnabled": true,
+              "publishEnabled": true,
+              "paperAdaptersEnabled": true
+            },
+            "rateCaps": {
+              "requireArm": true,
+              "maxNotionalPerTrade": 25,
+              "maxTradesPerWindow": 2,
+              "windowMs": 3600000,
+              "cooldownMs": 60000,
+              "maxInFlight": 1,
+              "failuresToBlock": 3,
+              "failureWindowMs": 900000,
+              "maxDailyNotional": 50
+            },
+            "thresholds": {
+              "maxSlippagePercent": 5,
+              "circuitBreakerFailureThreshold": 5,
+              "circuitBreakerRecoveryMs": 60000,
+              "reviewPolicyMode": "required"
+            },
+            "featureFlags": {},
+            "pollingIntervalMs": 15000,
+            "requestedVersionId": "memory-seed",
+            "activeVersionId": "memory-seed",
+            "appliedVersionId": "memory-seed",
+            "lastValidVersionId": "memory-seed",
+            "reloadNonce": 0,
+            "lastAppliedReloadNonce": 0,
+            "paused": false,
+            "killSwitch": false,
+            "pendingApply": false,
+            "requiresRestart": false,
+            "degraded": false,
+            "effectiveVersionHash": "memory-seed",
+            "requestedAt": "2026-04-09T07:28:05.261Z",
+            "appliedAt": "2026-04-09T07:28:05.261Z",
+            "lastAppliedAt": "2026-04-09T07:28:05.261Z"
+          },
+          "controlView": {
+            "requestedMode": "live_limited",
+            "appliedMode": "live_limited",
+            "requestedExecutionMode": "live",
+            "appliedExecutionMode": "live",
+            "liveTestMode": true,
+            "rolloutPosture": "micro_live",
+            "paused": false,
+            "killSwitch": false,
+            "reloadNonce": 0,
+            "pendingApply": false,
+            "requiresRestart": false,
+            "activeVersionId": "memory-seed",
+            "requestedVersionId": "memory-seed",
+            "appliedVersionId": "memory-seed",
+            "lastValidVersionId": "memory-seed",
+            "filters": {
+              "allowlistTokens": [],
+              "denylistTokens": []
+            },
+            "adapterToggles": {
+              "executionEnabled": true,
+              "publishEnabled": true,
+              "paperAdaptersEnabled": true
+            },
+            "rateCaps": {
+              "requireArm": true,
+              "maxNotionalPerTrade": 25,
+              "maxTradesPerWindow": 2,
+              "windowMs": 3600000,
+              "cooldownMs": 60000,
+              "maxInFlight": 1,
+              "failuresToBlock": 3,
+              "failureWindowMs": 900000,
+              "maxDailyNotional": 50
+            },
+            "thresholds": {
+              "maxSlippagePercent": 5,
+              "circuitBreakerFailureThreshold": 5,
+              "circuitBreakerRecoveryMs": 60000,
+              "reviewPolicyMode": "required"
+            },
+            "featureFlags": {},
+            "pollingIntervalMs": 15000,
+            "degraded": false,
+            "lastReasonAt": "2026-04-09T07:28:05.261Z",
+            "lastOperatorActionAt": "2026-04-09T07:28:05.261Z"
+          },
+          "restart": {
+            "required": false,
+            "requested": false,
+            "inProgress": false,
+            "lastHeartbeatAt": "2026-04-09T07:28:11.038Z"
+          },
+          "restartAlerts": {
+            "environment": "controlled-live-limited",
+            "workerService": "controlled-live-limited",
+            "openAlertCount": 0,
+            "acknowledgedAlertCount": 0,
+            "resolvedAlertCount": 0,
+            "activeAlertCount": 0,
+            "stalledRestartCount": 0,
+            "divergenceAlerting": false,
+            "openSourceCategories": [],
+            "externalNotificationCount": 0,
+            "notificationFailureCount": 0,
+            "notificationSuppressedCount": 0,
+            "lastEvaluatedAt": "2026-04-09T07:28:11.038Z"
+          },
+          "databaseRehearsal": {
+            "required": true,
+            "freshnessWindowMs": 604800000,
+            "status": "missing",
+            "latestEvidence": null
+          },
+          "databaseRehearsalStatus": {
+            "environment": "controlled-live-limited",
+            "freshnessStatus": "unknown",
+            "blockedByFreshness": true,
+            "freshnessWindowMs": 604800000,
+            "warningThresholdMs": 483840000,
+            "latestEvidence": null,
+            "latestEvidenceExecutionSource": "unknown",
+            "latestEvidenceStatus": "unknown",
+            "latestAutomatedRunStatus": "unknown",
+            "latestManualRunStatus": "unknown",
+            "repeatedAutomationFailureCount": 0,
+            "automationHealth": "unknown",
+            "manualFallbackActive": false,
+            "reasonCode": "rehearsal_missing",
+            "severity": "critical",
+            "statusMessage": "No database rehearsal evidence is recorded.",
+            "alert": {
+              "id": "database-rehearsal-freshness:controlled-live-limited",
+              "environment": "controlled-live-limited",
+              "reasonCode": "rehearsal_missing",
+              "severity": "critical",
+              "status": "open",
+              "summary": "No database rehearsal evidence is recorded.",
+              "recommendedAction": "Run the Render rehearsal refresh or a manual rehearsal before promotion.",
+              "freshnessStatus": "unknown",
+              "blockedByFreshness": true,
+              "freshnessWindowMs": 604800000,
+              "warningThresholdMs": 483840000,
+              "latestAutomatedRunStatus": "unknown",
+              "latestManualRunStatus": "unknown",
+              "repeatedAutomationFailureCount": 0,
+              "automationHealth": "unknown",
+              "manualFallbackActive": false,
+              "firstSeenAt": "2026-04-09T07:28:14.294Z",
+              "lastSeenAt": "2026-04-09T07:28:14.294Z",
+              "lastEvaluatedAt": "2026-04-09T07:28:14.294Z",
+              "createdAt": "2026-04-09T07:28:14.294Z",
+              "updatedAt": "2026-04-09T07:28:14.294Z",
+              "metadata": {
+                "freshnessStatus": "unknown",
+                "blockedByFreshness": true
+              }
+            },
+            "hasOpenAlert": true,
+            "lastEvaluatedAt": "2026-04-09T07:28:14.294Z"
+          },
+          "readiness": {
+            "posture": "healthy_for_posture",
+            "liveAllowed": false,
+            "paperSafe": false,
+            "liveTestMode": true,
+            "rolloutPosture": "micro_live",
+            "rolloutConfigured": true,
+            "rolloutConfigValid": true,
+            "roundStatus": "running",
+            "roundStartedAt": "2026-04-09T07:28:05.286Z",
+            "blocked": false,
+            "disarmed": true,
+            "stopped": false,
+            "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+            "canArmMicroLive": true,
+            "canUseStagedLiveCandidate": false,
+            "blockers": []
+          },
+          "killSwitch": {
+            "halted": false,
+            "triggeredAt": "2026-04-09T07:28:05.261Z"
+          },
+          "liveControl": {
+            "mode": "live",
+            "liveTestMode": true,
+            "roundStatus": "running",
+            "roundStartedAt": "2026-04-09T07:28:05.286Z",
+            "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+            "lastTransitionBy": "runtime_start",
+            "posture": "live_disarmed",
+            "rolloutPosture": "micro_live",
+            "rolloutConfigured": true,
+            "rolloutConfigValid": true,
+            "rolloutLastReasonAt": "2026-04-09T07:28:05.261Z",
+            "executionMode": "live",
+            "liveEnabled": true,
+            "armed": false,
+            "killSwitchActive": false,
+            "blocked": false,
+            "disarmed": true,
+            "stopped": false,
+            "degraded": false,
+            "manualRearmRequired": false,
+            "lastReasonAt": "2026-04-09T07:28:05.261Z",
+            "lastOperatorActionAt": "2026-04-09T07:28:05.261Z",
+            "caps": {
+              "requireArm": true,
+              "maxNotionalPerTrade": 25,
+              "maxTradesPerWindow": 2,
+              "windowMs": 3600000,
+              "cooldownMs": 60000,
+              "maxInFlight": 1,
+              "failuresToBlock": 3,
+              "failureWindowMs": 900000,
+              "maxDailyNotional": 50,
+              "allowlistTokens": []
+            },
+            "counters": {
+              "inFlight": 0,
+              "tradesInWindow": 0,
+              "failuresInWindow": 0,
+              "dailyNotional": 0,
+              "tradesToday": 0,
+              "dailyLossUsd": 0
+            }
+          }
+        }
+      },
+      "releaseGate": {
+        "status": 200,
+        "ok": true,
+        "body": {
+          "success": true,
+          "surfaceKind": "operational",
+          "rolloutStage": "micro_live",
+          "readiness": {
+            "posture": "healthy_for_posture",
+            "liveAllowed": false,
+            "paperSafe": false,
+            "liveTestMode": true,
+            "rolloutPosture": "micro_live",
+            "rolloutConfigured": true,
+            "rolloutConfigValid": true,
+            "roundStatus": "running",
+            "roundStartedAt": "2026-04-09T07:28:05.286Z",
+            "blocked": false,
+            "disarmed": true,
+            "stopped": false,
+            "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+            "canArmMicroLive": true,
+            "canUseStagedLiveCandidate": false,
+            "blockers": []
+          },
+          "releaseGate": {
+            "recommendedStage": "micro_live",
+            "canArmMicroLive": true,
+            "canUseStagedLiveCandidate": false,
+            "blockers": [],
+            "checklist": [
+              {
+                "id": "paper-safe",
+                "label": "Paper-safe runtime posture",
+                "status": "fail",
+                "evidence": [
+                  "GET /health",
+                  "GET /control/status"
+                ],
+                "note": "Runtime is not paper-safe."
+              },
+              {
+                "id": "explicit-rollout-stage",
+                "label": "Explicit rollout posture is set",
+                "status": "pass",
+                "evidence": [
+                  "GET /control/status",
+                  "GET /control/release-gate"
+                ],
+                "note": "Rollout posture is micro_live."
+              },
+              {
+                "id": "micro-live-gate",
+                "label": "Micro-live gate is available",
+                "status": "pass",
+                "evidence": [
+                  "GET /control/status",
+                  "GET /control/release-gate"
+                ],
+                "note": "Micro-live can be armed."
+              },
+              {
+                "id": "staged-live-gate",
+                "label": "Staged-live candidate gate is available",
+                "status": "fail",
+                "evidence": [
+                  "GET /control/status",
+                  "GET /control/release-gate"
+                ],
+                "note": "Staged-live candidate remains blocked."
+              },
+              {
+                "id": "kill-switch-clear",
+                "label": "Kill switch is not active",
+                "status": "pass",
+                "evidence": [
+                  "GET /control/status",
+                  "GET /health"
+                ]
+              }
+            ]
+          },
+          "operatorEvidenceChecklist": [
+            {
+              "id": "live-preflight",
+              "label": "Capture live preflight evidence",
+              "required": true,
+              "surfaceKind": "command",
+              "surfaceRef": "npm --prefix bot run live:preflight",
+              "note": "Creates the persisted live-preflight evidence sidecar next to JOURNAL_PATH."
+            },
+            {
+              "id": "worker-state",
+              "label": "Capture boot-critical worker state",
+              "required": true,
+              "surfaceKind": "command",
+              "surfaceRef": "npm --prefix bot run recovery:worker-state",
+              "note": "Use the boot-critical artifact report before any rollout decision."
+            },
+            {
+              "id": "health-surface",
+              "label": "Inspect runtime health",
+              "required": true,
+              "surfaceKind": "route",
+              "surfaceRef": "GET /health"
+            },
+            {
+              "id": "control-status",
+              "label": "Inspect control and readiness state",
+              "required": true,
+              "surfaceKind": "route",
+              "surfaceRef": "GET /control/status"
+            },
+            {
+              "id": "release-gate",
+              "label": "Record the release-gate checklist surface",
+              "required": true,
+              "surfaceKind": "route",
+              "surfaceRef": "GET /control/release-gate"
+            }
+          ],
+          "incidentRunbook": [
+            {
+              "id": "provider_outage",
+              "trigger": "Adapter health degrades or provider data becomes unavailable.",
+              "operatorAction": "Hold rollout, inspect GET /health and GET /kpi/adapters, then pause or stop live operation.",
+              "controlSurfaces": [
+                "POST /control/pause",
+                "POST /control/emergency-stop"
+              ],
+              "evidenceSurfaces": [
+                "GET /health",
+                "GET /kpi/adapters",
+                "GET /control/status"
+              ]
+            },
+            {
+              "id": "signer_failure",
+              "trigger": "Signer URL or signer authorization fails during live-preflight or runtime start.",
+              "operatorAction": "Fail closed, stop live operation, and re-run live preflight after the signer boundary is restored.",
+              "controlSurfaces": [
+                "POST /control/emergency-stop",
+                "POST /control/halt"
+              ],
+              "evidenceSurfaces": [
+                "GET /control/status",
+                "GET /health",
+                "npm --prefix bot run live:preflight"
+              ]
+            },
+            {
+              "id": "degraded_mode",
+              "trigger": "Runtime or adapter state degrades but paper-safe operation remains available.",
+              "operatorAction": "Keep live disabled, review readiness blockers, and resume only after explicit evidence-backed review.",
+              "controlSurfaces": [
+                "POST /control/pause",
+                "POST /control/resume"
+              ],
+              "evidenceSurfaces": [
+                "GET /control/status",
+                "GET /health"
+              ]
+            },
+            {
+              "id": "kill_switch",
+              "trigger": "Emergency stop or control halt is required.",
+              "operatorAction": "Use the emergency stop surface first, then preserve the audit trail and do not re-arm until review completes.",
+              "controlSurfaces": [
+                "POST /control/emergency-stop",
+                "POST /control/halt"
+              ],
+              "evidenceSurfaces": [
+                "GET /control/status",
+                "GET /health"
+              ]
+            },
+            {
+              "id": "rollback",
+              "trigger": "A live promotion must be reversed after application or a bad rollout must be reversed.",
+              "operatorAction": "Use the live-promotion rollback surface tied to the specific request id and record the rollback reason.",
+              "controlSurfaces": [
+                "POST /control/live-promotion/:id/rollback"
+              ],
+              "evidenceSurfaces": [
+                "GET /control/live-promotion",
+                "GET /control/status"
+              ]
+            }
+          ],
+          "killSwitch": {
+            "halted": false,
+            "triggeredAt": "2026-04-09T07:28:05.261Z"
+          },
+          "liveControl": {
+            "mode": "live",
+            "liveTestMode": true,
+            "roundStatus": "running",
+            "roundStartedAt": "2026-04-09T07:28:05.286Z",
+            "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+            "lastTransitionBy": "runtime_start",
+            "posture": "live_disarmed",
+            "rolloutPosture": "micro_live",
+            "rolloutConfigured": true,
+            "rolloutConfigValid": true,
+            "rolloutLastReasonAt": "2026-04-09T07:28:05.261Z",
+            "executionMode": "live",
+            "liveEnabled": true,
+            "armed": false,
+            "killSwitchActive": false,
+            "blocked": false,
+            "disarmed": true,
+            "stopped": false,
+            "degraded": false,
+            "manualRearmRequired": false,
+            "lastReasonAt": "2026-04-09T07:28:05.261Z",
+            "lastOperatorActionAt": "2026-04-09T07:28:05.261Z",
+            "caps": {
+              "requireArm": true,
+              "maxNotionalPerTrade": 25,
+              "maxTradesPerWindow": 2,
+              "windowMs": 3600000,
+              "cooldownMs": 60000,
+              "maxInFlight": 1,
+              "failuresToBlock": 3,
+              "failureWindowMs": 900000,
+              "maxDailyNotional": 50,
+              "allowlistTokens": []
+            },
+            "counters": {
+              "inFlight": 0,
+              "tradesInWindow": 0,
+              "failuresInWindow": 0,
+              "dailyNotional": 0,
+              "tradesToday": 0,
+              "dailyLossUsd": 0
+            }
+          }
+        }
+      },
+      "kpiAdapters": {
+        "status": 200,
+        "ok": true,
+        "body": {
+          "surfaceKind": "default",
+          "adapters": [
+            {
+              "id": "dexpaprika",
+              "status": "down",
+              "latencyMs": 0,
+              "lastSuccessAt": "1970-01-01T00:00:00.000Z",
+              "consecutiveFailures": 0
+            },
+            {
+              "id": "moralis",
+              "status": "down",
+              "latencyMs": 0,
+              "lastSuccessAt": "1970-01-01T00:00:00.000Z",
+              "consecutiveFailures": 0
+            },
+            {
+              "id": "dexscreener",
+              "status": "down",
+              "latencyMs": 0,
+              "lastSuccessAt": "1970-01-01T00:00:00.000Z",
+              "consecutiveFailures": 0
+            }
+          ]
+        }
+      },
+      "kpiSummary": {
+        "status": 200,
+        "ok": true,
+        "body": {
+          "botStatus": "running",
+          "riskScore": 0,
+          "chaosPassRate": 1,
+          "dataQuality": 1,
+          "lastDecisionAt": "2026-04-09T07:28:05.294Z",
+          "tradesToday": 0,
+          "metricProvenance": {
+            "riskScore": "default",
+            "chaosPassRate": "default",
+            "dataQuality": "default",
+            "lastDecisionAt": "operational",
+            "tradesToday": "derived"
+          },
+          "worker": {
+            "workerId": "controlled-17488",
+            "producer": {
+              "name": "runtime-worker",
+              "kind": "runtime_visibility_snapshot",
+              "canonicalDecisionTruth": false
+            },
+            "lastHeartbeatAt": "2026-04-09T07:28:11.038Z",
+            "lastCycleAt": "2026-04-09T07:28:05.294Z",
+            "degraded": false,
+            "degradedReason": "controlled observation: execution stubbed",
+            "observedAt": "2026-04-09T07:28:11.038Z"
+          },
+          "runtime": {
+            "mode": "live",
+            "paperModeActive": false,
+            "status": "running",
+            "cycleCount": 1,
+            "decisionCount": 1,
+            "executionCount": 0,
+            "blockedCount": 1,
+            "errorCount": 0,
+            "lastDecisionAt": "2026-04-09T07:28:05.294Z",
+            "lastIntakeOutcome": "ok",
+            "liveControl": {
+              "mode": "live",
+              "liveTestMode": true,
+              "roundStatus": "running",
+              "roundStartedAt": "2026-04-09T07:28:05.286Z",
+              "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+              "lastTransitionBy": "runtime_start",
+              "posture": "live_disarmed",
+              "rolloutPosture": "micro_live",
+              "rolloutConfigured": true,
+              "rolloutConfigValid": true,
+              "rolloutLastReasonAt": "2026-04-09T07:28:05.261Z",
+              "caps": {
+                "requireArm": true,
+                "maxNotionalPerTrade": 25,
+                "maxTradesPerWindow": 2,
+                "windowMs": 3600000,
+                "cooldownMs": 60000,
+                "maxInFlight": 1,
+                "failuresToBlock": 3,
+                "failureWindowMs": 900000,
+                "maxDailyNotional": 50,
+                "allowlistTokens": []
+              },
+              "armed": false,
+              "killSwitchActive": false,
+              "blocked": false,
+              "disarmed": true,
+              "stopped": false,
+              "lastOperatorActionAt": "2026-04-09T07:28:05.261Z",
+              "counters": {
+                "inFlight": 0,
+                "tradesInWindow": 0,
+                "failuresInWindow": 0,
+                "dailyNotional": 0,
+                "tradesToday": 0,
+                "dailyLossUsd": 0
+              }
+            },
+            "readiness": {
+              "posture": "healthy_for_posture",
+              "liveAllowed": false,
+              "paperSafe": false,
+              "liveTestMode": true,
+              "rolloutPosture": "micro_live",
+              "rolloutConfigured": true,
+              "rolloutConfigValid": true,
+              "roundStatus": "running",
+              "roundStartedAt": "2026-04-09T07:28:05.286Z",
+              "blocked": false,
+              "disarmed": true,
+              "stopped": false,
+              "lastTransitionAt": "2026-04-09T07:28:05.286Z",
+              "canArmMicroLive": true,
+              "canUseStagedLiveCandidate": false,
+              "blockers": []
+            },
+            "recentHistory": {
+              "recentCycleCount": 1,
+              "cycleOutcomes": {
+                "success": 0,
+                "blocked": 1,
+                "error": 0
+              },
+              "attemptsByMode": {
+                "dry": 0,
+                "paper": 0,
+                "live": 1
+              },
+              "refusalCounts": {
+                "controlled observation: execution stubbed": 3
+              },
+              "failureStageCounts": {
+                "live": 1
+              },
+              "verificationHealth": {
+                "passed": 0,
+                "failed": 1,
+                "failureReasons": {
+                  "controlled observation: execution stubbed": 1
+                }
+              },
+              "incidentCounts": {
+                "live_execution_refused": 1
+              },
+              "controlActions": [],
+              "stateTransitions": [],
+              "recentCycles": [
+                {
+                  "traceId": "trace-2026-04-09T07-28-411000718",
+                  "cycleTimestamp": "2026-04-09T07:28:05.294Z",
+                  "mode": "live",
+                  "producer": {
+                    "name": "live-runtime",
+                    "kind": "runtime_cycle_summary",
+                    "canonicalDecisionTruth": false
+                  },
+                  "outcome": "blocked",
+                  "stage": "verify",
+                  "blocked": true,
+                  "blockedReason": "controlled observation: execution stubbed",
+                  "intakeOutcome": "ok",
+                  "executionOccurred": true,
+                  "verificationOccurred": true,
+                  "decisionOccurred": true,
+                  "errorOccurred": false,
+                  "decisionEnvelope": {
+                    "schemaVersion": "decision.envelope.v3",
+                    "entrypoint": "engine",
+                    "flow": "trade",
+                    "executionMode": "live",
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "stage": "verify",
+                    "blocked": true,
+                    "blockedReason": "controlled observation: execution stubbed",
+                    "reasonClass": "EXECUTION_FAILED",
+                    "sources": [
+                      "chaos:gate",
+                      "execute:engine",
+                      "market:dexpaprika",
+                      "risk:engine",
+                      "signal:engine",
+                      "verify:rpc",
+                      "wallet:rpc"
+                    ],
+                    "freshness": {
+                      "marketAgeMs": 5593,
+                      "walletAgeMs": 5593,
+                      "maxAgeMs": 60000,
+                      "observedAt": "2026-04-09T07:28:05.295Z"
+                    },
+                    "evidenceRef": {
+                      "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                      "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                    },
+                    "decisionHash": "ae8b56e3efb0cde4b472f540208a175ad04835590c453dca718c075a7a454493",
+                    "resultHash": "42ec097716e7240724af008a4ebcd123dac1ab815a1075f7617dc961cdc71c73"
+                  },
+                  "authorityArtifactChain": {
+                    "artifactMode": "authority",
+                    "derivedOnly": false,
+                    "nonAuthoritative": false,
+                    "authorityInfluence": true,
+                    "canonicalDecisionHistory": false,
+                    "chainVersion": "authority_artifact_chain.v1",
+                    "status": "built",
+                    "inputRefs": [
+                      "candidate_token:SOL:1775719685294",
+                      "constructed_signal_set:5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                      "cqd:c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                      "data_quality:authority-data-quality:ingest-2026-04-09T07-28-05-299Z",
+                      "discovery_evidence:fb5149dcc5b25cad",
+                      "market:ingest-2026-04-09T07-28-05-299Z",
+                      "runtime_mode:live",
+                      "runtime_trace:ingest-2026-04-09T07-28-05-299Z",
+                      "score_card:41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                      "universe_build_result:included",
+                      "wallet:ingest-2026-04-09T07-28-05-299Z"
+                    ],
+                    "evidenceRefs": [
+                      "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                      "discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "evidence_status:COLLECTED",
+                      "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "quality:pass:none",
+                      "sources:market=OK@0|wallet=OK@0",
+                      "universe:included:none"
+                    ],
+                    "decision": {
+                      "blocked": false,
+                      "direction": "buy",
+                      "confidence": 0.5175925925925927,
+                      "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+                    },
+                    "artifacts": {
+                      "sourceObservationCount": 2,
+                      "sourceObservationRefs": [
+                        "market:ingest-2026-04-09T07-28-05-299Z",
+                        "wallet:ingest-2026-04-09T07-28-05-299Z"
+                      ],
+                      "discoveryEvidenceRef": "discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "discoveryEvidenceHash": "fb5149dcc5b25cad540fd33b7d8907e41514550d4a9e1ab74bc6dd01e69a3e5d",
+                      "dataQualityStatus": "pass",
+                      "dataQualityReasonCodes": [],
+                      "dataQualityMissingCriticalFields": [],
+                      "dataQualityStaleSources": [],
+                      "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                      "cqdHash": "c75f793b58cfcd02cbdb711fc2b60dec54a141a4f90e782bf28b67ff150d6cf0",
+                      "cqdAnomalyFlags": [],
+                      "constructedSignalSetPayloadHash": "5d19d1fe3f91af4d8b1d50971373082d94dc4e9c858aaa678e45e73ab32e8b99",
+                      "constructedSignalSetBuildStatus": "degraded",
+                      "scoreCardPayloadHash": "41bafacffcdae10e7ae10f431888fb54ebc32010f82423a991b47a55ea3191f5",
+                      "scoreCardBuildStatus": "degraded",
+                      "scoreComposite": 0.08083333333333333,
+                      "scoreConfidence": 0.5175925925925927
+                    }
+                  },
+                  "provenance": {
+                    "reasonClass": "EXECUTION_FAILED",
+                    "sources": [
+                      "chaos:gate",
+                      "execute:engine",
+                      "market",
+                      "market:dexpaprika",
+                      "risk:engine",
+                      "signal:engine",
+                      "verify:rpc",
+                      "wallet",
+                      "wallet:rpc"
+                    ],
+                    "freshness": {
+                      "marketAgeMs": 5593,
+                      "walletAgeMs": 5593,
+                      "maxAgeMs": 60000,
+                      "observedAt": "2026-04-09T07:28:05.295Z"
+                    },
+                    "evidenceRef": {
+                      "marketRawHash": "69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "walletRawHash": "309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004",
+                      "signalPackHash": "e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d"
+                    },
+                    "evidenceRefs": [
+                      "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:6f015eb842ce1ca1",
+                      "candidates:SOL:SOL:medium:runtime_mode:live:market+wallet:fb5149dcc5b25cad",
+                      "discovery_evidence:SOL:6f015eb842ce1ca1",
+                      "discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "evidence_status:COLLECTED",
+                      "evidence:discovery_evidence:SOL:6f015eb842ce1ca1",
+                      "evidence:discovery_evidence:SOL:fb5149dcc5b25cad",
+                      "marketRawHash:69c38baed1a23b6d9b4a19e552b556cb81af73bd353c25a6fd5c965ed730cd3a",
+                      "quality:pass:none",
+                      "signalPackHash:e01dee4d93971eac402728ec53d9bb5dc5385e3b95c88ba6d33d598afdfd5f0d",
+                      "sources:market=OK@0|wallet=OK@0",
+                      "universe:included:none",
+                      "walletRawHash:309584e36bcfa15e75ad151742e16625e6106a0e47e2dd08e70d1f941c609004"
+                    ],
+                    "reasonBasis": {
+                      "stage": "verify",
+                      "outcome": "blocked",
+                      "blockedReason": "controlled observation: execution stubbed",
+                      "failureStage": "execute",
+                      "failureCode": "controlled observation: execution stubbed"
+                    }
+                  },
+                  "decision": {
+                    "allowed": false,
+                    "direction": "buy",
+                    "confidence": 0.5175925925925927,
+                    "riskAllowed": true,
+                    "chaosAllowed": true,
+                    "reason": "controlled observation: execution stubbed",
+                    "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent"
+                  }
+                }
+              ],
+              "recentIncidents": [
+                {
+                  "id": "incident-2026-04-09T07-28-11-007Z-1",
+                  "at": "2026-04-09T07:28:11.007Z",
+                  "severity": "critical",
+                  "type": "live_execution_refused",
+                  "message": "controlled observation: execution stubbed",
+                  "details": {
+                    "traceId": "trace-2026-04-09T07-28-411000718",
+                    "tradeIntentId": "ingest-2026-04-09T07-28-05-299Z-intent",
+                    "failureStage": "controlled_observation",
+                    "failureCode": "controlled_execution_stub"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "runtimeStopped": true
+  }
+}

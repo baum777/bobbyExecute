@@ -32,6 +32,8 @@ The Tier 1 architecture and boundary docs above now also carry the Dashboard V1 
 
 ### Tier 3: Operational Runbooks And Templates (Non-Canonical Architecture)
 
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/.env.live-local.example`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/boot-critical-artifact-preparation.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-evidence-template.md`

@@ -55,6 +55,10 @@ function paperConfig(wallet: string): Config {
     rpcUrl: "https://api.mainnet-beta.solana.com",
     dexpaprikaBaseUrl: "https://api.dexpaprika.com",
     moralisBaseUrl: "https://solana-gateway.moralis.io",
+    discoveryProvider: "dexscreener",
+    marketDataProvider: "dexpaprika",
+    streamingProvider: "dexpaprika",
+    moralisEnabled: false,
     walletAddress: wallet,
     journalPath: "data/journal.jsonl",
     circuitBreakerFailureThreshold: 5,
@@ -88,7 +92,7 @@ describe("decision path convergence (PR-B1)", () => {
     const wallet: WalletSnapshot = {
       traceId: "conv-wallet",
       timestamp: clock.now().toISOString(),
-      source: "moralis",
+      source: "rpc",
       walletAddress: "11111111111111111111111111111111",
       balances: [],
       totalUsd: 1,
@@ -175,7 +179,7 @@ describe("decision path convergence (PR-B1)", () => {
     const wallet: WalletSnapshot = {
       traceId: "rt-wallet",
       timestamp: clock.now().toISOString(),
-      source: "moralis",
+      source: "rpc",
       walletAddress: "11111111111111111111111111111111",
       balances: [],
       totalUsd: 1,

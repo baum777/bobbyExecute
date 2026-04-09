@@ -95,17 +95,27 @@ export async function createIngestHandler(
     );
 
     const tokenPools = await config.marketData.getTokenPoolsWithHash(canonicalTokenAddress);
-    const pools = extractDexPaprikaPools(tokenPools.raw);
+    const pools = extractDexPaprikaPools(tokenPools.raw, canonicalTokenAddress);
     const selectedPool = selectCanonicalPool(pools, canonicalPairResolved);
     if (!selectedPool) {
       throw new Error("NO_VALID_POOL_RESOLVED: no DexPaprika pool matched the canonical discovery pair");
     }
 
+    const selectedPoolDetail = await config.marketData.getPoolWithHash(selectedPool.id);
+    const liquidityUsd = extractDexPaprikaPoolLiquidity(selectedPoolDetail.raw);
+    if (liquidityUsd === undefined) {
+      throw new Error("DexPaprika pool liquidity is missing");
+    }
+    const selectedPoolWithLiquidity = {
+      ...selectedPool,
+      liquidity_usd: liquidityUsd,
+    };
+
     const poolSnapshot = mapPoolToPoolMarketSnapshot(
-      selectedPool,
+      selectedPoolWithLiquidity,
       canonicalTokenAddress,
       timestamp,
-      tokenPools.rawPayloadHash
+      selectedPoolDetail.rawPayloadHash
     );
 
     if (poolSnapshot.baseTokenAddress !== canonicalTokenAddress) {
@@ -156,7 +166,7 @@ export async function createIngestHandler(
     }
 
     const market: MarketSnapshot = mapPoolToMarketSnapshot(
-      selectedPool,
+      selectedPoolWithLiquidity,
       traceId,
       timestamp,
       sha256(
@@ -261,39 +271,54 @@ function resolveCanonicalTokenAddress(tokenQuery: string, discoveredTokenAddress
   return discoveredTokenAddress;
 }
 
-function extractDexPaprikaPools(raw: unknown): DexPaprikaPoolItem[] {
+function extractDexPaprikaPools(raw: unknown, canonicalTokenId?: string): DexPaprikaPoolItem[] {
   const rows = Array.isArray(raw)
     ? raw
-    : raw != null && typeof raw === "object" && Array.isArray((raw as Record<string, unknown>).data)
-      ? ((raw as Record<string, unknown>).data as unknown[])
+    : raw != null && typeof raw === "object"
+      ? Array.isArray((raw as Record<string, unknown>).pools)
+        ? ((raw as Record<string, unknown>).pools as unknown[])
+        : Array.isArray((raw as Record<string, unknown>).data)
+          ? ((raw as Record<string, unknown>).data as unknown[])
+          : []
       : [];
 
-  return rows.flatMap((row) => {
-    if (row == null || typeof row !== "object") {
-      return [];
-    }
+  return rows.flatMap((row) => normalizeDexPaprikaPool(row, canonicalTokenId));
+}
 
-    const record = row as Record<string, unknown>;
-    const id = toString(record.id);
-    const baseToken = toDexPaprikaTokenRef(record.base_token);
-    const quoteToken = toDexPaprikaTokenRef(record.quote_token);
-    if (!id || !baseToken || !quoteToken) {
-      return [];
-    }
+function normalizeDexPaprikaPool(raw: unknown, canonicalTokenId?: string): DexPaprikaPoolItem[] {
+  if (raw == null || typeof raw !== "object") {
+    return [];
+  }
 
-    return [
-      {
-        id,
-        name: toString(record.name),
-        base_token: baseToken,
-        quote_token: quoteToken,
-        price_usd: toNumber(record.price_usd),
-        liquidity_usd: toNumber(record.liquidity_usd),
-        volume_24h_usd: toNumber(record.volume_24h_usd),
-        last_updated: toString(record.last_updated),
-      },
-    ];
-  });
+  const record = raw as Record<string, unknown>;
+  const id = toString(record.id);
+  if (!id) {
+    return [];
+  }
+
+  const baseToken =
+    toDexPaprikaTokenRef(record.base_token) ??
+    pickDexPaprikaTokenFromTokens(record.tokens, canonicalTokenId, true);
+  const quoteToken =
+    toDexPaprikaTokenRef(record.quote_token) ??
+    pickDexPaprikaTokenFromTokens(record.tokens, canonicalTokenId, false);
+
+  if (!baseToken || !quoteToken) {
+    return [];
+  }
+
+  return [
+    {
+      id,
+      name: toString(record.name) ?? toString(record.dex_name),
+      base_token: baseToken,
+      quote_token: quoteToken,
+      price_usd: toNumber(record.price_usd),
+      liquidity_usd: toNumber(record.liquidity_usd),
+      volume_24h_usd: toNumber(record.volume_24h_usd ?? record.volume_usd),
+      last_updated: toString(record.last_updated) ?? toString(record.created_at),
+    },
+  ];
 }
 
 function selectCanonicalPool(
@@ -407,6 +432,73 @@ function toDexPaprikaTokenRef(
   }
 
   return undefined;
+}
+
+function extractDexPaprikaPoolLiquidity(raw: unknown): number | undefined {
+  if (raw != null && typeof raw === "object") {
+    const record = raw as Record<string, unknown>;
+    const topLevelLiquidity = toNumber(record.liquidity_usd ?? record.liquidityUsd);
+    if (topLevelLiquidity !== undefined) {
+      return topLevelLiquidity;
+    }
+
+    const reserves = record.token_reserves ?? record.tokenReserves;
+    if (Array.isArray(reserves)) {
+      const summed = reserves.reduce((total, reserve) => {
+        if (reserve == null || typeof reserve !== "object") {
+          return total;
+        }
+
+        const reserveRecord = reserve as Record<string, unknown>;
+        const reserveUsd = toNumber(reserveRecord.reserve_usd ?? reserveRecord.reserveUsd);
+        return reserveUsd !== undefined ? total + reserveUsd : total;
+      }, 0);
+
+      return summed > 0 ? summed : undefined;
+    }
+  }
+
+  return undefined;
+}
+
+function pickDexPaprikaTokenFromTokens(
+  value: unknown,
+  canonicalTokenId: string | undefined,
+  preferCanonical: boolean
+): { id: string; symbol: string } | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const tokens = value.flatMap((item) => {
+    if (item == null || typeof item !== "object") {
+      return [];
+    }
+
+    const record = item as Record<string, unknown>;
+    const id = toString(record.id);
+    const symbol = toString(record.symbol);
+    if (!id || !symbol) {
+      return [];
+    }
+
+    return [{ id, symbol }];
+  });
+
+  if (tokens.length === 0) {
+    return undefined;
+  }
+
+  if (canonicalTokenId) {
+    const canonical = tokens.find((token) => token.id === canonicalTokenId);
+    const other = tokens.find((token) => token.id !== canonicalTokenId);
+    if (preferCanonical) {
+      return canonical;
+    }
+    return other ?? canonical;
+  }
+
+  return preferCanonical ? tokens[0] : tokens[1] ?? tokens[0];
 }
 
 function toNumber(value: unknown): number | undefined {

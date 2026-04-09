@@ -43,7 +43,7 @@ describe("Runtime cycle summary persistence", () => {
       errorOccurred: false,
       provenance: {
         reasonClass: "DATA_STALE",
-        sources: ["market:dexpaprika", "wallet:moralis"],
+        sources: ["market:dexpaprika", "wallet:rpc"],
         freshness: {
           marketAgeMs: 65_000,
           walletAgeMs: 65_000,
@@ -102,7 +102,7 @@ describe("Runtime cycle summary persistence", () => {
       },
       provenance: {
         reasonClass: "SUCCESS",
-        sources: ["market:dexpaprika", "wallet:moralis", "execute:engine"],
+        sources: ["market:dexpaprika", "wallet:rpc", "execute:engine"],
         freshness: {
           marketAgeMs: 0,
           walletAgeMs: 0,

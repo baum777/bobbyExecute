@@ -27,7 +27,7 @@ function buildWallet(overrides: Partial<WalletSnapshot> = {}): WalletSnapshot {
   return {
     traceId: "authority-wallet",
     timestamp: CYCLE_TIMESTAMP,
-    source: "moralis",
+    source: "rpc",
     walletAddress: "11111111111111111111111111111111",
     balances: [
       {

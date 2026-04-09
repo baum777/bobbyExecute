@@ -1,0 +1,21 @@
+{
+  "jupiterApiKey": "<redacted>",
+  "runId": "20260409T011755Z",
+  "rolloutPosture": "micro_live",
+  "walletAddress": "11111111111111111111111111111111",
+  "rpcMode": "real",
+  "executionMode": "live",
+  "controlToken": "<redacted>",
+  "preflightStatus": "blocked-by-workspace-tests",
+  "discoveryProvider": "dexscreener",
+  "signerAuthToken": "<redacted>",
+  "rpcUrl": "https://api.mainnet-beta.solana.com",
+  "marketDataProvider": "dexpaprika",
+  "moralisEnabled": "false",
+  "evidenceDir": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T011755Z",
+  "operatorReadToken": "<redacted>",
+  "streamingProvider": "dexpaprika",
+  "baseName": "journal",
+  "runtimeEnvironment": "live-limited-cycle",
+  "journalPath": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T011755Z\\journal.jsonl"
+}

@@ -25,6 +25,26 @@ describe("Live test config (Wave 8)", () => {
   const orig = process.env;
   const workerStateDirs: string[] = [];
 
+  function setLivePreflightEnv(): void {
+    process.env.LIVE_TRADING = "true";
+    process.env.DRY_RUN = "false";
+    process.env.RPC_MODE = "real";
+    process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
+    process.env.TRADING_ENABLED = "true";
+    process.env.LIVE_TEST_MODE = "true";
+    process.env.DISCOVERY_PROVIDER = "dexscreener";
+    process.env.MARKET_DATA_PROVIDER = "dexpaprika";
+    process.env.STREAMING_PROVIDER = "dexpaprika";
+    process.env.MORALIS_ENABLED = "false";
+    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    process.env.CONTROL_TOKEN = "phase10-live-control-token";
+    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
+    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
+    process.env.SIGNER_MODE = "remote";
+    process.env.SIGNER_URL = "https://signer.example.com/sign";
+    process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
+  }
+
   function createValidWorkerStateFixture(): string {
     const dir = mkdtempSync(join(tmpdir(), "bobbyexecute-live-preflight-"));
     workerStateDirs.push(dir);
@@ -104,10 +124,13 @@ describe("Live test config (Wave 8)", () => {
     process.env.LIVE_TEST_MAX_CAPITAL_USD = "75";
     process.env.LIVE_TEST_MAX_TRADES_PER_DAY = "2";
     process.env.LIVE_TEST_MAX_DAILY_LOSS_USD = "20";
+    process.env.DISCOVERY_PROVIDER = "dexscreener";
+    process.env.MARKET_DATA_PROVIDER = "dexpaprika";
+    process.env.STREAMING_PROVIDER = "dexpaprika";
+    process.env.MORALIS_ENABLED = "false";
     process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
     process.env.CONTROL_TOKEN = "phase10-live-control-token";
     process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
     process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
     process.env.SIGNER_MODE = "remote";
     process.env.SIGNER_URL = "https://signer.example.com/sign";
@@ -133,22 +156,11 @@ describe("Live test config (Wave 8)", () => {
   });
 
   it("runLiveTestPreflight returns a live-test report in valid live mode and persists ready evidence", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
+    setLivePreflightEnv();
     process.env.ROLLOUT_POSTURE = "micro_live";
     process.env.LIVE_TEST_MAX_CAPITAL_USD = "80";
     process.env.LIVE_TEST_MAX_TRADES_PER_DAY = "2";
     process.env.LIVE_TEST_MAX_DAILY_LOSS_USD = "25";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
-    process.env.CONTROL_TOKEN = "phase10-live-control-token";
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
-    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
-    process.env.SIGNER_MODE = "remote";
-    process.env.SIGNER_URL = "https://signer.example.com/sign";
-    process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
     process.env.JOURNAL_PATH = createValidWorkerStateFixture();
 
     const report = runLiveTestPreflight();
@@ -174,19 +186,23 @@ describe("Live test config (Wave 8)", () => {
     });
   });
 
-  it("runLiveTestPreflight fails closed when a live-critical env input is missing and persists blocked evidence", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
+  it("runLiveTestPreflight fails closed when RPC_URL is missing and persists blocked evidence", () => {
+    setLivePreflightEnv();
+    delete process.env.RPC_URL;
     process.env.ROLLOUT_POSTURE = "micro_live";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
-    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
-    process.env.SIGNER_MODE = "remote";
-    process.env.SIGNER_URL = "https://signer.example.com/sign";
-    process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
+    process.env.JOURNAL_PATH = createValidWorkerStateFixture();
+
+    expect(() => runLiveTestPreflight()).toThrow(/RPC_URL/);
+    const evidence = readPreflightEvidence(process.env.JOURNAL_PATH as string);
+    expect(evidence.status).toBe("blocked");
+    expect(evidence.report.blockers.join(" ")).toContain("RPC_URL");
+    expect(evidence.report.preflightGate).toBe("blocked");
+  });
+
+  it("runLiveTestPreflight fails closed when a live-critical env input is missing and persists blocked evidence", () => {
+    setLivePreflightEnv();
+    process.env.ROLLOUT_POSTURE = "micro_live";
+    delete process.env.CONTROL_TOKEN;
 
     const dir = mkdtempSync(join(tmpdir(), "bobbyexecute-live-preflight-missing-"));
     workerStateDirs.push(dir);
@@ -208,10 +224,13 @@ describe("Live test config (Wave 8)", () => {
     process.env.TRADING_ENABLED = "true";
     process.env.LIVE_TEST_MODE = "true";
     process.env.ROLLOUT_POSTURE = "micro_live";
+    process.env.DISCOVERY_PROVIDER = "dexscreener";
+    process.env.MARKET_DATA_PROVIDER = "dexpaprika";
+    process.env.STREAMING_PROVIDER = "dexpaprika";
+    process.env.MORALIS_ENABLED = "false";
     process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
     process.env.CONTROL_TOKEN = "phase10-live-control-token";
     process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
     process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
     process.env.SIGNER_MODE = "remote";
     process.env.SIGNER_URL = "https://signer.example.com/sign";

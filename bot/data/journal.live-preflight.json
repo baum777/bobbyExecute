@@ -1,16 +1,16 @@
 {
-  "capturedAt": "2026-04-07T05:13:06.033Z",
+  "capturedAt": "2026-04-08T20:56:50.348Z",
   "status": "blocked",
   "report": {
     "executionMode": "dry",
     "rpcMode": "stub",
-    "liveTestEnabled": false,
+    "liveTestEnabled": true,
     "rolloutPosture": "unset",
     "readiness": {
       "posture": "blocked_for_live",
       "liveAllowed": false,
       "paperSafe": true,
-      "liveTestMode": false,
+      "liveTestMode": true,
       "rolloutPosture": "paper_only",
       "rolloutConfigured": false,
       "rolloutConfigValid": true,

@@ -189,7 +189,7 @@ describe("DryRunRuntime (phase-2)", () => {
       fetchPaperWalletSnapshot: async () => ({
         traceId: "paper-wallet-killswitch",
         timestamp: new Date().toISOString(),
-        source: "moralis",
+        source: "rpc",
         walletAddress: TEST_CONFIG.walletAddress,
         balances: [
           {
@@ -246,7 +246,7 @@ describe("DryRunRuntime (phase-2)", () => {
       fetchPaperWalletSnapshot: async () => ({
         traceId: "w1",
         timestamp: new Date().toISOString(),
-        source: "moralis",
+        source: "rpc",
         walletAddress: TEST_CONFIG.walletAddress,
         balances: [
           {
@@ -356,7 +356,7 @@ describe("DryRunRuntime (phase-2)", () => {
       fetchPaperWalletSnapshot: async () => ({
         traceId: "wallet-paper-log",
         timestamp: new Date().toISOString(),
-        source: "moralis",
+        source: "rpc",
         walletAddress: TEST_CONFIG.walletAddress,
         balances: [
           {
@@ -497,7 +497,7 @@ describe("DryRunRuntime (phase-2)", () => {
       fetchPaperWalletSnapshot: async () => ({
         traceId: "w-paper-ok",
         timestamp: new Date().toISOString(),
-        source: "moralis",
+        source: "rpc",
         walletAddress: TEST_CONFIG.walletAddress,
         balances: [
           {
@@ -582,7 +582,7 @@ describe("DryRunRuntime (phase-2)", () => {
       fetchPaperWalletSnapshot: async () => ({
         traceId: "paper-wallet",
         timestamp: new Date().toISOString(),
-        source: "moralis",
+        source: "rpc",
         walletAddress: TEST_CONFIG.walletAddress,
         balances: [
           {
@@ -715,7 +715,7 @@ describe("DryRunRuntime (phase-2)", () => {
       fetchPaperWalletSnapshot: async () => ({
         traceId: "paper-wallet-pause",
         timestamp: new Date().toISOString(),
-        source: "moralis",
+        source: "rpc",
         walletAddress: TEST_CONFIG.walletAddress,
         balances: [
           {
@@ -855,13 +855,13 @@ describe("DryRunRuntime (phase-2)", () => {
       () =>
         new DryRunRuntime(paperConfig, {
           paperMarketAdapters: [{ id: "moralis", fetch: vi.fn() }],
-          fetchPaperWalletSnapshot: async () => ({
-            traceId: "wallet-miswired",
-            timestamp: new Date().toISOString(),
-            source: "moralis",
-            walletAddress: TEST_CONFIG.walletAddress,
-            balances: [],
-            totalUsd: 0,
+      fetchPaperWalletSnapshot: async () => ({
+        traceId: "wallet-miswired",
+        timestamp: new Date().toISOString(),
+        source: "rpc",
+        walletAddress: TEST_CONFIG.walletAddress,
+        balances: [],
+        totalUsd: 0,
           }),
         })
     ).toThrow(/DexPaprika/);
@@ -877,19 +877,19 @@ describe("DryRunRuntime (phase-2)", () => {
             { id: "dexpaprika", fetch: vi.fn() },
             { id: "dexcheck", fetch: vi.fn() },
           ],
-          fetchPaperWalletSnapshot: async () => ({
-            traceId: "wallet-with-dexcheck",
-            timestamp: new Date().toISOString(),
-            source: "moralis",
-            walletAddress: TEST_CONFIG.walletAddress,
-            balances: [],
-            totalUsd: 0,
+      fetchPaperWalletSnapshot: async () => ({
+        traceId: "wallet-with-dexcheck",
+        timestamp: new Date().toISOString(),
+        source: "rpc",
+        walletAddress: TEST_CONFIG.walletAddress,
+        balances: [],
+        totalUsd: 0,
           }),
         })
     ).toThrow(/DexCheck is intelligence-only/);
   });
 
-  it("blocks paper intake when wallet snapshots are not sourced from Moralis", async () => {
+  it("blocks paper intake when wallet snapshots are not sourced from RPC", async () => {
     const paperConfig: Config = { ...TEST_CONFIG, executionMode: "paper", dryRun: false };
     const cycleSummaryWriter = new InMemoryRuntimeCycleSummaryWriter();
     const runtime = new DryRunRuntime(paperConfig, {
@@ -908,13 +908,13 @@ describe("DryRunRuntime (phase-2)", () => {
     await runtime.start();
 
     expect(runtime.getLastState()?.blocked).toBe(true);
-    expect(runtime.getLastState()?.blockedReason).toContain("Moralis");
+    expect(runtime.getLastState()?.blockedReason).toContain("RPC-derived");
     expect(runtime.getSnapshot().counters.blockedCount).toBe(1);
     expect(runtime.getSnapshot().lastCycleSummary?.intakeOutcome).toBe("invalid");
 
     const summaries = await cycleSummaryWriter.list();
     expect(summaries).toHaveLength(1);
-    expect(summaries[0].blockedReason).toContain("Moralis");
+    expect(summaries[0].blockedReason).toContain("RPC-derived");
 
     await runtime.stop();
   });

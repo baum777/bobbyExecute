@@ -1,0 +1,15 @@
+{
+  "armed": false,
+  "blocked": false,
+  "degraded": false,
+  "manualRearmRequired": false,
+  "roundStatus": "running",
+  "roundStartedAt": "2026-04-09T01:17:58.089Z",
+  "lastTransitionAt": "2026-04-09T01:17:58.089Z",
+  "lastTransitionBy": "runtime_start",
+  "inFlight": 0,
+  "recentTradeAtMs": [],
+  "recentFailureAtMs": [],
+  "dailyNotional": 0,
+  "dailyKey": "2026-04-09"
+}

@@ -23,7 +23,7 @@ function createRuntimeInput() {
     wallet: {
       traceId: "wallet-trace-1",
       timestamp: "2026-03-20T00:00:00.000Z",
-      source: "moralis" as const,
+      source: "rpc" as const,
       walletAddress: "11111111111111111111111111111111",
       balances: [
         {

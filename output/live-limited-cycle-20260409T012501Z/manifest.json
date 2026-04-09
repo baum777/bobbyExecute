@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-04-09T07:28:14.354Z",
+  "evidenceDir": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z",
+  "journalPath": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T012501Z\\journal.jsonl",
+  "files": [
+    "journal.jsonl",
+    "journal.kill-switch.json",
+    "journal.live-control.json",
+    "journal.daily-loss.json",
+    "journal.idempotency.json",
+    "observation.json"
+  ]
+}

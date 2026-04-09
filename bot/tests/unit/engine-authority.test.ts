@@ -26,7 +26,7 @@ function makeHandlers() {
     wallet: {
       traceId: "trace-1",
       timestamp: now,
-      source: "moralis",
+      source: "rpc",
       walletAddress: "wallet-1",
       balances: [],
       totalUsd: 100,
@@ -208,7 +208,7 @@ describe("Engine authority closure", () => {
       wallet: {
         traceId: "trace-stale",
         timestamp: staleMarketTimestamp,
-        source: "moralis",
+        source: "rpc",
         walletAddress: "wallet-stale",
         balances: [],
         totalUsd: 100,
@@ -240,13 +240,13 @@ describe("Engine authority closure", () => {
     expect(stateA.blocked).toBe(true);
     expect(stateA.blockedReason).toContain("DATA_STALE");
     expect(stateA.decisionEnvelope?.reasonClass).toBe("DATA_STALE");
-    expect(stateA.decisionEnvelope?.sources).toEqual(["market:dexpaprika", "wallet:moralis"]);
+    expect(stateA.decisionEnvelope?.sources).toEqual(["market:dexpaprika", "wallet:rpc"]);
     expect(stateA.decisionEnvelope?.evidenceRef.marketRawHash).toBe("market-raw-stale");
     expect(stateA.journalEntry?.output).toMatchObject({
       blocked: true,
       provenance: {
-        reasonClass: "DATA_STALE",
-        sources: ["market:dexpaprika", "wallet:moralis"],
+      reasonClass: "DATA_STALE",
+        sources: ["market:dexpaprika", "wallet:rpc"],
       },
     });
 

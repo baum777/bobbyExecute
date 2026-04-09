@@ -1,0 +1,41 @@
+{
+  "capturedAt": "2026-04-09T01:16:45.846Z",
+  "status": "blocked",
+  "report": {
+    "executionMode": "dry",
+    "rpcMode": "stub",
+    "liveTestEnabled": true,
+    "rolloutPosture": "micro_live",
+    "readiness": {
+      "posture": "healthy_for_posture",
+      "liveAllowed": false,
+      "paperSafe": true,
+      "liveTestMode": true,
+      "rolloutPosture": "micro_live",
+      "rolloutConfigured": true,
+      "rolloutConfigValid": true,
+      "roundStatus": "idle",
+      "blocked": false,
+      "disarmed": true,
+      "stopped": false,
+      "canArmMicroLive": false,
+      "canUseStagedLiveCandidate": false,
+      "blockers": []
+    },
+    "preflightGate": "blocked",
+    "evidencePath": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T011557Z\\journal.live-preflight.json",
+    "maxCapitalUsd": 1,
+    "maxTradesPerDay": 1,
+    "maxDailyLossUsd": 0,
+    "workerJournalPath": "C:\\workspace\\main_projects\\dotBot\\bobbyExecute\\output\\live-limited-cycle-20260409T011557Z\\journal.jsonl",
+    "workerSafeBoot": false,
+    "workerBootCriticalMissing": [
+      "idempotency cache"
+    ],
+    "workerBootCriticalInvalid": [],
+    "blockers": [
+      "Live-test preflight requires LIVE_TRADING=true.",
+      "Worker boot-critical state is invalid. Missing: idempotency cache. Invalid: none."
+    ]
+  }
+}

@@ -104,7 +104,7 @@ describe("paper bootstrap integration parity (phase-6)", () => {
     const walletSnapshot: WalletSnapshot = {
       traceId: "phase6-wallet-trace",
       timestamp: freshTs,
-      source: "moralis",
+      source: "rpc",
       walletAddress: process.env.WALLET_ADDRESS!,
       balances: [
         {

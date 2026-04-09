@@ -9,6 +9,26 @@ import { loadConfig, resetConfigCache } from "../../src/config/load-config.js";
 describe("Config validation (P1)", () => {
   const orig = process.env;
 
+  function setLivePrereqs(): void {
+    process.env.LIVE_TRADING = "true";
+    process.env.DRY_RUN = "false";
+    process.env.RPC_MODE = "real";
+    process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
+    process.env.TRADING_ENABLED = "true";
+    process.env.LIVE_TEST_MODE = "true";
+    process.env.DISCOVERY_PROVIDER = "dexscreener";
+    process.env.MARKET_DATA_PROVIDER = "dexpaprika";
+    process.env.STREAMING_PROVIDER = "dexpaprika";
+    process.env.MORALIS_ENABLED = "false";
+    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    process.env.SIGNER_MODE = "remote";
+    process.env.SIGNER_URL = "https://signer.example.com/sign";
+    process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
+    process.env.CONTROL_TOKEN = "phase10-live-control-token";
+    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
+    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
+  }
+
   beforeEach(() => {
     resetConfigCache();
     process.env = { ...orig };
@@ -37,27 +57,19 @@ describe("Config validation (P1)", () => {
   });
 
   it("valid combo LIVE_TRADING=true with RPC_MODE=real parses", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
-    process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
-    process.env.SIGNER_MODE = "remote";
-    process.env.SIGNER_URL = "https://signer.example.com/sign";
-    process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
+    setLivePrereqs();
     process.env.SIGNER_KEY_ID = "remote-key-1";
     process.env.SIGNER_TIMEOUT_MS = "15000";
-    process.env.CONTROL_TOKEN = "phase10-live-control-token";
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
-    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
 
     const config = parseConfig(process.env as Record<string, string | undefined>);
     expect(config.executionMode).toBe("live");
     expect(config.rpcMode).toBe("real");
     expect(config.tradingEnabled).toBe(true);
     expect(config.liveTestMode).toBe(true);
+    expect(config.discoveryProvider).toBe("dexscreener");
+    expect(config.marketDataProvider).toBe("dexpaprika");
+    expect(config.streamingProvider).toBe("dexpaprika");
+    expect(config.moralisEnabled).toBe(false);
     expect(config.signerMode).toBe("remote");
     expect(config.signerUrl).toBe("https://signer.example.com/sign");
     expect(config.signerKeyId).toBe("remote-key-1");
@@ -66,10 +78,7 @@ describe("Config validation (P1)", () => {
   });
 
   it("live config rejects missing explicit pre-live prerequisites", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
-    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
+    setLivePrereqs();
     delete process.env.TRADING_ENABLED;
     delete process.env.LIVE_TEST_MODE;
     delete process.env.WALLET_ADDRESS;
@@ -84,17 +93,18 @@ describe("Config validation (P1)", () => {
     );
   });
 
+  it("loadConfig rejects LIVE_TRADING=true with DRY_RUN=true", () => {
+    setLivePrereqs();
+    process.env.DRY_RUN = "true";
+
+    expect(() => loadConfig(process.env as Record<string, string | undefined>)).toThrow(
+      /DRY_RUN=true/
+    );
+  });
+
   it("live config rejects disabled signer mode", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    setLivePrereqs();
     process.env.SIGNER_MODE = "disabled";
-    process.env.CONTROL_TOKEN = "phase10-live-control-token";
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
-    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
 
     expect(() => parseConfig(process.env as Record<string, string | undefined>)).toThrow(
       /SIGNER_MODE=remote/
@@ -102,18 +112,10 @@ describe("Config validation (P1)", () => {
   });
 
   it("loadConfig rejects live mode without remote signer config", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    setLivePrereqs();
     delete process.env.SIGNER_MODE;
     delete process.env.SIGNER_URL;
     delete process.env.SIGNER_AUTH_TOKEN;
-    process.env.CONTROL_TOKEN = "phase10-live-control-token";
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
-    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
 
     expect(() => loadConfig(process.env as Record<string, string | undefined>)).toThrow(
       /SIGNER_MODE=remote/
@@ -121,21 +123,10 @@ describe("Config validation (P1)", () => {
   });
 
   it("loadConfig rejects invalid live-test caps in live mode", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
+    setLivePrereqs();
     process.env.LIVE_TEST_MAX_CAPITAL_USD = "0";
     process.env.LIVE_TEST_MAX_TRADES_PER_DAY = "1";
     process.env.LIVE_TEST_MAX_DAILY_LOSS_USD = "50";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
-    process.env.SIGNER_MODE = "remote";
-    process.env.SIGNER_URL = "https://signer.example.com/sign";
-    process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
-    process.env.CONTROL_TOKEN = "phase10-live-control-token";
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
-    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
 
     expect(() => loadConfig(process.env as Record<string, string | undefined>)).toThrow(
       /LIVE_TEST_MAX_CAPITAL_USD must be at least 1/
@@ -143,51 +134,34 @@ describe("Config validation (P1)", () => {
   });
 
   it("live config rejects identical control and operator read tokens", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
-    process.env.RPC_URL = "https://api.mainnet-beta.solana.com";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
+    setLivePrereqs();
     process.env.CONTROL_TOKEN = "phase10-shared-token";
     process.env.OPERATOR_READ_TOKEN = "phase10-shared-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
-    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
 
     expect(() => parseConfig(process.env as Record<string, string | undefined>)).toThrow(
       /CONTROL_TOKEN and OPERATOR_READ_TOKEN to be distinct/
     );
   });
 
-  it("loadConfig rejects live mode without MORALIS_API_KEY", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
-    process.env.SIGNER_MODE = "remote";
-    process.env.SIGNER_URL = "https://signer.example.com/sign";
-    process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
-    process.env.CONTROL_TOKEN = "phase10-live-control-token";
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
+  it("loadConfig allows live mode without MORALIS_API_KEY when MORALIS_ENABLED=false", () => {
+    setLivePrereqs();
     delete process.env.MORALIS_API_KEY;
 
-    expect(() => loadConfig(process.env as Record<string, string | undefined>)).toThrow(/MORALIS_API_KEY/);
+    expect(() => loadConfig(process.env as Record<string, string | undefined>)).not.toThrow();
+  });
+
+  it("loadConfig rejects live mode with MORALIS_ENABLED=true but no MORALIS_API_KEY", () => {
+    setLivePrereqs();
+    process.env.MORALIS_ENABLED = "true";
+    delete process.env.MORALIS_API_KEY;
+
+    expect(() => loadConfig(process.env as Record<string, string | undefined>)).toThrow(
+      /MORALIS_API_KEY when MORALIS_ENABLED=true/
+    );
   });
 
   it("loadConfig rejects live mode without JUPITER_API_KEY", () => {
-    process.env.LIVE_TRADING = "true";
-    process.env.RPC_MODE = "real";
-    process.env.TRADING_ENABLED = "true";
-    process.env.LIVE_TEST_MODE = "true";
-    process.env.WALLET_ADDRESS = "11111111111111111111111111111111";
-    process.env.SIGNER_MODE = "remote";
-    process.env.SIGNER_URL = "https://signer.example.com/sign";
-    process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
-    process.env.CONTROL_TOKEN = "phase10-live-control-token";
-    process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
-    process.env.MORALIS_API_KEY = "phase10-moralis-api-key";
+    setLivePrereqs();
     delete process.env.JUPITER_API_KEY;
 
     expect(() => loadConfig(process.env as Record<string, string | undefined>)).toThrow(/JUPITER_API_KEY/);

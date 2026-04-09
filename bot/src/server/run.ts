@@ -1,6 +1,5 @@
 /**
  * Standalone public bot entry - run with: node dist/server/run.js (after npm run build)
- * Or: npx tsx src/server/run.ts
  */
 import { loadConfig } from "../config/load-config.js";
 import { bootstrap } from "../bootstrap.js";

@@ -100,6 +100,8 @@ npm run premerge
 npm run build
 ```
 
+Local startup order and localhost wiring live in [`docs/local-run.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run.md).
+
 ## Status Reminder
 
 Current readiness blocker remains staging/live environment proof (`live:preflight` evidence), not an internal authority-migration gap.

@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   CANONICAL_PROVIDER_ROLE_SPLIT,
+  PRIMARY_DISCOVERY_PROVIDER_ID,
   PRIMARY_MARKET_PROVIDER_ID,
   PRIMARY_WALLET_PROVIDER_ID,
+  MORALIS_FALLBACK_PROVIDER_ID,
   OPTIONAL_INTELLIGENCE_PROVIDER_ID,
   assertCanonicalPaperMarketAdapters,
   createCanonicalPaperMarketAdapters,
@@ -11,18 +13,30 @@ import {
 } from "../../src/adapters/provider-roles.js";
 
 describe("canonical provider role split", () => {
-  it("defines DexPaprika as the primary paper-market provider and DexCheck as intelligence-only", () => {
-    expect(CANONICAL_PROVIDER_ROLE_SPLIT.dexpaprika).toMatchObject({
-      providerId: PRIMARY_MARKET_PROVIDER_ID,
-      plane: "market",
+  it("defines DexScreener, DexPaprika, and RPC as primary defaults with Moralis fallback only", () => {
+    expect(CANONICAL_PROVIDER_ROLE_SPLIT.dexscreener).toMatchObject({
+      providerId: PRIMARY_DISCOVERY_PROVIDER_ID,
+      plane: "discovery",
       priority: "primary",
       requiredForPaperRuntime: true,
     });
-    expect(CANONICAL_PROVIDER_ROLE_SPLIT.moralis).toMatchObject({
+    expect(CANONICAL_PROVIDER_ROLE_SPLIT.dexpaprika).toMatchObject({
+      providerId: PRIMARY_MARKET_PROVIDER_ID,
+      plane: "market_data",
+      priority: "primary",
+      requiredForPaperRuntime: true,
+    });
+    expect(CANONICAL_PROVIDER_ROLE_SPLIT.rpc).toMatchObject({
       providerId: PRIMARY_WALLET_PROVIDER_ID,
       plane: "wallet",
       priority: "primary",
       requiredForPaperRuntime: true,
+    });
+    expect(CANONICAL_PROVIDER_ROLE_SPLIT.moralis).toMatchObject({
+      providerId: MORALIS_FALLBACK_PROVIDER_ID,
+      plane: "wallet",
+      priority: "fallback_only",
+      requiredForPaperRuntime: false,
     });
     expect(CANONICAL_PROVIDER_ROLE_SPLIT.dexcheck).toMatchObject({
       providerId: OPTIONAL_INTELLIGENCE_PROVIDER_ID,
@@ -75,25 +89,18 @@ describe("canonical provider role split", () => {
     expect(snapshot.volume24h).toBe(42000);
   });
 
-  it("builds canonical paper wallet snapshots from Moralis balances", async () => {
+  it("builds canonical paper wallet snapshots from RPC balances", async () => {
     const fetchWallet = createCanonicalPaperWalletSnapshotFetcher({
-      moralis: {
-        getBalancesWithHash: vi.fn().mockResolvedValue({
-          raw: {
-            result: [
-              {
-                token_address: "So11111111111111111111111111111111111111112",
-                symbol: "SOL",
-                decimals: 9,
-                balance: "2500000000",
-                usd_value: 325,
-              },
-            ],
-          },
-          rawPayloadHash: "wallet-hash",
+      rpcClient: {
+        getBalance: vi.fn().mockResolvedValue({
+          address: "11111111111111111111111111111111",
+          balance: "2500000000",
+          decimals: 9,
         }),
       },
       walletAddress: "11111111111111111111111111111111",
+      tokenMint: "So11111111111111111111111111111111111111112",
+      tokenPriceUsd: 130,
     });
 
     const wallet = await fetchWallet();
@@ -102,8 +109,8 @@ describe("canonical provider role split", () => {
     expect(wallet.totalUsd).toBe(325);
   });
 
-  it("flags non-Moralis wallet snapshots as invalid for paper intake", () => {
-    expect(getPaperWalletProviderViolation({ source: "moralis" })).toBeNull();
-    expect(getPaperWalletProviderViolation({ source: "dexpaprika" })).toMatch(/Moralis/);
+  it("flags non-RPC wallet snapshots as invalid for paper intake", () => {
+    expect(getPaperWalletProviderViolation({ source: "rpc" })).toBeNull();
+    expect(getPaperWalletProviderViolation({ source: "moralis" })).toMatch(/RPC-derived/);
   });
 });

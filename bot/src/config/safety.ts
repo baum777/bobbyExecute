@@ -27,8 +27,8 @@ export function isLiveTradingEnabled(): boolean {
 }
 
 /**
- * M4 Policy: LIVE_TRADING=true requires RPC_MODE=real.
- * Throws if live trading enabled but RPC is stub.
+ * M4 Policy: LIVE_TRADING=true requires RPC_MODE=real and an explicit RPC_URL.
+ * Throws if live trading enabled but RPC is stub or RPC_URL is missing.
  */
 export function assertLiveTradingRequiresRealRpc(): void {
   if (!isLiveTradingEnabled()) return;
@@ -59,6 +59,10 @@ function readLiveTestIntegerEnv(
 export function assertLiveTradingPrerequisites(config: Config): void {
   if (config.executionMode !== "live") {
     return;
+  }
+
+  if (config.dryRun) {
+    throw new Error("LIVE_TRADING=true cannot be combined with DRY_RUN=true.");
   }
 
   assertLiveTradingRequiresRealRpc();

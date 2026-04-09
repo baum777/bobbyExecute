@@ -48,6 +48,10 @@ export class DexScreenerClient {
     });
   }
 
+  private getApiBaseUrl(): string {
+    return this.baseUrl.replace(/\/latest$/, "");
+  }
+
   private validateResponseFreshness(raw: DexScreenerTokenResponse): void {
     const pairs = raw?.pairs;
     if (Array.isArray(pairs)) {
@@ -67,15 +71,15 @@ export class DexScreenerClient {
 
   /**
    * Get token pairs for a token on a specific chain.
-   * GET /latest/dex/token-pairs/v1/{chainId}/{tokenAddress}
+   * GET /token-pairs/v1/{chainId}/{tokenAddress}
    */
   async getTokenPairsV1(chainId: string, tokenAddress: string): Promise<DexScreenerTokenResponse> {
-    const url = `${this.baseUrl}/dex/token-pairs/v1/${chainId}/${tokenAddress}`;
+    const url = `${this.getApiBaseUrl()}/token-pairs/v1/${chainId}/${tokenAddress}`;
     const res = await this._fetch(url);
     if (!res.ok) {
       throw new Error(`DexScreener error: ${res.status} ${res.statusText}`);
     }
-    const raw = (await res.json()) as DexScreenerTokenResponse;
+    const raw = this.normalizeTokenPairsResponse(await res.json());
     this.validateResponseFreshness(raw);
     return raw;
   }
@@ -233,5 +237,31 @@ export class DexScreenerClient {
     const raw = await this.getPairLatest(chainId, pairId);
     const rawPayloadHash = sha256(JSON.stringify(raw));
     return { raw, rawPayloadHash };
+  }
+
+  private normalizeTokenPairsResponse(payload: unknown): DexScreenerTokenResponse {
+    if (Array.isArray(payload)) {
+      return {
+        schemaVersion: "1.0",
+        pairs: payload as DexScreenerPairInfo[],
+      };
+    }
+
+    if (payload != null && typeof payload === "object") {
+      const record = payload as Record<string, unknown>;
+      if ("pairs" in record) {
+        const pairs = record.pairs;
+        if (pairs === null || Array.isArray(pairs)) {
+          return {
+            schemaVersion: typeof record.schemaVersion === "string" && record.schemaVersion.trim() !== ""
+              ? record.schemaVersion
+              : "1.0",
+            pairs: (pairs as DexScreenerPairInfo[] | null) ?? null,
+          };
+        }
+      }
+    }
+
+    throw new Error("DexScreener error: unsupported token-pairs payload shape");
   }
 }

@@ -30,7 +30,7 @@ function baseWallet(clock: FakeClock, overrides: Partial<WalletSnapshot> = {}): 
   return {
     traceId: "prov-wallet",
     timestamp: clock.now().toISOString(),
-    source: "moralis",
+    source: "rpc",
     walletAddress: "11111111111111111111111111111111",
     balances: [],
     totalUsd: 1,

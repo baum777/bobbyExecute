@@ -1,0 +1,20 @@
+{
+  "armed": false,
+  "blocked": true,
+  "degraded": false,
+  "manualRearmRequired": false,
+  "roundStatus": "completed",
+  "roundStartedAt": "2026-04-09T07:28:05.286Z",
+  "roundCompletedAt": "2026-04-09T07:28:14.339Z",
+  "stopReason": "runtime_stop",
+  "lastTransitionAt": "2026-04-09T07:28:14.339Z",
+  "lastTransitionBy": "runtime_stop",
+  "reasonCode": "micro_live_disarmed",
+  "reasonDetail": "runtime_stop",
+  "lastReasonAt": "2026-04-09T07:28:14.339Z",
+  "inFlight": 0,
+  "recentTradeAtMs": [],
+  "recentFailureAtMs": [],
+  "dailyNotional": 0,
+  "dailyKey": "2026-04-09"
+}

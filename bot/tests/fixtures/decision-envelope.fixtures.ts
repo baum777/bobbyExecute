@@ -80,7 +80,7 @@ export async function buildDecisionEnvelopeFixtureSet(): Promise<DecisionEnvelop
   const wallet: WalletSnapshot = {
     traceId,
     timestamp,
-    source: "moralis",
+    source: "rpc",
     walletAddress: "11111111111111111111111111111111",
     balances: [
       {
