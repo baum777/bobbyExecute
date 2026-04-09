@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { InMemoryRuntimeVisibilityRepository, type RuntimeVisibilitySnapshot } from "../../src/persistence/runtime-visibility-repository.js";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import {
+  FileSystemRuntimeVisibilityRepository,
+  InMemoryRuntimeVisibilityRepository,
+  createRuntimeVisibilityRepository,
+  type RuntimeVisibilitySnapshot,
+} from "../../src/persistence/runtime-visibility-repository.js";
 import { loadVisibleRuntimeState } from "../../src/server/runtime-visibility.js";
 import type { RuntimeSnapshot } from "../../src/runtime/dry-run-runtime.js";
 
@@ -133,6 +141,17 @@ function buildRuntimeSnapshot(): RuntimeSnapshot {
 }
 
 describe("Runtime visibility persistence", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "runtime-visibility-"));
+  });
+
+  afterEach(async () => {
+    delete process.env.RUNTIME_VISIBILITY_PATH;
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
   it("preserves producer labels and returns them through the visible runtime surface", async () => {
     const repository = new InMemoryRuntimeVisibilityRepository();
     const snapshot: RuntimeVisibilitySnapshot = {
@@ -200,5 +219,56 @@ describe("Runtime visibility persistence", () => {
       kind: "runtime_cycle_summary",
       canonicalDecisionTruth: false,
     });
+  });
+
+  it("uses a shared file-backed repository when DATABASE_URL is unset", async () => {
+    const runtimeVisibilityPath = join(tempDir, "runtime-visibility.json");
+    process.env.RUNTIME_VISIBILITY_PATH = runtimeVisibilityPath;
+
+    const writer = await createRuntimeVisibilityRepository();
+    expect(writer.kind).toBe("file");
+    expect(writer).toBeInstanceOf(FileSystemRuntimeVisibilityRepository);
+
+    const snapshot: RuntimeVisibilitySnapshot = {
+      producer: {
+        name: "runtime-worker",
+        kind: "runtime_visibility_snapshot",
+        canonicalDecisionTruth: false,
+      },
+      environment: "test",
+      worker: {
+        workerId: "worker-shared-file",
+        producer: {
+          name: "runtime-worker",
+          kind: "runtime_visibility_snapshot",
+          canonicalDecisionTruth: false,
+        },
+        lastHeartbeatAt: "2026-03-21T12:00:00.000Z",
+        lastCycleAt: "2026-03-21T12:00:00.000Z",
+        degraded: false,
+        observedAt: "2026-03-21T12:00:00.000Z",
+      },
+      runtime: buildRuntimeSnapshot(),
+      metrics: {
+        cycleCount: 1,
+        decisionCount: 1,
+        executionCount: 1,
+        blockedCount: 0,
+        errorCount: 0,
+        lastCycleAtEpochMs: Date.parse("2026-03-21T12:00:00.000Z"),
+        lastDecisionAtEpochMs: Date.parse("2026-03-21T12:00:00.000Z"),
+      },
+    };
+
+    await writer.save(snapshot);
+
+    const reader = await createRuntimeVisibilityRepository();
+    expect(reader.kind).toBe("file");
+
+    const loaded = await reader.load("test");
+    expect(loaded).not.toBeNull();
+    expect(loaded?.snapshot.worker.workerId).toBe("worker-shared-file");
+    expect(loaded?.snapshot.runtime.mode).toBe("paper");
+    expect(loaded?.snapshot.runtime.paperModeActive).toBe(true);
   });
 });

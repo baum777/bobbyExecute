@@ -44,8 +44,13 @@ This is the same local service graph, but with paper execution semantics instead
 - `DRY_RUN=false`
 - `TRADING_ENABLED=false`
 - `LIVE_TEST_MODE=false`
+- `SIGNER_MODE=disabled`
+- `WALLET_ADDRESS=<local-paper-wallet-placeholder>`
+- `CONTROL_TOKEN=<shared-local-token>`
 
 Everything else stays local-safe. No real swaps are executed.
+The worker is the actual runtime loop; the public server alone is only the read surface.
+For a real three-process papertrade boot, `DATABASE_URL` is optional. When it is unset, runtime visibility uses the shared file-backed local default at `data/runtime-visibility.json`, so `start:control`, `start:worker`, and `start:server` read the same local visibility state.
 
 ### Mode C. Local Live-Limited Readiness
 
@@ -98,6 +103,7 @@ Live-limited refusal is expected when any of the following are true:
 | Service | Purpose | Startup command | Required envs | Local host / port | Status |
 | --- | --- | --- | --- | --- | --- |
 | Control | Authenticated runtime/config control plane | `cd bot` then `npm run start:control` | `CONTROL_TOKEN`, `PORT=3334`, `HOST=127.0.0.1`, safe-boot envs above | `127.0.0.1:3334` | Real local service |
+| Worker | Runtime loop and heartbeat publisher | `cd bot` then `npm run start:worker` | `WALLET_ADDRESS`, `SIGNER_MODE=disabled`, safe-boot envs above | n/a | Real local service |
 | Bot/runtime | Public KPI / health / decision surface | `cd bot` then `npm run start:server` | `PORT=3333`, `HOST=127.0.0.1`, safe-boot envs above | `127.0.0.1:3333` | Real local service |
 | Dashboard | Operator UI and API proxy | `cd dashboard` then `npm run dev` for local development, or `npm run build && npm run start` for production-like local mode | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_USE_MOCK=false`, `CONTROL_SERVICE_URL`, `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN` | `127.0.0.1:3000` | Real local service |
 | Signer | Remote signing boundary | `cd signer` then `npm run start` | `SIGNER_AUTH_TOKEN`, `SIGNER_WALLET_PRIVATE_KEY`, `SIGNER_WALLET_ADDRESS`, `SIGNER_HOST=127.0.0.1`, `SIGNER_PORT=8787` | `127.0.0.1:8787` | Required for live-limited only |
@@ -105,7 +111,7 @@ Live-limited refusal is expected when any of the following are true:
 ## Start Order
 
 1. Control service.
-2. Signer, if live-limited mode needs it.
+2. Worker runtime loop.
 3. Bot/runtime public server.
 4. Dashboard.
 5. Health, control, and preflight checks.
@@ -117,6 +123,7 @@ Live-limited refusal is expected when any of the following are true:
 ```powershell
 cd bot
 npm install
+npm run build
 
 cd ..\dashboard
 npm install
@@ -126,6 +133,8 @@ npm install
 ```
 
 ### Safe boot
+
+Build `bot` first, or the `start:*` commands will run stale or missing `dist/` output.
 
 ```powershell
 cd bot
@@ -138,8 +147,8 @@ $env:LIVE_TRADING = "false"
 $env:DRY_RUN = "true"
 $env:TRADING_ENABLED = "false"
 $env:LIVE_TEST_MODE = "false"
-$env:RPC_MODE = "stub"
 $env:SIGNER_MODE = "disabled"
+$env:RPC_MODE = "stub"
 $env:MORALIS_ENABLED = "false"
 npm run start:control
 ```
@@ -154,10 +163,25 @@ $env:LIVE_TRADING = "false"
 $env:DRY_RUN = "true"
 $env:TRADING_ENABLED = "false"
 $env:LIVE_TEST_MODE = "false"
-$env:RPC_MODE = "stub"
 $env:SIGNER_MODE = "disabled"
+$env:RPC_MODE = "stub"
 $env:MORALIS_ENABLED = "false"
 npm run start:server
+```
+
+```powershell
+cd bot
+$env:NODE_ENV = "development"
+$env:RUNTIME_CONFIG_ENV = "development"
+$env:LIVE_TRADING = "false"
+$env:DRY_RUN = "false"
+$env:TRADING_ENABLED = "false"
+$env:LIVE_TEST_MODE = "false"
+$env:SIGNER_MODE = "disabled"
+$env:WALLET_ADDRESS = "11111111111111111111111111111111"
+$env:RPC_MODE = "stub"
+$env:MORALIS_ENABLED = "false"
+npm run start:worker
 ```
 
 ```powershell
@@ -178,6 +202,8 @@ $env:LIVE_TRADING = "false"
 $env:DRY_RUN = "false"
 $env:TRADING_ENABLED = "false"
 $env:LIVE_TEST_MODE = "false"
+$env:SIGNER_MODE = "disabled"
+$env:WALLET_ADDRESS = "11111111111111111111111111111111"
 ```
 
 ### Local live-limited readiness

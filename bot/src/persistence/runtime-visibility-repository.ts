@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
 import type { RuntimeSnapshot } from "../runtime/dry-run-runtime.js";
+import { readJsonFile, writeJsonFile } from "./json-file.js";
 import { assertSchemaReady } from "./schema-migrations.js";
 
 export interface RuntimeWorkerVisibility {
@@ -51,7 +52,7 @@ export interface RuntimeVisibilityRecord {
 }
 
 export interface RuntimeVisibilityRepository {
-  kind: "postgres" | "memory";
+  kind: "postgres" | "memory" | "file";
   ensureSchema(): Promise<void>;
   load(environment: string): Promise<RuntimeVisibilityRecord | null>;
   save(snapshot: RuntimeVisibilitySnapshot): Promise<RuntimeVisibilityRecord>;
@@ -117,6 +118,31 @@ export class InMemoryRuntimeVisibilityRepository implements RuntimeVisibilityRep
   async save(snapshot: RuntimeVisibilitySnapshot): Promise<RuntimeVisibilityRecord> {
     const record = buildRecord(snapshot);
     this.states.set(snapshot.environment, clone(record));
+    return clone(record);
+  }
+}
+
+export class FileSystemRuntimeVisibilityRepository implements RuntimeVisibilityRepository {
+  kind = "file" as const;
+
+  constructor(private readonly filePath: string) {}
+
+  async ensureSchema(): Promise<void> {
+    return;
+  }
+
+  async load(environment: string): Promise<RuntimeVisibilityRecord | null> {
+    const record = readJsonFile<RuntimeVisibilityRecord>(this.filePath);
+    if (!record || record.environment !== environment) {
+      return null;
+    }
+
+    return clone(record);
+  }
+
+  async save(snapshot: RuntimeVisibilitySnapshot): Promise<RuntimeVisibilityRecord> {
+    const record = buildRecord(snapshot);
+    writeJsonFile(this.filePath, record);
     return clone(record);
   }
 }
@@ -196,10 +222,19 @@ export class PostgresRuntimeVisibilityRepository implements RuntimeVisibilityRep
 }
 
 export async function createRuntimeVisibilityRepository(
-  databaseUrl?: string
+  databaseUrl?: string,
+  filePath?: string
 ): Promise<RuntimeVisibilityRepository> {
+  const explicitFilePath = filePath?.trim();
+  const envFilePath = process.env.RUNTIME_VISIBILITY_PATH?.trim();
+  const resolvedFilePath = explicitFilePath || envFilePath || "data/runtime-visibility.json";
+
   if (!databaseUrl || databaseUrl.trim() === "") {
-    return new InMemoryRuntimeVisibilityRepository();
+    if (process.env.NODE_ENV === "test" && !explicitFilePath && !envFilePath) {
+      return new InMemoryRuntimeVisibilityRepository();
+    }
+
+    return new FileSystemRuntimeVisibilityRepository(resolvedFilePath);
   }
 
   return new PostgresRuntimeVisibilityRepository(new Pool({ connectionString: databaseUrl }));
