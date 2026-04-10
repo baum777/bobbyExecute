@@ -23,6 +23,7 @@ This file is the shared concepts and gating map only. Shell-specific commands li
 - `bot/src/runtime/live-control.ts` models the live-test round state machine that runtime start uses after preflight.
 - `bot/src/recovery/worker-state-manifest.ts` derives worker-local artifact paths from `JOURNAL_PATH`.
 - The checked-in env examples and `render.yaml` default the provider stack to `DISCOVERY_PROVIDER=dexscreener`, `MARKET_DATA_PROVIDER=dexpaprika`, `STREAMING_PROVIDER=dexpaprika`, and `MORALIS_ENABLED=false`; staging overrides still must supply the live-mode secrets and mounted state.
+- The operator decision surface is documented in `operator-release-gate-and-incident-runbook.md`, including `GET /control/release-gate`, `GET /control/status`, and `GET /health`.
 
 Important truth boundary:
 
