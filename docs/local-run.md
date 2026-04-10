@@ -34,6 +34,43 @@ Truthful multi-process papertrade requires shared runtime truth:
 
 If both are blank, the bot processes fall back to isolated local stores. That is only a boot smoke test, not truthful multi-process papertrade.
 
+## Papertrade Values
+
+Keep these set for papertrade:
+
+- `LIVE_TRADING=false`
+- `DRY_RUN=false`
+- `TRADING_ENABLED=false`
+- `LIVE_TEST_MODE=false`
+- `ROLLOUT_POSTURE=paper_only`
+- `SIGNER_MODE=disabled`
+
+Required for truthful multi-process papertrade:
+
+- `DATABASE_URL`
+- `REDIS_URL`
+- `CONTROL_TOKEN`
+- `OPERATOR_READ_TOKEN`
+- `CONTROL_SERVICE_URL`
+
+Required only if you want the main LLM path exercised:
+
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL=https://openrouter.ai/api/v1`
+- `OPENAI_MODEL=qwen/qwen3.6-plus:free`
+
+May remain blank for a boot smoke test:
+
+- `RPC_URL` when `RPC_MODE=stub`
+- `SIGNER_URL`
+- `SIGNER_AUTH_TOKEN`
+- `SIGNER_KEY_ID`
+- `JUPITER_API_KEY`
+- `MORALIS_API_KEY`
+- `DASHBOARD_SESSION_SECRET`
+- `DASHBOARD_OPERATOR_DIRECTORY_JSON`
+- `WALLET_ADDRESS` can stay as the placeholder in the example until you want wallet-snapshot validation
+
 ## Local Files
 
 - `bot/.env.papertrade` from `.env.papertrade.example`
