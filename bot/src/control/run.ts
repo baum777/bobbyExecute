@@ -111,6 +111,7 @@ console.log(
     runtimeVisibilityRepository,
     runtimeEnvironment,
     controlAuthToken: entryConfig.controlToken,
+    operatorReadToken: entryConfig.operatorReadToken,
     restartService,
     restartAlertRepository: restartAlertRepository,
     databaseUrl: process.env.DATABASE_URL,

@@ -1,0 +1,2297 @@
+{
+  "id": "37a59b44-2c1e-46e0-a1ec-c44dcab08a24",
+  "environment": "development",
+  "workerId": "worker-21324",
+  "snapshot": {
+    "producer": {
+      "name": "runtime-worker",
+      "kind": "runtime_visibility_snapshot",
+      "canonicalDecisionTruth": false
+    },
+    "environment": "development",
+    "worker": {
+      "workerId": "worker-21324",
+      "producer": {
+        "name": "runtime-worker",
+        "kind": "runtime_visibility_snapshot",
+        "canonicalDecisionTruth": false
+      },
+      "lastHeartbeatAt": "2026-04-10T10:16:22.067Z",
+      "lastCycleAt": "2026-04-10T10:16:11.225Z",
+      "lastSeenReloadNonce": 0,
+      "lastAppliedVersionId": "12f94d85-561e-4c53-ba8b-995852a92ce5",
+      "lastValidVersionId": "12f94d85-561e-4c53-ba8b-995852a92ce5",
+      "degraded": false,
+      "degradedReason": "All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s",
+      "observedAt": "2026-04-10T10:16:22.067Z"
+    },
+    "runtime": {
+      "status": "running",
+      "mode": "paper",
+      "paperModeActive": true,
+      "cycleInFlight": false,
+      "liveControl": {
+        "mode": "paper",
+        "liveTestMode": false,
+        "roundStatus": "idle",
+        "posture": "live_unavailable",
+        "rolloutPosture": "paper_only",
+        "rolloutConfigured": true,
+        "rolloutConfigValid": true,
+        "rolloutLastReasonAt": "2026-04-10T07:41:32.874Z",
+        "executionMode": "paper",
+        "liveEnabled": false,
+        "armed": false,
+        "killSwitchActive": false,
+        "blocked": false,
+        "disarmed": true,
+        "stopped": false,
+        "degraded": false,
+        "manualRearmRequired": false,
+        "lastReasonAt": "2026-04-10T07:41:32.874Z",
+        "lastOperatorActionAt": "2026-04-10T07:41:32.874Z",
+        "caps": {
+          "requireArm": true,
+          "maxNotionalPerTrade": 25,
+          "maxTradesPerWindow": 2,
+          "windowMs": 3600000,
+          "cooldownMs": 60000,
+          "maxInFlight": 1,
+          "failuresToBlock": 3,
+          "failureWindowMs": 900000,
+          "maxDailyNotional": 50,
+          "allowlistTokens": []
+        },
+        "counters": {
+          "inFlight": 0,
+          "tradesInWindow": 0,
+          "failuresInWindow": 0,
+          "dailyNotional": 0,
+          "tradesToday": 0,
+          "dailyLossUsd": 0
+        }
+      },
+      "runtimeConfig": {
+        "environment": "development",
+        "configured": true,
+        "seedSource": "boot",
+        "requestedMode": "paper",
+        "appliedMode": "paper",
+        "requestedExecutionMode": "paper",
+        "appliedExecutionMode": "paper",
+        "rolloutPosture": "paper_only",
+        "executionToggles": {
+          "tradingEnabled": false,
+          "liveTestMode": false,
+          "dryRun": false
+        },
+        "filters": {
+          "allowlistTokens": [],
+          "denylistTokens": []
+        },
+        "adapterToggles": {
+          "executionEnabled": true,
+          "publishEnabled": true,
+          "paperAdaptersEnabled": true
+        },
+        "rateCaps": {
+          "requireArm": true,
+          "maxNotionalPerTrade": 25,
+          "maxTradesPerWindow": 2,
+          "windowMs": 3600000,
+          "cooldownMs": 60000,
+          "maxInFlight": 1,
+          "failuresToBlock": 3,
+          "failureWindowMs": 900000,
+          "maxDailyNotional": 50
+        },
+        "thresholds": {
+          "maxSlippagePercent": 5,
+          "circuitBreakerFailureThreshold": 5,
+          "circuitBreakerRecoveryMs": 60000,
+          "reviewPolicyMode": "required"
+        },
+        "featureFlags": {},
+        "pollingIntervalMs": 15000,
+        "requestedVersionId": "12f94d85-561e-4c53-ba8b-995852a92ce5",
+        "activeVersionId": "12f94d85-561e-4c53-ba8b-995852a92ce5",
+        "appliedVersionId": "12f94d85-561e-4c53-ba8b-995852a92ce5",
+        "lastValidVersionId": "12f94d85-561e-4c53-ba8b-995852a92ce5",
+        "reloadNonce": 0,
+        "lastAppliedReloadNonce": 0,
+        "paused": false,
+        "killSwitch": false,
+        "pendingApply": false,
+        "requiresRestart": false,
+        "degraded": false,
+        "effectiveVersionHash": "faf6f1ae14887a8481dd4ee8577e7ad6ab107f1f1bdb9556b707889256e5fd48",
+        "requestedAt": "2026-04-10T07:41:32.874Z",
+        "appliedAt": "2026-04-10T07:41:32.874Z",
+        "lastAppliedAt": "2026-04-10T07:41:32.874Z"
+      },
+      "counters": {
+        "cycleCount": 619,
+        "decisionCount": 402,
+        "executionCount": 402,
+        "blockedCount": 217,
+        "errorCount": 0
+      },
+      "lastCycleAt": "2026-04-10T10:16:11.225Z",
+      "lastDecisionAt": "2026-04-10T10:16:11.225Z",
+      "lastState": {
+        "stage": "monitor",
+        "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+        "timestamp": "2026-04-10T10:16:11.579Z",
+        "market": {
+          "schema_version": "market.v1",
+          "traceId": "paper-dexpaprika-2026-04-10T10:16:11.226Z",
+          "timestamp": "2026-04-10T10:16:11.226Z",
+          "source": "dexpaprika",
+          "poolId": "So11111111111111111111111111111111111111112",
+          "baseToken": "SOL",
+          "quoteToken": "USD",
+          "priceUsd": 83.53642934903992,
+          "volume24h": 7441787233.589687,
+          "liquidity": 1400785126.5065608,
+          "freshnessMs": 0,
+          "rawPayloadHash": "7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8"
+        },
+        "wallet": {
+          "traceId": "paper-rpc-2026-04-10T10:16:11.579Z",
+          "timestamp": "2026-04-10T10:16:11.579Z",
+          "source": "rpc",
+          "walletAddress": "11111111111111111111111111111111",
+          "balances": [
+            {
+              "mint": "So11111111111111111111111111111111111111112",
+              "symbol": "SOL",
+              "decimals": 9,
+              "amount": "1000000000"
+            }
+          ],
+          "rawPayloadHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+        },
+        "signal": {
+          "direction": "buy",
+          "confidence": 0.5175925925925927,
+          "cqd": {
+            "schema_version": "cqd.snapshot.v1",
+            "chain": "solana",
+            "token": "SOL",
+            "ts_bucket": 29596936,
+            "features": {
+              "higher_low_pct": 0.03,
+              "holder_concentration_pct": 0,
+              "holder_count": 1,
+              "liquidity_score": 1,
+              "liquidityUsd": 1400785126.5065608,
+              "net_flow_usd": 0,
+              "participation_pct": 0.1,
+              "price_usd": 83.53642934903992,
+              "reclaim_gap_pct": 0.02,
+              "relative_volume_pct": 1.2,
+              "volume_24h_usd": 7441787233.589687,
+              "volume_momentum_pct": 0.25
+            },
+            "confidence": 0.9555555555555556,
+            "anomaly_flags": [],
+            "evidence_pack": [
+              "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:7fd5e33184a333df",
+              "evidence_status:COLLECTED",
+              "evidence:discovery_evidence:SOL:7fd5e33184a333df",
+              "quality:pass:none",
+              "sources:market=OK@0|wallet=OK@0",
+              "universe:included:none"
+            ],
+            "source_summaries": [
+              {
+                "source": "market",
+                "freshness_ms": 0,
+                "status": "OK"
+              },
+              {
+                "source": "wallet",
+                "freshness_ms": 0,
+                "status": "OK"
+              }
+            ],
+            "sources": {
+              "freshest_source_ts_ms": 1775816171225,
+              "max_staleness_ms": 0
+            },
+            "hash": "c3094a10ec6a467352dc58c45542c88656d362a213e5bb1e9cbf9542df8198c8"
+          }
+        },
+        "tradeIntent": {
+          "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+          "timestamp": "2026-04-10T10:16:11.579Z",
+          "idempotencyKey": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent",
+          "tokenIn": "SOL",
+          "tokenOut": "USDC",
+          "amountIn": "1",
+          "minAmountOut": "79.35960788158792",
+          "slippagePercent": 1,
+          "dryRun": true,
+          "executionMode": "paper"
+        },
+        "journalEntry": {
+          "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+          "timestamp": "2026-04-10T10:16:11.638Z",
+          "stage": "canonical_trade_complete",
+          "decisionHash": "58b88a3289e2cec0dfac9d0d09df375390e4beb9076a7c51b96e32b030f330cc",
+          "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60",
+          "input": {
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "paper",
+              "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+              "stage": "monitor",
+              "blocked": false,
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 354,
+                "walletAgeMs": 1,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:16:11.579Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "decisionHash": "58b88a3289e2cec0dfac9d0d09df375390e4beb9076a7c51b96e32b030f330cc",
+              "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+            },
+            "market": {
+              "schema_version": "market.v1",
+              "traceId": "paper-dexpaprika-2026-04-10T10:16:11.226Z",
+              "timestamp": "2026-04-10T10:16:11.226Z",
+              "source": "dexpaprika",
+              "poolId": "So11111111111111111111111111111111111111112",
+              "baseToken": "SOL",
+              "quoteToken": "USD",
+              "priceUsd": 83.53642934903992,
+              "volume24h": 7441787233.589687,
+              "liquidity": 1400785126.5065608,
+              "freshnessMs": 0,
+              "rawPayloadHash": "7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8"
+            },
+            "wallet": {
+              "traceId": "paper-rpc-2026-04-10T10:16:11.579Z",
+              "timestamp": "2026-04-10T10:16:11.579Z",
+              "source": "rpc",
+              "walletAddress": "11111111111111111111111111111111",
+              "balances": [
+                {
+                  "mint": "So11111111111111111111111111111111111111112",
+                  "symbol": "SOL",
+                  "decimals": 9,
+                  "amount": "1000000000"
+                }
+              ],
+              "rawPayloadHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+            },
+            "signal": {
+              "direction": "buy",
+              "confidence": 0.5175925925925927,
+              "cqd": {
+                "schema_version": "cqd.snapshot.v1",
+                "chain": "solana",
+                "token": "SOL",
+                "ts_bucket": 29596936,
+                "features": {
+                  "higher_low_pct": 0.03,
+                  "holder_concentration_pct": 0,
+                  "holder_count": 1,
+                  "liquidity_score": 1,
+                  "liquidityUsd": 1400785126.5065608,
+                  "net_flow_usd": 0,
+                  "participation_pct": 0.1,
+                  "price_usd": 83.53642934903992,
+                  "reclaim_gap_pct": 0.02,
+                  "relative_volume_pct": 1.2,
+                  "volume_24h_usd": 7441787233.589687,
+                  "volume_momentum_pct": 0.25
+                },
+                "confidence": 0.9555555555555556,
+                "anomaly_flags": [],
+                "evidence_pack": [
+                  "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:7fd5e33184a333df",
+                  "evidence_status:COLLECTED",
+                  "evidence:discovery_evidence:SOL:7fd5e33184a333df",
+                  "quality:pass:none",
+                  "sources:market=OK@0|wallet=OK@0",
+                  "universe:included:none"
+                ],
+                "source_summaries": [
+                  {
+                    "source": "market",
+                    "freshness_ms": 0,
+                    "status": "OK"
+                  },
+                  {
+                    "source": "wallet",
+                    "freshness_ms": 0,
+                    "status": "OK"
+                  }
+                ],
+                "sources": {
+                  "freshest_source_ts_ms": 1775816171225,
+                  "max_staleness_ms": 0
+                },
+                "hash": "c3094a10ec6a467352dc58c45542c88656d362a213e5bb1e9cbf9542df8198c8"
+              }
+            },
+            "intent": {
+              "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+              "timestamp": "2026-04-10T10:16:11.579Z",
+              "idempotencyKey": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent",
+              "tokenIn": "SOL",
+              "tokenOut": "USDC",
+              "amountIn": "1",
+              "minAmountOut": "79.35960788158792",
+              "slippagePercent": 1,
+              "dryRun": true,
+              "executionMode": "paper"
+            }
+          },
+          "output": {
+            "execReport": {
+              "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+              "timestamp": "2026-04-10T10:16:11.579Z",
+              "tradeIntentId": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent",
+              "success": true,
+              "dryRun": false,
+              "executionMode": "paper",
+              "paperExecution": true,
+              "actualAmountOut": "79.35960788158792"
+            },
+            "rpcVerify": {
+              "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+              "timestamp": "2026-04-10T10:16:11.579Z",
+              "passed": true,
+              "checks": {
+                "quoteInputs": true
+              },
+              "reason": "PAPER_MODE_SIMULATED_VERIFICATION",
+              "verificationMode": "paper-simulated"
+            },
+            "blocked": false,
+            "provenance": {
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 354,
+                "walletAgeMs": 1,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:16:11.579Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              }
+            }
+          },
+          "blocked": false
+        },
+        "riskAllowed": true,
+        "chaosAllowed": true,
+        "chaosReportHash": "be481ea2f1b447c4fb407ba5b1d3d69f3227d378d792444c52e64bd4d9eae0e9",
+        "executionReport": {
+          "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+          "timestamp": "2026-04-10T10:16:11.579Z",
+          "tradeIntentId": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent",
+          "success": true,
+          "dryRun": false,
+          "executionMode": "paper",
+          "paperExecution": true,
+          "actualAmountOut": "79.35960788158792"
+        },
+        "rpcVerification": {
+          "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+          "timestamp": "2026-04-10T10:16:11.579Z",
+          "passed": true,
+          "checks": {
+            "quoteInputs": true
+          },
+          "reason": "PAPER_MODE_SIMULATED_VERIFICATION",
+          "verificationMode": "paper-simulated"
+        },
+        "decisionEnvelope": {
+          "schemaVersion": "decision.envelope.v3",
+          "entrypoint": "engine",
+          "flow": "trade",
+          "executionMode": "paper",
+          "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+          "stage": "monitor",
+          "blocked": false,
+          "reasonClass": "SUCCESS",
+          "sources": [
+            "chaos:gate",
+            "execute:engine",
+            "market:dexpaprika",
+            "risk:engine",
+            "signal:engine",
+            "verify:rpc",
+            "wallet:rpc"
+          ],
+          "freshness": {
+            "marketAgeMs": 354,
+            "walletAgeMs": 1,
+            "maxAgeMs": 60000,
+            "observedAt": "2026-04-10T10:16:11.579Z"
+          },
+          "evidenceRef": {
+            "marketRawHash": "7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8",
+            "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+            "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+          },
+          "decisionHash": "58b88a3289e2cec0dfac9d0d09df375390e4beb9076a7c51b96e32b030f330cc",
+          "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+        },
+        "blocked": false
+      },
+      "lastCycleSummary": {
+        "cycleTimestamp": "2026-04-10T10:16:11.225Z",
+        "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+        "mode": "paper",
+        "outcome": "success",
+        "intakeOutcome": "ok",
+        "advanced": true,
+        "stage": "monitor",
+        "blocked": false,
+        "decisionEnvelope": {
+          "schemaVersion": "decision.envelope.v3",
+          "entrypoint": "engine",
+          "flow": "trade",
+          "executionMode": "paper",
+          "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+          "stage": "monitor",
+          "blocked": false,
+          "reasonClass": "SUCCESS",
+          "sources": [
+            "chaos:gate",
+            "execute:engine",
+            "market:dexpaprika",
+            "risk:engine",
+            "signal:engine",
+            "verify:rpc",
+            "wallet:rpc"
+          ],
+          "freshness": {
+            "marketAgeMs": 354,
+            "walletAgeMs": 1,
+            "maxAgeMs": 60000,
+            "observedAt": "2026-04-10T10:16:11.579Z"
+          },
+          "evidenceRef": {
+            "marketRawHash": "7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8",
+            "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+            "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+          },
+          "decisionHash": "58b88a3289e2cec0dfac9d0d09df375390e4beb9076a7c51b96e32b030f330cc",
+          "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+        },
+        "decision": {
+          "allowed": true,
+          "direction": "buy",
+          "confidence": 0.5175925925925927,
+          "riskAllowed": true,
+          "chaosAllowed": true,
+          "tradeIntentId": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent"
+        },
+        "decisionOccurred": true,
+        "signalOccurred": true,
+        "riskOccurred": true,
+        "chaosOccurred": true,
+        "executionOccurred": true,
+        "verificationOccurred": true,
+        "paperExecutionProduced": true,
+        "verificationMode": "paper-simulated",
+        "errorOccurred": false,
+        "tradeIntentId": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent",
+        "producer": {
+          "name": "dry-run-runtime",
+          "kind": "runtime_cycle_summary",
+          "canonicalDecisionTruth": false
+        },
+        "execution": {
+          "success": true,
+          "mode": "paper",
+          "paperExecution": true,
+          "actualAmountOut": "79.35960788158792"
+        },
+        "verification": {
+          "passed": true,
+          "mode": "paper-simulated",
+          "reason": "PAPER_MODE_SIMULATED_VERIFICATION"
+        },
+        "provenance": {
+          "reasonClass": "SUCCESS",
+          "sources": [
+            "chaos:gate",
+            "execute:engine",
+            "market",
+            "market:dexpaprika",
+            "risk:engine",
+            "signal:engine",
+            "verify:rpc",
+            "wallet",
+            "wallet:rpc"
+          ],
+          "freshness": {
+            "marketAgeMs": 354,
+            "walletAgeMs": 1,
+            "maxAgeMs": 60000,
+            "observedAt": "2026-04-10T10:16:11.579Z"
+          },
+          "evidenceRef": {
+            "marketRawHash": "7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8",
+            "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+            "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+          },
+          "evidenceRefs": [
+            "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:7fd5e33184a333df",
+            "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:dc0999c3d968cf57",
+            "discovery_evidence:SOL:7fd5e33184a333df",
+            "discovery_evidence:SOL:dc0999c3d968cf57",
+            "evidence_status:COLLECTED",
+            "evidence:discovery_evidence:SOL:7fd5e33184a333df",
+            "evidence:discovery_evidence:SOL:dc0999c3d968cf57",
+            "marketRawHash:7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8",
+            "quality:pass:none",
+            "signalPackHash:d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89",
+            "sources:market=OK@0|wallet=OK@0",
+            "universe:included:none",
+            "walletRawHash:b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+          ],
+          "reasonBasis": {
+            "stage": "monitor",
+            "outcome": "success",
+            "failureCode": "PAPER_MODE_SIMULATED_VERIFICATION"
+          }
+        },
+        "degradedState": {
+          "active": false,
+          "consecutiveCycles": 0,
+          "lastDegradedAt": "2026-04-10T10:15:26.202Z",
+          "lastRecoveredAt": "2026-04-10T10:15:41.198Z",
+          "lastReason": "All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s",
+          "recoveryCount": 131,
+          "recoveredThisCycle": false
+        },
+        "adapterHealth": {
+          "total": 1,
+          "healthy": 1,
+          "unhealthy": 0,
+          "degraded": false,
+          "degradedAdapterIds": [],
+          "unhealthyAdapterIds": []
+        },
+        "shadowArtifactChain": {
+          "artifactMode": "shadow",
+          "derivedOnly": true,
+          "nonAuthoritative": true,
+          "authorityInfluence": false,
+          "canonicalDecisionHistory": false,
+          "chainVersion": "shadow_artifact_chain.v1",
+          "status": "built",
+          "inputRefs": [
+            "constructed_signal_set:cfb29593bc63d0c666097daf68b9c027ac0329e85b6aeff2402f27f1f71915dd",
+            "cqd:58683bb748b0732a4cde9cee76209113df7aaa51a86f307b052aad9da2917a23",
+            "data_quality:shadow-data-quality:trace-2026-04-10T10-16-c91fe71ed",
+            "market:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+            "runtime_trace:trace-2026-04-10T10-16-c91fe71ed",
+            "signal_pack:cc7cb193ac955be68a004ac33e81f0d75057290d69ef7ae63ff57b0b51834241",
+            "trend_reversal_observation:63f40aed5db89f89c77f2d3f5f3f341967d0c97b4f502da52badf244d76df9f0",
+            "wallet:paper-rpc-2026-04-10T10:16:11.579Z"
+          ],
+          "evidenceRefs": [
+            "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:dc0999c3d968cf57",
+            "discovery_evidence:SOL:dc0999c3d968cf57",
+            "evidence_status:COLLECTED",
+            "evidence:discovery_evidence:SOL:dc0999c3d968cf57",
+            "quality:pass:none",
+            "sources:market=OK@0|wallet=OK@0",
+            "universe:included:none"
+          ],
+          "parity": {
+            "oldAuthority": {
+              "blocked": false,
+              "signalDirection": "buy",
+              "signalConfidence": 0.5175925925925927,
+              "tradeIntentId": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent"
+            },
+            "shadowDerived": {
+              "blocked": false,
+              "qualityStatus": "pass",
+              "scoreComposite": 0.03750000000000001,
+              "scoreConfidence": 0.6503086419753087,
+              "cqdHash": "58683bb748b0732a4cde9cee76209113df7aaa51a86f307b052aad9da2917a23"
+            },
+            "deltas": {
+              "blockedMismatch": false,
+              "confidenceDelta": 0.13271604938271597
+            }
+          },
+          "artifacts": {
+            "sourceObservationCount": 2,
+            "sourceObservationRefs": [
+              "market:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+              "wallet:paper-rpc-2026-04-10T10:16:11.579Z"
+            ],
+            "staleSources": [],
+            "discoveryEvidenceRef": "discovery_evidence:SOL:dc0999c3d968cf57",
+            "discoveryEvidenceHash": "dc0999c3d968cf57b73b4c9e6bb61226bbab5d97cb3f22ec4322cf89fb00fc2a",
+            "qualityStatus": "pass",
+            "qualityReasonCodes": [],
+            "qualityMissingCriticalFields": [],
+            "qualityStaleSources": [],
+            "qualityCrossSourceConfidence": 0.9555555555555556,
+            "cqdHash": "58683bb748b0732a4cde9cee76209113df7aaa51a86f307b052aad9da2917a23",
+            "cqdAnomalyFlags": [],
+            "constructedSignalSetPayloadHash": "cfb29593bc63d0c666097daf68b9c027ac0329e85b6aeff2402f27f1f71915dd",
+            "constructedSignalSetBuildStatus": "built",
+            "scoreCardPayloadHash": "c859fe3e4d6d2a139751786ecd67fbab29d79c0c9f9c5d68bc1c35f5340cfdfb",
+            "scoreCardBuildStatus": "degraded"
+          }
+        },
+        "authorityArtifactChain": {
+          "artifactMode": "authority",
+          "derivedOnly": false,
+          "nonAuthoritative": false,
+          "authorityInfluence": true,
+          "canonicalDecisionHistory": false,
+          "chainVersion": "authority_artifact_chain.v1",
+          "status": "built",
+          "inputRefs": [
+            "candidate_token:SOL:1775816171225",
+            "constructed_signal_set:4fcdecaf2ce1790760702b497a2d534c0257d9e0b2e93c4f9f6ef5e981e9b22b",
+            "cqd:c3094a10ec6a467352dc58c45542c88656d362a213e5bb1e9cbf9542df8198c8",
+            "data_quality:authority-data-quality:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+            "discovery_evidence:7fd5e33184a333df",
+            "market:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+            "runtime_mode:paper",
+            "runtime_trace:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+            "score_card:2f6cccaa6d847d9992fe89457193861eb0303a4c89ab46ba5f198cdd668250d4",
+            "universe_build_result:included",
+            "wallet:paper-rpc-2026-04-10T10:16:11.579Z"
+          ],
+          "evidenceRefs": [
+            "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:7fd5e33184a333df",
+            "discovery_evidence:SOL:7fd5e33184a333df",
+            "evidence_status:COLLECTED",
+            "evidence:discovery_evidence:SOL:7fd5e33184a333df",
+            "quality:pass:none",
+            "sources:market=OK@0|wallet=OK@0",
+            "universe:included:none"
+          ],
+          "decision": {
+            "blocked": false,
+            "direction": "buy",
+            "confidence": 0.5175925925925927,
+            "tradeIntentId": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent"
+          },
+          "artifacts": {
+            "sourceObservationCount": 2,
+            "sourceObservationRefs": [
+              "market:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+              "wallet:paper-rpc-2026-04-10T10:16:11.579Z"
+            ],
+            "discoveryEvidenceRef": "discovery_evidence:SOL:7fd5e33184a333df",
+            "discoveryEvidenceHash": "7fd5e33184a333df38fcbb6d59d6d5b54d35d5dedc0cac6aba4d014f3042703f",
+            "dataQualityStatus": "pass",
+            "dataQualityReasonCodes": [],
+            "dataQualityMissingCriticalFields": [],
+            "dataQualityStaleSources": [],
+            "dataQualityCrossSourceConfidence": 0.9555555555555556,
+            "cqdHash": "c3094a10ec6a467352dc58c45542c88656d362a213e5bb1e9cbf9542df8198c8",
+            "cqdAnomalyFlags": [],
+            "constructedSignalSetPayloadHash": "4fcdecaf2ce1790760702b497a2d534c0257d9e0b2e93c4f9f6ef5e981e9b22b",
+            "constructedSignalSetBuildStatus": "degraded",
+            "scoreCardPayloadHash": "2f6cccaa6d847d9992fe89457193861eb0303a4c89ab46ba5f198cdd668250d4",
+            "scoreCardBuildStatus": "degraded",
+            "scoreComposite": 0.08083333333333333,
+            "scoreConfidence": 0.5175925925925927
+          }
+        },
+        "incidentIds": []
+      },
+      "degradedState": {
+        "active": false,
+        "consecutiveCycles": 0,
+        "lastDegradedAt": "2026-04-10T10:15:26.202Z",
+        "lastRecoveredAt": "2026-04-10T10:15:41.198Z",
+        "lastReason": "All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s",
+        "recoveryCount": 131
+      },
+      "adapterHealth": {
+        "total": 1,
+        "healthy": 1,
+        "unhealthy": 0,
+        "degraded": false,
+        "adapterIds": [
+          "dexpaprika"
+        ],
+        "degradedAdapterIds": [],
+        "unhealthyAdapterIds": []
+      },
+      "recentHistory": {
+        "recentCycleCount": 10,
+        "cycleOutcomes": {
+          "success": 7,
+          "blocked": 3,
+          "error": 0
+        },
+        "attemptsByMode": {
+          "dry": 0,
+          "paper": 10,
+          "live": 0
+        },
+        "refusalCounts": {
+          "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 41s exceeds max 30s": 1,
+          "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 42s exceeds max 30s": 1,
+          "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s": 1
+        },
+        "failureStageCounts": {},
+        "verificationHealth": {
+          "passed": 7,
+          "failed": 0,
+          "failureReasons": {}
+        },
+        "incidentCounts": {
+          "paper_ingest_blocked": 20
+        },
+        "controlActions": [],
+        "stateTransitions": [],
+        "recentCycles": [
+          {
+            "traceId": "trace-2026-04-10T10-13-183ce27ae",
+            "cycleTimestamp": "2026-04-10T10:13:56.169Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "success",
+            "stage": "monitor",
+            "blocked": false,
+            "intakeOutcome": "ok",
+            "executionOccurred": true,
+            "verificationOccurred": true,
+            "decisionOccurred": true,
+            "errorOccurred": false,
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "paper",
+              "traceId": "trace-2026-04-10T10-13-183ce27ae",
+              "stage": "monitor",
+              "blocked": false,
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 3592,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:13:59.762Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "a1f004cc99b45ec8ca85b1992bf9b6f11989034ec8bded784abc7ea261084b54",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "decisionHash": "a2212306ab84adf1701028b48356c8144cc179a26e39c8688071be43dfe81e71",
+              "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+            },
+            "authorityArtifactChain": {
+              "artifactMode": "authority",
+              "derivedOnly": false,
+              "nonAuthoritative": false,
+              "authorityInfluence": true,
+              "canonicalDecisionHistory": false,
+              "chainVersion": "authority_artifact_chain.v1",
+              "status": "built",
+              "inputRefs": [
+                "candidate_token:SOL:1775816036169",
+                "constructed_signal_set:64c6cc9d84ab6d50c7792b09a6851f529c3a8addc89dc7710f7118b1d586e41e",
+                "cqd:9366c820c1835935d92754af4c919fb3af3caf727e1b64a8422bc00d6c366cbe",
+                "data_quality:authority-data-quality:paper-dexpaprika-2026-04-10T10:13:56.170Z",
+                "discovery_evidence:7ab64badbd0596fc",
+                "market:paper-dexpaprika-2026-04-10T10:13:56.170Z",
+                "runtime_mode:paper",
+                "runtime_trace:paper-dexpaprika-2026-04-10T10:13:56.170Z",
+                "score_card:26fcfae94cc8b440ce0e3c31e71c1cbb441ed311453ea9cb58743a5a389c5607",
+                "universe_build_result:included",
+                "wallet:paper-rpc-2026-04-10T10:13:59.762Z"
+              ],
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:7ab64badbd0596fc",
+                "discovery_evidence:SOL:7ab64badbd0596fc",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:7ab64badbd0596fc",
+                "quality:pass:none",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none"
+              ],
+              "decision": {
+                "blocked": false,
+                "direction": "buy",
+                "confidence": 0.5175925925925927,
+                "tradeIntentId": "paper-dexpaprika-2026-04-10T10:13:56.170Z-intent"
+              },
+              "artifacts": {
+                "sourceObservationCount": 2,
+                "sourceObservationRefs": [
+                  "market:paper-dexpaprika-2026-04-10T10:13:56.170Z",
+                  "wallet:paper-rpc-2026-04-10T10:13:59.762Z"
+                ],
+                "discoveryEvidenceRef": "discovery_evidence:SOL:7ab64badbd0596fc",
+                "discoveryEvidenceHash": "7ab64badbd0596fcca2b5431e028524b1631bd65e2abb3d9f2b2b36534c27fe7",
+                "dataQualityStatus": "pass",
+                "dataQualityReasonCodes": [],
+                "dataQualityMissingCriticalFields": [],
+                "dataQualityStaleSources": [],
+                "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                "cqdHash": "9366c820c1835935d92754af4c919fb3af3caf727e1b64a8422bc00d6c366cbe",
+                "cqdAnomalyFlags": [],
+                "constructedSignalSetPayloadHash": "64c6cc9d84ab6d50c7792b09a6851f529c3a8addc89dc7710f7118b1d586e41e",
+                "constructedSignalSetBuildStatus": "degraded",
+                "scoreCardPayloadHash": "26fcfae94cc8b440ce0e3c31e71c1cbb441ed311453ea9cb58743a5a389c5607",
+                "scoreCardBuildStatus": "degraded",
+                "scoreComposite": 0.08083333333333333,
+                "scoreConfidence": 0.5175925925925927
+              }
+            },
+            "provenance": {
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 3592,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:13:59.762Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "a1f004cc99b45ec8ca85b1992bf9b6f11989034ec8bded784abc7ea261084b54",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:2072a3339ca71ecb",
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:7ab64badbd0596fc",
+                "discovery_evidence:SOL:2072a3339ca71ecb",
+                "discovery_evidence:SOL:7ab64badbd0596fc",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:2072a3339ca71ecb",
+                "evidence:discovery_evidence:SOL:7ab64badbd0596fc",
+                "marketRawHash:a1f004cc99b45ec8ca85b1992bf9b6f11989034ec8bded784abc7ea261084b54",
+                "quality:pass:none",
+                "signalPackHash:d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none",
+                "walletRawHash:b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+              ],
+              "reasonBasis": {
+                "stage": "monitor",
+                "outcome": "success",
+                "failureCode": "PAPER_MODE_SIMULATED_VERIFICATION"
+              }
+            },
+            "decision": {
+              "allowed": true,
+              "direction": "buy",
+              "confidence": 0.5175925925925927,
+              "riskAllowed": true,
+              "chaosAllowed": true,
+              "tradeIntentId": "paper-dexpaprika-2026-04-10T10:13:56.170Z-intent"
+            }
+          },
+          {
+            "traceId": "trace-2026-04-10T10-14-b30612a35",
+            "cycleTimestamp": "2026-04-10T10:14:11.171Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "success",
+            "stage": "monitor",
+            "blocked": false,
+            "intakeOutcome": "ok",
+            "executionOccurred": true,
+            "verificationOccurred": true,
+            "decisionOccurred": true,
+            "errorOccurred": false,
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "paper",
+              "traceId": "trace-2026-04-10T10-14-b30612a35",
+              "stage": "monitor",
+              "blocked": false,
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 253,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:14:11.424Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "5bbfbbe794c40bcbc594d570e86a4535ce370c7c38ab74158690a6f899a33de1",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "decisionHash": "3b251e102f5f24e0c21b78ee0b0389c0c8b3360f1122a47347ad8e59e61d3928",
+              "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+            },
+            "authorityArtifactChain": {
+              "artifactMode": "authority",
+              "derivedOnly": false,
+              "nonAuthoritative": false,
+              "authorityInfluence": true,
+              "canonicalDecisionHistory": false,
+              "chainVersion": "authority_artifact_chain.v1",
+              "status": "built",
+              "inputRefs": [
+                "candidate_token:SOL:1775816051171",
+                "constructed_signal_set:46fbb55a0fb5aea14c85f3134a212a6dc9cff3e15d190cafac5a96dea217ab49",
+                "cqd:c64e0d35d06977c562e45a3ef7bd045c4e8390200acbcb4641fb0c02a3fb7934",
+                "data_quality:authority-data-quality:paper-dexpaprika-2026-04-10T10:14:11.171Z",
+                "discovery_evidence:8e0e7e95f023b509",
+                "market:paper-dexpaprika-2026-04-10T10:14:11.171Z",
+                "runtime_mode:paper",
+                "runtime_trace:paper-dexpaprika-2026-04-10T10:14:11.171Z",
+                "score_card:16ebc446cb5ff2d7502495e6a995c6da27ef044017f3245ac34c93f17e1ad68c",
+                "universe_build_result:included",
+                "wallet:paper-rpc-2026-04-10T10:14:11.424Z"
+              ],
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:8e0e7e95f023b509",
+                "discovery_evidence:SOL:8e0e7e95f023b509",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:8e0e7e95f023b509",
+                "quality:pass:none",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none"
+              ],
+              "decision": {
+                "blocked": false,
+                "direction": "buy",
+                "confidence": 0.5175925925925927,
+                "tradeIntentId": "paper-dexpaprika-2026-04-10T10:14:11.171Z-intent"
+              },
+              "artifacts": {
+                "sourceObservationCount": 2,
+                "sourceObservationRefs": [
+                  "market:paper-dexpaprika-2026-04-10T10:14:11.171Z",
+                  "wallet:paper-rpc-2026-04-10T10:14:11.424Z"
+                ],
+                "discoveryEvidenceRef": "discovery_evidence:SOL:8e0e7e95f023b509",
+                "discoveryEvidenceHash": "8e0e7e95f023b509a82883d6d202d78e2ea86c3bace05d3128b754fa4afb0b5b",
+                "dataQualityStatus": "pass",
+                "dataQualityReasonCodes": [],
+                "dataQualityMissingCriticalFields": [],
+                "dataQualityStaleSources": [],
+                "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                "cqdHash": "c64e0d35d06977c562e45a3ef7bd045c4e8390200acbcb4641fb0c02a3fb7934",
+                "cqdAnomalyFlags": [],
+                "constructedSignalSetPayloadHash": "46fbb55a0fb5aea14c85f3134a212a6dc9cff3e15d190cafac5a96dea217ab49",
+                "constructedSignalSetBuildStatus": "degraded",
+                "scoreCardPayloadHash": "16ebc446cb5ff2d7502495e6a995c6da27ef044017f3245ac34c93f17e1ad68c",
+                "scoreCardBuildStatus": "degraded",
+                "scoreComposite": 0.08083333333333333,
+                "scoreConfidence": 0.5175925925925927
+              }
+            },
+            "provenance": {
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 253,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:14:11.424Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "5bbfbbe794c40bcbc594d570e86a4535ce370c7c38ab74158690a6f899a33de1",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:6195a7bdab24f5dd",
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:8e0e7e95f023b509",
+                "discovery_evidence:SOL:6195a7bdab24f5dd",
+                "discovery_evidence:SOL:8e0e7e95f023b509",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:6195a7bdab24f5dd",
+                "evidence:discovery_evidence:SOL:8e0e7e95f023b509",
+                "marketRawHash:5bbfbbe794c40bcbc594d570e86a4535ce370c7c38ab74158690a6f899a33de1",
+                "quality:pass:none",
+                "signalPackHash:d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none",
+                "walletRawHash:b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+              ],
+              "reasonBasis": {
+                "stage": "monitor",
+                "outcome": "success",
+                "failureCode": "PAPER_MODE_SIMULATED_VERIFICATION"
+              }
+            },
+            "decision": {
+              "allowed": true,
+              "direction": "buy",
+              "confidence": 0.5175925925925927,
+              "riskAllowed": true,
+              "chaosAllowed": true,
+              "tradeIntentId": "paper-dexpaprika-2026-04-10T10:14:11.171Z-intent"
+            }
+          },
+          {
+            "traceId": "trace-2026-04-10T10-14-96a202f9a",
+            "cycleTimestamp": "2026-04-10T10:14:26.187Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "success",
+            "stage": "monitor",
+            "blocked": false,
+            "intakeOutcome": "ok",
+            "executionOccurred": true,
+            "verificationOccurred": true,
+            "decisionOccurred": true,
+            "errorOccurred": false,
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "paper",
+              "traceId": "trace-2026-04-10T10-14-96a202f9a",
+              "stage": "monitor",
+              "blocked": false,
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 3265,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:14:29.452Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "cab03acd52f133f518b58802b0458bb5d915f614817071dfc081b5ccaac68649",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "decisionHash": "21a860da08ad65d27c992eace4a8a9b6e601f0e973067af917e2a115bf2cc0dd",
+              "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+            },
+            "authorityArtifactChain": {
+              "artifactMode": "authority",
+              "derivedOnly": false,
+              "nonAuthoritative": false,
+              "authorityInfluence": true,
+              "canonicalDecisionHistory": false,
+              "chainVersion": "authority_artifact_chain.v1",
+              "status": "built",
+              "inputRefs": [
+                "candidate_token:SOL:1775816066187",
+                "constructed_signal_set:2b40f5025d6a1887d4b0c299de6dafdcd55d9bcb5528a629d86a5cea24325325",
+                "cqd:98d3f65e99fd6fefef34ded20783fdeb7596daa080d707fba22c3a7900ba9ad3",
+                "data_quality:authority-data-quality:paper-dexpaprika-2026-04-10T10:14:26.187Z",
+                "discovery_evidence:1c2d76fb1e65ddef",
+                "market:paper-dexpaprika-2026-04-10T10:14:26.187Z",
+                "runtime_mode:paper",
+                "runtime_trace:paper-dexpaprika-2026-04-10T10:14:26.187Z",
+                "score_card:b0915b6a3602db9c661f425e20dfa9a8deb8b5afa824a485dd28ce68d26413a0",
+                "universe_build_result:included",
+                "wallet:paper-rpc-2026-04-10T10:14:29.452Z"
+              ],
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:1c2d76fb1e65ddef",
+                "discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "quality:pass:none",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none"
+              ],
+              "decision": {
+                "blocked": false,
+                "direction": "buy",
+                "confidence": 0.5175925925925927,
+                "tradeIntentId": "paper-dexpaprika-2026-04-10T10:14:26.187Z-intent"
+              },
+              "artifacts": {
+                "sourceObservationCount": 2,
+                "sourceObservationRefs": [
+                  "market:paper-dexpaprika-2026-04-10T10:14:26.187Z",
+                  "wallet:paper-rpc-2026-04-10T10:14:29.452Z"
+                ],
+                "discoveryEvidenceRef": "discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "discoveryEvidenceHash": "1c2d76fb1e65ddeffa08324ab071689f252078df024970d2447e704ed6e3df00",
+                "dataQualityStatus": "pass",
+                "dataQualityReasonCodes": [],
+                "dataQualityMissingCriticalFields": [],
+                "dataQualityStaleSources": [],
+                "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                "cqdHash": "98d3f65e99fd6fefef34ded20783fdeb7596daa080d707fba22c3a7900ba9ad3",
+                "cqdAnomalyFlags": [],
+                "constructedSignalSetPayloadHash": "2b40f5025d6a1887d4b0c299de6dafdcd55d9bcb5528a629d86a5cea24325325",
+                "constructedSignalSetBuildStatus": "degraded",
+                "scoreCardPayloadHash": "b0915b6a3602db9c661f425e20dfa9a8deb8b5afa824a485dd28ce68d26413a0",
+                "scoreCardBuildStatus": "degraded",
+                "scoreComposite": 0.08083333333333333,
+                "scoreConfidence": 0.5175925925925927
+              }
+            },
+            "provenance": {
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 3265,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:14:29.452Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "cab03acd52f133f518b58802b0458bb5d915f614817071dfc081b5ccaac68649",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:1c2d76fb1e65ddef",
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:761aabf4814d066d",
+                "discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "discovery_evidence:SOL:761aabf4814d066d",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "evidence:discovery_evidence:SOL:761aabf4814d066d",
+                "marketRawHash:cab03acd52f133f518b58802b0458bb5d915f614817071dfc081b5ccaac68649",
+                "quality:pass:none",
+                "signalPackHash:d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none",
+                "walletRawHash:b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+              ],
+              "reasonBasis": {
+                "stage": "monitor",
+                "outcome": "success",
+                "failureCode": "PAPER_MODE_SIMULATED_VERIFICATION"
+              }
+            },
+            "decision": {
+              "allowed": true,
+              "direction": "buy",
+              "confidence": 0.5175925925925927,
+              "riskAllowed": true,
+              "chaosAllowed": true,
+              "tradeIntentId": "paper-dexpaprika-2026-04-10T10:14:26.187Z-intent"
+            }
+          },
+          {
+            "traceId": "runtime-2026-04-10T10:14:41.184Z",
+            "cycleTimestamp": "2026-04-10T10:14:41.184Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "blocked",
+            "stage": "ingest",
+            "blocked": true,
+            "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 41s exceeds max 30s",
+            "intakeOutcome": "adapter_error",
+            "executionOccurred": false,
+            "verificationOccurred": false,
+            "decisionOccurred": false,
+            "errorOccurred": false,
+            "provenance": {
+              "reasonClass": "DATA_STALE",
+              "sources": [],
+              "freshness": {
+                "marketAgeMs": 0,
+                "walletAgeMs": 0,
+                "maxAgeMs": 1,
+                "observedAt": "2026-04-10T10:14:41.184Z"
+              },
+              "evidenceRefs": [],
+              "reasonBasis": {
+                "stage": "ingest",
+                "outcome": "blocked",
+                "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 41s exceeds max 30s",
+                "failureStage": "ingest",
+                "failureCode": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 41s exceeds max 30s"
+              }
+            }
+          },
+          {
+            "traceId": "trace-2026-04-10T10-14-6eb35373b",
+            "cycleTimestamp": "2026-04-10T10:14:56.185Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "success",
+            "stage": "monitor",
+            "blocked": false,
+            "intakeOutcome": "ok",
+            "executionOccurred": true,
+            "verificationOccurred": true,
+            "decisionOccurred": true,
+            "errorOccurred": false,
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "paper",
+              "traceId": "trace-2026-04-10T10-14-6eb35373b",
+              "stage": "monitor",
+              "blocked": false,
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 336,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:14:56.521Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "cab03acd52f133f518b58802b0458bb5d915f614817071dfc081b5ccaac68649",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "decisionHash": "8c3376e61b4163daa620351e3ae66ce69aa68e95e60eef03f4342266700e1fba",
+              "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+            },
+            "authorityArtifactChain": {
+              "artifactMode": "authority",
+              "derivedOnly": false,
+              "nonAuthoritative": false,
+              "authorityInfluence": true,
+              "canonicalDecisionHistory": false,
+              "chainVersion": "authority_artifact_chain.v1",
+              "status": "built",
+              "inputRefs": [
+                "candidate_token:SOL:1775816096185",
+                "constructed_signal_set:8e402000d993cc9b258f6ca7054adf2185ec796922953adf97075b337c312e5f",
+                "cqd:6719d1bf47020391cdcb3a192bc885b1eb96b6e6e16384668c9a4d8f5f57cd3b",
+                "data_quality:authority-data-quality:paper-dexpaprika-2026-04-10T10:14:56.185Z",
+                "discovery_evidence:1c2d76fb1e65ddef",
+                "market:paper-dexpaprika-2026-04-10T10:14:56.185Z",
+                "runtime_mode:paper",
+                "runtime_trace:paper-dexpaprika-2026-04-10T10:14:56.185Z",
+                "score_card:cd261922f196ca6d3549011d63232ed7ad2bbe49827860d64413e7892a8b729e",
+                "universe_build_result:included",
+                "wallet:paper-rpc-2026-04-10T10:14:56.521Z"
+              ],
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:1c2d76fb1e65ddef",
+                "discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "quality:pass:none",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none"
+              ],
+              "decision": {
+                "blocked": false,
+                "direction": "buy",
+                "confidence": 0.5175925925925927,
+                "tradeIntentId": "paper-dexpaprika-2026-04-10T10:14:56.185Z-intent"
+              },
+              "artifacts": {
+                "sourceObservationCount": 2,
+                "sourceObservationRefs": [
+                  "market:paper-dexpaprika-2026-04-10T10:14:56.185Z",
+                  "wallet:paper-rpc-2026-04-10T10:14:56.521Z"
+                ],
+                "discoveryEvidenceRef": "discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "discoveryEvidenceHash": "1c2d76fb1e65ddeffa08324ab071689f252078df024970d2447e704ed6e3df00",
+                "dataQualityStatus": "pass",
+                "dataQualityReasonCodes": [],
+                "dataQualityMissingCriticalFields": [],
+                "dataQualityStaleSources": [],
+                "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                "cqdHash": "6719d1bf47020391cdcb3a192bc885b1eb96b6e6e16384668c9a4d8f5f57cd3b",
+                "cqdAnomalyFlags": [],
+                "constructedSignalSetPayloadHash": "8e402000d993cc9b258f6ca7054adf2185ec796922953adf97075b337c312e5f",
+                "constructedSignalSetBuildStatus": "degraded",
+                "scoreCardPayloadHash": "cd261922f196ca6d3549011d63232ed7ad2bbe49827860d64413e7892a8b729e",
+                "scoreCardBuildStatus": "degraded",
+                "scoreComposite": 0.08083333333333333,
+                "scoreConfidence": 0.5175925925925927
+              }
+            },
+            "provenance": {
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 336,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:14:56.521Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "cab03acd52f133f518b58802b0458bb5d915f614817071dfc081b5ccaac68649",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:1c2d76fb1e65ddef",
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:761aabf4814d066d",
+                "discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "discovery_evidence:SOL:761aabf4814d066d",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:1c2d76fb1e65ddef",
+                "evidence:discovery_evidence:SOL:761aabf4814d066d",
+                "marketRawHash:cab03acd52f133f518b58802b0458bb5d915f614817071dfc081b5ccaac68649",
+                "quality:pass:none",
+                "signalPackHash:d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none",
+                "walletRawHash:b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+              ],
+              "reasonBasis": {
+                "stage": "monitor",
+                "outcome": "success",
+                "failureCode": "PAPER_MODE_SIMULATED_VERIFICATION"
+              }
+            },
+            "decision": {
+              "allowed": true,
+              "direction": "buy",
+              "confidence": 0.5175925925925927,
+              "riskAllowed": true,
+              "chaosAllowed": true,
+              "tradeIntentId": "paper-dexpaprika-2026-04-10T10:14:56.185Z-intent"
+            }
+          },
+          {
+            "traceId": "runtime-2026-04-10T10:15:11.201Z",
+            "cycleTimestamp": "2026-04-10T10:15:11.201Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "blocked",
+            "stage": "ingest",
+            "blocked": true,
+            "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 42s exceeds max 30s",
+            "intakeOutcome": "adapter_error",
+            "executionOccurred": false,
+            "verificationOccurred": false,
+            "decisionOccurred": false,
+            "errorOccurred": false,
+            "provenance": {
+              "reasonClass": "DATA_STALE",
+              "sources": [],
+              "freshness": {
+                "marketAgeMs": 0,
+                "walletAgeMs": 0,
+                "maxAgeMs": 1,
+                "observedAt": "2026-04-10T10:15:11.201Z"
+              },
+              "evidenceRefs": [],
+              "reasonBasis": {
+                "stage": "ingest",
+                "outcome": "blocked",
+                "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 42s exceeds max 30s",
+                "failureStage": "ingest",
+                "failureCode": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 42s exceeds max 30s"
+              }
+            }
+          },
+          {
+            "traceId": "runtime-2026-04-10T10:15:26.202Z",
+            "cycleTimestamp": "2026-04-10T10:15:26.202Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "blocked",
+            "stage": "ingest",
+            "blocked": true,
+            "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s",
+            "intakeOutcome": "adapter_error",
+            "executionOccurred": false,
+            "verificationOccurred": false,
+            "decisionOccurred": false,
+            "errorOccurred": false,
+            "provenance": {
+              "reasonClass": "DATA_STALE",
+              "sources": [],
+              "freshness": {
+                "marketAgeMs": 0,
+                "walletAgeMs": 0,
+                "maxAgeMs": 1,
+                "observedAt": "2026-04-10T10:15:26.202Z"
+              },
+              "evidenceRefs": [],
+              "reasonBasis": {
+                "stage": "ingest",
+                "outcome": "blocked",
+                "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s",
+                "failureStage": "ingest",
+                "failureCode": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s"
+              }
+            }
+          },
+          {
+            "traceId": "trace-2026-04-10T10-15-807ab1b31",
+            "cycleTimestamp": "2026-04-10T10:15:41.198Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "success",
+            "stage": "monitor",
+            "blocked": false,
+            "intakeOutcome": "ok",
+            "executionOccurred": true,
+            "verificationOccurred": true,
+            "decisionOccurred": true,
+            "errorOccurred": false,
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "paper",
+              "traceId": "trace-2026-04-10T10-15-807ab1b31",
+              "stage": "monitor",
+              "blocked": false,
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 2595,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:15:43.794Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "71f514901fb1a350747c57e0d876e3f7a005b6e3c23f7a925ea17c3cfa37cb3f",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "decisionHash": "e811d81af14d4a2ff8c0698f0e39b630e9038c8264d701ecff4fc8f8963fbc4a",
+              "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+            },
+            "authorityArtifactChain": {
+              "artifactMode": "authority",
+              "derivedOnly": false,
+              "nonAuthoritative": false,
+              "authorityInfluence": true,
+              "canonicalDecisionHistory": false,
+              "chainVersion": "authority_artifact_chain.v1",
+              "status": "built",
+              "inputRefs": [
+                "candidate_token:SOL:1775816141198",
+                "constructed_signal_set:1623c4bf76234d86947c442c7e5d483bc1a47d2cad2131a712a0e92e05c80866",
+                "cqd:7fc17531f6a39f10aed8d766d30d08eecc1c984be654340558008f303a461cc9",
+                "data_quality:authority-data-quality:paper-dexpaprika-2026-04-10T10:15:41.199Z",
+                "discovery_evidence:6d2a7dcec85bfa75",
+                "market:paper-dexpaprika-2026-04-10T10:15:41.199Z",
+                "runtime_mode:paper",
+                "runtime_trace:paper-dexpaprika-2026-04-10T10:15:41.199Z",
+                "score_card:912136c39ed4da6d3a80b64f469a8d2185d1c4058a03f025b309a2504b10befe",
+                "universe_build_result:included",
+                "wallet:paper-rpc-2026-04-10T10:15:43.794Z"
+              ],
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:6d2a7dcec85bfa75",
+                "discovery_evidence:SOL:6d2a7dcec85bfa75",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:6d2a7dcec85bfa75",
+                "quality:pass:none",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none"
+              ],
+              "decision": {
+                "blocked": false,
+                "direction": "buy",
+                "confidence": 0.5175925925925927,
+                "tradeIntentId": "paper-dexpaprika-2026-04-10T10:15:41.199Z-intent"
+              },
+              "artifacts": {
+                "sourceObservationCount": 2,
+                "sourceObservationRefs": [
+                  "market:paper-dexpaprika-2026-04-10T10:15:41.199Z",
+                  "wallet:paper-rpc-2026-04-10T10:15:43.794Z"
+                ],
+                "discoveryEvidenceRef": "discovery_evidence:SOL:6d2a7dcec85bfa75",
+                "discoveryEvidenceHash": "6d2a7dcec85bfa7576879ea989d702a95e7a48c7909a0200edbc16f78b61559c",
+                "dataQualityStatus": "pass",
+                "dataQualityReasonCodes": [],
+                "dataQualityMissingCriticalFields": [],
+                "dataQualityStaleSources": [],
+                "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                "cqdHash": "7fc17531f6a39f10aed8d766d30d08eecc1c984be654340558008f303a461cc9",
+                "cqdAnomalyFlags": [],
+                "constructedSignalSetPayloadHash": "1623c4bf76234d86947c442c7e5d483bc1a47d2cad2131a712a0e92e05c80866",
+                "constructedSignalSetBuildStatus": "degraded",
+                "scoreCardPayloadHash": "912136c39ed4da6d3a80b64f469a8d2185d1c4058a03f025b309a2504b10befe",
+                "scoreCardBuildStatus": "degraded",
+                "scoreComposite": 0.08083333333333333,
+                "scoreConfidence": 0.5175925925925927
+              }
+            },
+            "provenance": {
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 2595,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:15:43.794Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "71f514901fb1a350747c57e0d876e3f7a005b6e3c23f7a925ea17c3cfa37cb3f",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:6d2a7dcec85bfa75",
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:931e45ac3ca249a7",
+                "discovery_evidence:SOL:6d2a7dcec85bfa75",
+                "discovery_evidence:SOL:931e45ac3ca249a7",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:6d2a7dcec85bfa75",
+                "evidence:discovery_evidence:SOL:931e45ac3ca249a7",
+                "marketRawHash:71f514901fb1a350747c57e0d876e3f7a005b6e3c23f7a925ea17c3cfa37cb3f",
+                "quality:pass:none",
+                "signalPackHash:d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none",
+                "walletRawHash:b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+              ],
+              "reasonBasis": {
+                "stage": "monitor",
+                "outcome": "success",
+                "failureCode": "PAPER_MODE_SIMULATED_VERIFICATION"
+              }
+            },
+            "decision": {
+              "allowed": true,
+              "direction": "buy",
+              "confidence": 0.5175925925925927,
+              "riskAllowed": true,
+              "chaosAllowed": true,
+              "tradeIntentId": "paper-dexpaprika-2026-04-10T10:15:41.199Z-intent"
+            }
+          },
+          {
+            "traceId": "trace-2026-04-10T10-15-5e7b16e05",
+            "cycleTimestamp": "2026-04-10T10:15:56.210Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "success",
+            "stage": "monitor",
+            "blocked": false,
+            "intakeOutcome": "ok",
+            "executionOccurred": true,
+            "verificationOccurred": true,
+            "decisionOccurred": true,
+            "errorOccurred": false,
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "paper",
+              "traceId": "trace-2026-04-10T10-15-5e7b16e05",
+              "stage": "monitor",
+              "blocked": false,
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 2624,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:15:58.835Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "ca5ed294985de6112bc89e46b4026e2f61003b89b726a8c82df4c9a4b34df540",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "decisionHash": "130cb6d8ec3e1550149da361ac6b368bc73c70bea157a6c405addb84294654f2",
+              "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+            },
+            "authorityArtifactChain": {
+              "artifactMode": "authority",
+              "derivedOnly": false,
+              "nonAuthoritative": false,
+              "authorityInfluence": true,
+              "canonicalDecisionHistory": false,
+              "chainVersion": "authority_artifact_chain.v1",
+              "status": "built",
+              "inputRefs": [
+                "candidate_token:SOL:1775816156210",
+                "constructed_signal_set:f33654b67b9891bbd3645fa3d2de1ea55f4e7454699a72d1a70f36f0b9a83355",
+                "cqd:daf3ef39e3065d1716349751841ec61658cb3a914156d99fa15d1553912e280d",
+                "data_quality:authority-data-quality:paper-dexpaprika-2026-04-10T10:15:56.211Z",
+                "discovery_evidence:4248123b3d547863",
+                "market:paper-dexpaprika-2026-04-10T10:15:56.211Z",
+                "runtime_mode:paper",
+                "runtime_trace:paper-dexpaprika-2026-04-10T10:15:56.211Z",
+                "score_card:40bbe0540f358059832cf4a2ada2708418cf8b1f960d65a6c368a191bbb316f3",
+                "universe_build_result:included",
+                "wallet:paper-rpc-2026-04-10T10:15:58.835Z"
+              ],
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:4248123b3d547863",
+                "discovery_evidence:SOL:4248123b3d547863",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:4248123b3d547863",
+                "quality:pass:none",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none"
+              ],
+              "decision": {
+                "blocked": false,
+                "direction": "buy",
+                "confidence": 0.5175925925925927,
+                "tradeIntentId": "paper-dexpaprika-2026-04-10T10:15:56.211Z-intent"
+              },
+              "artifacts": {
+                "sourceObservationCount": 2,
+                "sourceObservationRefs": [
+                  "market:paper-dexpaprika-2026-04-10T10:15:56.211Z",
+                  "wallet:paper-rpc-2026-04-10T10:15:58.835Z"
+                ],
+                "discoveryEvidenceRef": "discovery_evidence:SOL:4248123b3d547863",
+                "discoveryEvidenceHash": "4248123b3d547863c571cb5112203b7300b26d2d0da63d4db905304dbcee07f7",
+                "dataQualityStatus": "pass",
+                "dataQualityReasonCodes": [],
+                "dataQualityMissingCriticalFields": [],
+                "dataQualityStaleSources": [],
+                "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                "cqdHash": "daf3ef39e3065d1716349751841ec61658cb3a914156d99fa15d1553912e280d",
+                "cqdAnomalyFlags": [],
+                "constructedSignalSetPayloadHash": "f33654b67b9891bbd3645fa3d2de1ea55f4e7454699a72d1a70f36f0b9a83355",
+                "constructedSignalSetBuildStatus": "degraded",
+                "scoreCardPayloadHash": "40bbe0540f358059832cf4a2ada2708418cf8b1f960d65a6c368a191bbb316f3",
+                "scoreCardBuildStatus": "degraded",
+                "scoreComposite": 0.08083333333333333,
+                "scoreConfidence": 0.5175925925925927
+              }
+            },
+            "provenance": {
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 2624,
+                "walletAgeMs": 0,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:15:58.835Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "ca5ed294985de6112bc89e46b4026e2f61003b89b726a8c82df4c9a4b34df540",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:3bac226cacd90407",
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:4248123b3d547863",
+                "discovery_evidence:SOL:3bac226cacd90407",
+                "discovery_evidence:SOL:4248123b3d547863",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:3bac226cacd90407",
+                "evidence:discovery_evidence:SOL:4248123b3d547863",
+                "marketRawHash:ca5ed294985de6112bc89e46b4026e2f61003b89b726a8c82df4c9a4b34df540",
+                "quality:pass:none",
+                "signalPackHash:d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none",
+                "walletRawHash:b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+              ],
+              "reasonBasis": {
+                "stage": "monitor",
+                "outcome": "success",
+                "failureCode": "PAPER_MODE_SIMULATED_VERIFICATION"
+              }
+            },
+            "decision": {
+              "allowed": true,
+              "direction": "buy",
+              "confidence": 0.5175925925925927,
+              "riskAllowed": true,
+              "chaosAllowed": true,
+              "tradeIntentId": "paper-dexpaprika-2026-04-10T10:15:56.211Z-intent"
+            }
+          },
+          {
+            "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+            "cycleTimestamp": "2026-04-10T10:16:11.225Z",
+            "mode": "paper",
+            "producer": {
+              "name": "dry-run-runtime",
+              "kind": "runtime_cycle_summary",
+              "canonicalDecisionTruth": false
+            },
+            "outcome": "success",
+            "stage": "monitor",
+            "blocked": false,
+            "intakeOutcome": "ok",
+            "executionOccurred": true,
+            "verificationOccurred": true,
+            "decisionOccurred": true,
+            "errorOccurred": false,
+            "decisionEnvelope": {
+              "schemaVersion": "decision.envelope.v3",
+              "entrypoint": "engine",
+              "flow": "trade",
+              "executionMode": "paper",
+              "traceId": "trace-2026-04-10T10-16-c91fe71ed",
+              "stage": "monitor",
+              "blocked": false,
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 354,
+                "walletAgeMs": 1,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:16:11.579Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "decisionHash": "58b88a3289e2cec0dfac9d0d09df375390e4beb9076a7c51b96e32b030f330cc",
+              "resultHash": "4cfef006c2b4f0c941a7ee9ac0312cc961f9b8ea66cb85302b76fded67c22f60"
+            },
+            "authorityArtifactChain": {
+              "artifactMode": "authority",
+              "derivedOnly": false,
+              "nonAuthoritative": false,
+              "authorityInfluence": true,
+              "canonicalDecisionHistory": false,
+              "chainVersion": "authority_artifact_chain.v1",
+              "status": "built",
+              "inputRefs": [
+                "candidate_token:SOL:1775816171225",
+                "constructed_signal_set:4fcdecaf2ce1790760702b497a2d534c0257d9e0b2e93c4f9f6ef5e981e9b22b",
+                "cqd:c3094a10ec6a467352dc58c45542c88656d362a213e5bb1e9cbf9542df8198c8",
+                "data_quality:authority-data-quality:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+                "discovery_evidence:7fd5e33184a333df",
+                "market:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+                "runtime_mode:paper",
+                "runtime_trace:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+                "score_card:2f6cccaa6d847d9992fe89457193861eb0303a4c89ab46ba5f198cdd668250d4",
+                "universe_build_result:included",
+                "wallet:paper-rpc-2026-04-10T10:16:11.579Z"
+              ],
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:7fd5e33184a333df",
+                "discovery_evidence:SOL:7fd5e33184a333df",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:7fd5e33184a333df",
+                "quality:pass:none",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none"
+              ],
+              "decision": {
+                "blocked": false,
+                "direction": "buy",
+                "confidence": 0.5175925925925927,
+                "tradeIntentId": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent"
+              },
+              "artifacts": {
+                "sourceObservationCount": 2,
+                "sourceObservationRefs": [
+                  "market:paper-dexpaprika-2026-04-10T10:16:11.226Z",
+                  "wallet:paper-rpc-2026-04-10T10:16:11.579Z"
+                ],
+                "discoveryEvidenceRef": "discovery_evidence:SOL:7fd5e33184a333df",
+                "discoveryEvidenceHash": "7fd5e33184a333df38fcbb6d59d6d5b54d35d5dedc0cac6aba4d014f3042703f",
+                "dataQualityStatus": "pass",
+                "dataQualityReasonCodes": [],
+                "dataQualityMissingCriticalFields": [],
+                "dataQualityStaleSources": [],
+                "dataQualityCrossSourceConfidence": 0.9555555555555556,
+                "cqdHash": "c3094a10ec6a467352dc58c45542c88656d362a213e5bb1e9cbf9542df8198c8",
+                "cqdAnomalyFlags": [],
+                "constructedSignalSetPayloadHash": "4fcdecaf2ce1790760702b497a2d534c0257d9e0b2e93c4f9f6ef5e981e9b22b",
+                "constructedSignalSetBuildStatus": "degraded",
+                "scoreCardPayloadHash": "2f6cccaa6d847d9992fe89457193861eb0303a4c89ab46ba5f198cdd668250d4",
+                "scoreCardBuildStatus": "degraded",
+                "scoreComposite": 0.08083333333333333,
+                "scoreConfidence": 0.5175925925925927
+              }
+            },
+            "provenance": {
+              "reasonClass": "SUCCESS",
+              "sources": [
+                "chaos:gate",
+                "execute:engine",
+                "market",
+                "market:dexpaprika",
+                "risk:engine",
+                "signal:engine",
+                "verify:rpc",
+                "wallet",
+                "wallet:rpc"
+              ],
+              "freshness": {
+                "marketAgeMs": 354,
+                "walletAgeMs": 1,
+                "maxAgeMs": 60000,
+                "observedAt": "2026-04-10T10:16:11.579Z"
+              },
+              "evidenceRef": {
+                "marketRawHash": "7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8",
+                "walletRawHash": "b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5",
+                "signalPackHash": "d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89"
+              },
+              "evidenceRefs": [
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:7fd5e33184a333df",
+                "candidates:SOL:SOL:medium:runtime_mode:paper:market+wallet:dc0999c3d968cf57",
+                "discovery_evidence:SOL:7fd5e33184a333df",
+                "discovery_evidence:SOL:dc0999c3d968cf57",
+                "evidence_status:COLLECTED",
+                "evidence:discovery_evidence:SOL:7fd5e33184a333df",
+                "evidence:discovery_evidence:SOL:dc0999c3d968cf57",
+                "marketRawHash:7c5ad363adf739b3e50a59203cfd2bf7432025e9f58d9fb806fcde424ac967c8",
+                "quality:pass:none",
+                "signalPackHash:d9f23c5cfbed62f10c2bc8f29eedd693217b47e03cf8f6f7857f37ae276c3d89",
+                "sources:market=OK@0|wallet=OK@0",
+                "universe:included:none",
+                "walletRawHash:b78d2a48b8ff50e2c9fd876aa9f4fb479e16ce4e2cbf5b9dd8bba917b7d5a7f5"
+              ],
+              "reasonBasis": {
+                "stage": "monitor",
+                "outcome": "success",
+                "failureCode": "PAPER_MODE_SIMULATED_VERIFICATION"
+              }
+            },
+            "decision": {
+              "allowed": true,
+              "direction": "buy",
+              "confidence": 0.5175925925925927,
+              "riskAllowed": true,
+              "chaosAllowed": true,
+              "tradeIntentId": "paper-dexpaprika-2026-04-10T10:16:11.226Z-intent"
+            }
+          }
+        ],
+        "recentIncidents": [
+          {
+            "id": "incident-2026-04-10T10-00-55-957Z-199",
+            "at": "2026-04-10T10:00:55.957Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 58s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:00:55.658Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-01-10-971Z-200",
+            "at": "2026-04-10T10:01:10.971Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 42s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:01:10.661Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-02-25-974Z-201",
+            "at": "2026-04-10T10:02:25.974Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 58s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:02:25.687Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-03-26-110Z-202",
+            "at": "2026-04-10T10:03:26.110Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 43s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:03:25.711Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-04-26-070Z-203",
+            "at": "2026-04-10T10:04:26.070Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 43s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:04:25.734Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-05-26-076Z-204",
+            "at": "2026-04-10T10:05:26.076Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 43s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:05:25.764Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-05-41-123Z-205",
+            "at": "2026-04-10T10:05:41.123Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 58s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:05:40.760Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-05-56-046Z-206",
+            "at": "2026-04-10T10:05:56.046Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:05:55.773Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-06-26-344Z-207",
+            "at": "2026-04-10T10:06:26.344Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 31s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:06:25.804Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-06-56-239Z-208",
+            "at": "2026-04-10T10:06:56.239Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 43s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:06:55.807Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-07-11-178Z-209",
+            "at": "2026-04-10T10:07:11.178Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 58s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:07:10.818Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-07-56-138Z-210",
+            "at": "2026-04-10T10:07:56.138Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 48s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:07:55.835Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-11-12-463Z-211",
+            "at": "2026-04-10T10:11:12.463Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 59s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:11:11.095Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-11-41-485Z-212",
+            "at": "2026-04-10T10:11:41.485Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 42s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:11:41.113Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-11-56-403Z-213",
+            "at": "2026-04-10T10:11:56.403Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:11:56.124Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-12-26-482Z-214",
+            "at": "2026-04-10T10:12:26.482Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 58s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:12:26.141Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-12-56-391Z-215",
+            "at": "2026-04-10T10:12:56.391Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 43s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:12:56.138Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-14-41-508Z-216",
+            "at": "2026-04-10T10:14:41.508Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 41s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:14:41.184Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-15-11-531Z-217",
+            "at": "2026-04-10T10:15:11.531Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 42s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:15:11.201Z"
+            }
+          },
+          {
+            "id": "incident-2026-04-10T10-15-26-485Z-218",
+            "at": "2026-04-10T10:15:26.485Z",
+            "severity": "warning",
+            "type": "paper_ingest_blocked",
+            "message": "Paper ingest blocked",
+            "details": {
+              "blockedReason": "PAPER_INGEST_BLOCKED:All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s",
+              "intakeOutcome": "adapter_error",
+              "traceId": "runtime-2026-04-10T10:15:26.202Z"
+            }
+          }
+        ]
+      }
+    },
+    "metrics": {
+      "cycleCount": 619,
+      "decisionCount": 402,
+      "executionCount": 402,
+      "blockedCount": 217,
+      "errorCount": 0,
+      "lastCycleAtEpochMs": 1775816171225,
+      "lastDecisionAtEpochMs": 1775816171225
+    }
+  },
+  "lastHeartbeatAt": "2026-04-10T10:16:22.067Z",
+  "lastCycleAt": "2026-04-10T10:16:11.225Z",
+  "lastSeenReloadNonce": 0,
+  "lastAppliedVersionId": "12f94d85-561e-4c53-ba8b-995852a92ce5",
+  "lastValidVersionId": "12f94d85-561e-4c53-ba8b-995852a92ce5",
+  "degraded": false,
+  "degradedReason": "All adapters failed: Adapter dexpaprika: Stale data: age 57s exceeds max 30s",
+  "observedAt": "2026-04-10T10:16:22.067Z",
+  "updatedAt": "2026-04-10T10:16:22.067Z"
+}
