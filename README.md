@@ -101,7 +101,8 @@ npm run premerge
 npm run build
 ```
 
-Local startup order and localhost wiring live in [`docs/local-run.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run.md).
+Local papertrade onboarding index lives in [`docs/local-run.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run.md); OS-specific instructions are linked from there.
+Live-limited onboarding index starts in [`docs/06_journal_replay/staging-live-preflight-runbook.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook.md); OS-specific instructions are linked from there.
 
 ## Status Reminder
 

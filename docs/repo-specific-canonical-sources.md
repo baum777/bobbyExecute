@@ -31,12 +31,19 @@ The Tier 1 architecture and boundary docs above now also carry the Dashboard V1 
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/04_sidecars/README.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/README.md`
 
-### Tier 3: Operational Runbooks And Templates (Non-Canonical Architecture)
+### Tier 3: Operational Runbooks, Pointers, And Env Examples (Non-Canonical Architecture)
 
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run-macos.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run-windows.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/.env.papertrade.example`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/.env.live-local.example`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/dashboard/.env.example`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/signer/.env.example`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook.md`
-- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/boot-critical-artifact-preparation.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook-macos.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook-windows.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/boot-critical-artifact-preparation.md` (pointer only)
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-evidence-template.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/bot/README.md`
 

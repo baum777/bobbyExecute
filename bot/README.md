@@ -1,27 +1,16 @@
 # BobbyExecute Bot Runtime
 
-Scope: operational runtime/service reference for `bot/`.
-Authority: operational reference only. Architecture source-of-truth lives in top-level docs.
+Scope: operational reference for `bot/` only.
+For papertrade onboarding, use [`docs/local-run.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run.md).
+For live-limited onboarding, use [`docs/06_journal_replay/staging-live-preflight-runbook.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook.md).
 
 ## Purpose
 
 Describe runnable commands, runtime surfaces, and operator boundaries for the bot services.
 
-## Current Runtime Truth
+## Commands
 
-- Deterministic authority runtime is active.
-- Live/dry runtime paths build authority artifacts and persist cycle summaries with canonical `decisionEnvelope`.
-- Public server surfaces are read-oriented.
-- Private control surfaces mutate runtime posture and safety controls; they are not strategy authority.
-
-## Canonical Architecture References
-
-- `C:/workspace/main_projects/dotBot/bobbyExecute/README.md`
-- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/01_architecture/README.md`
-- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/02_pipeline/README.md`
-- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/05_governance/README.md`
-
-## Commands (run from `bot/`)
+Run from `bot/`:
 
 ```bash
 npm install
@@ -49,19 +38,21 @@ npm run live:preflight
 npm run live:test
 ```
 
-`npm run premerge` currently resolves to lint plus full unit test suite (`npm run lint && npm test`).
+`npm run premerge` resolves to lint plus the full unit test suite.
 
 ## Runtime Surfaces
 
 Public read surfaces:
+
 - `GET /health`
 - `GET /kpi/summary`
 - `GET /kpi/decisions`
-- `GET /kpi/decisions/:traceId/advisory` (optional advisory, non-authoritative)
+- `GET /kpi/decisions/:traceId/advisory`
 - `GET /kpi/adapters`
 - `GET /kpi/metrics`
 
 Private control read surfaces:
+
 - `GET /control/status`
 - `GET /control/runtime-config`
 - `GET /control/runtime-status`
@@ -69,6 +60,7 @@ Private control read surfaces:
 - `GET /control/history`
 
 Private control mutation surfaces:
+
 - `POST /emergency-stop`
 - `POST /control/pause`
 - `POST /control/resume`
@@ -81,23 +73,15 @@ Private control mutation surfaces:
 - `POST /control/restart-alerts/:id/acknowledge`
 - `POST /control/restart-alerts/:id/resolve`
 
-## Authority And Safety Notes
+## Safety Notes
 
 - Canonical decision-history source is cycle-summary `decisionEnvelope`.
 - Advisory LLM routes are optional and non-authoritative.
-- If control tokens are missing, protected routes fail closed.
-- If schema readiness is missing or mismatched, services fail closed.
+- Missing control tokens cause protected routes to fail closed.
+- Schema mismatches and missing readiness state also fail closed.
 
-## Advisory LLM Config
+## Runbook Pointers
 
-- Enable the advisory route with `ADVISORY_LLM_ENABLED=true`.
-- Select the provider with `ADVISORY_LLM_PROVIDER=openai|xai|qwen`.
-- `qwen` uses the OpenAI-compatible client path and requires `QWEN_API_KEY` plus `QWEN_BASE_URL`.
-- `QWEN_MODEL` defaults to `qwen3.6-plus` if omitted.
-- `OPENAI_*` and `XAI_*` settings remain server-side only and are read only by the advisory route helper.
-
-## Runbook References
-
-- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook.md`
-- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/boot-critical-artifact-preparation.md`
-- `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-evidence-template.md`
+- [`docs/06_journal_replay/staging-live-preflight-runbook.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook.md)
+- [`docs/06_journal_replay/staging-live-preflight-evidence-template.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-evidence-template.md)
+- [`docs/06_journal_replay/boot-critical-artifact-preparation.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/boot-critical-artifact-preparation.md) is a pointer only; the boot-critical file list now lives in the live preflight runbook.
