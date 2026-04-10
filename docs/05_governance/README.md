@@ -16,6 +16,15 @@ Enforce one deterministic authority plane and explicit non-authoritative boundar
 - Dashboard V1 is the intended operator UI target and remains non-authoritative. The V1 route set is `/overview`, `/control`, `/journal`, `/recovery`, and `/advanced`.
 - The responsive/mobile addendum is part of the target UI truth: the five-screen model does not collapse on small screens, truth labels and effect labels remain visible, and mobile must not create hidden primary state or duplicate truth surfaces.
 
+## Repository Branch Lineage
+
+- Active working branch: `codex/decision-provenance-hardening`
+- Preserved historical reference branch: `codex/m1-03-legacy-signal-scoring-freeze`
+- The historical branch is retained for reference only and must not be deleted without explicit content review.
+- It must not be blindly merged or cherry-picked.
+- It contains mixed legacy-cleanup and migration themes: some ideas are conceptually absorbed elsewhere, but the branch is not portable as-is.
+- Branch cleanup is conservatively complete for now.
+
 ## Target State
 
 - Keep authority singular and deterministic.
