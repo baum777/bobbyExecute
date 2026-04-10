@@ -9,7 +9,7 @@ This repository consumes the standalone shared-core package at:
 
 ## Linked Version
 
-- shared-core version: `0.1.4`
+- shared-core version: `0.2.1`
 - linkage mode: standalone local repository reference
 
 ## Adopted Shared-Core Skills

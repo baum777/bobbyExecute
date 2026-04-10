@@ -7,11 +7,11 @@ import { LoadingCard } from '@/components/shared/loading-card';
 import { ErrorCard } from '@/components/shared/error-card';
 import { formatUptime, pct } from '@/lib/utils';
 import { kpiProvenanceLabel } from '@/lib/kpi-provenance';
-import { Activity, Shield, Zap, Database, Heart } from 'lucide-react';
+import { Shield, Zap, Database, Heart } from 'lucide-react';
 
 export function HeroCards() {
   const { data: health, isLoading: hLoad, error: hErr, refetch: hRefetch } = useHealth();
-  const { data: summary, isLoading: sLoad, error: sErr, refetch: sRefetch } = useSummary();
+  const { data: summary, isLoading: sLoad } = useSummary();
 
   if (hLoad || sLoad) {
     return (

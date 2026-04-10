@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildDashboardSessionCookie, hashDashboardOperatorPassword } from '@/lib/operator-auth';
-import { DASHBOARD_SESSION_COOKIE, type DashboardOperatorSession } from '@/lib/operator-policy';
+import { DASHBOARD_SESSION_COOKIE } from '@/lib/operator-policy';
 
 let sessionCookieValue: string | undefined;
 
@@ -13,6 +13,7 @@ vi.mock('next/headers', () => ({
 function setOperatorDirectory(): void {
   const password = 'correct horse battery staple';
   const salt = 'dashboard-test-salt';
+  const iterations = 1_000;
   process.env.DASHBOARD_SESSION_SECRET = 'dashboard-session-secret';
   process.env.DASHBOARD_OPERATOR_DIRECTORY_JSON = JSON.stringify([
     {
@@ -20,8 +21,8 @@ function setOperatorDirectory(): void {
       displayName: 'Alice Example',
       role: 'admin',
       passwordSalt: salt,
-      passwordHash: hashDashboardOperatorPassword(password, salt),
-      passwordIterations: 120_000,
+      passwordHash: hashDashboardOperatorPassword(password, salt, iterations),
+      passwordIterations: iterations,
     },
   ]);
 }
