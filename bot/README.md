@@ -40,6 +40,21 @@ npm run live:test
 
 `npm run premerge` resolves to lint plus the full unit test suite.
 
+## Local Verification
+
+Use this checklist for full-pipeline papertrade or local live-limited validation:
+
+1. `npm run build`
+2. `npm run db:status`
+3. `npm run db:migrate`
+4. `npm run start:server`, then confirm `GET /health`
+5. `npm run start:worker`
+6. In PowerShell, run `$env:PORT="3334"; npm run start:control`, then confirm `GET /health`
+7. From `dashboard/`, run `npm run dev` for interactive local work or `npm run start` after build, then confirm `http://127.0.0.1:3000`
+8. Expect possible `403` responses on control and dashboard flows until `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, and dashboard operator config are aligned
+
+Boot-only / dry / stub validation does not need the full pipeline above.
+
 ## Runtime Surfaces
 
 Public read surfaces:

@@ -6,6 +6,17 @@ Choose `papertrade` first. It is the safest first-run path because it keeps `LIV
 
 `Live trade` in this repo means the live-limited path in `docs/06_journal_replay/staging-live-preflight-runbook.md`. It uses real capital controls, a remote signer, and a hard preflight gate. Do not start it until papertrade works.
 
+## Local Support Rules
+
+- Treat env exports as shell-local. Load the same mode file separately in each terminal before starting a service.
+- The control service still reads `PORT`, so set `PORT=3334` in the control shell before `npm run start:control`. `CONTROL_PORT=3334` alone does not retarget startup.
+- The dashboard reads `dashboard/.env.local`; root env values do not automatically flow into the dashboard.
+- Restart the affected process after any env change.
+- For interactive dashboard work, use `npm run dev`. If the dev server runs out of memory, set `NODE_OPTIONS=--max-old-space-size=4096` in that terminal first.
+- If control or dashboard requests return `403`, check tokens and operator config before assuming the service is broken.
+- Treat malformed `REDIS_URL` values as real worker failures, not acceptable defaults.
+- A tiny or free Postgres plan can still fail under full-pipeline control-path load; do not assume it is always sufficient.
+
 ## Mode Comparison
 
 | Mode | What it does | Safe for first run? | Working file |
@@ -30,6 +41,17 @@ Choose `papertrade` first. It is the safest first-run path because it keeps `LIV
 - `bot/.env.live-local` from `.env.live-local.example`
 - `dashboard/.env.local` from `dashboard/.env.example`
 - `signer/.env.local` from `signer/.env.example` for live trade only
+
+## Startup Order
+
+For full-pipeline local papertrade or local live-limited runs, start the services in separate terminals:
+
+1. Bot API server: `cd bot` then `npm run start:server`
+2. Worker: `cd bot` then `npm run start:worker`
+3. Control plane: `cd bot`, set `PORT=3334` in that shell, then run `npm run start:control`
+4. Dashboard: `cd dashboard`, then run `npm run dev` for interactive work or `npm run start` after build
+
+Use the same env mode file in every bot terminal. The dashboard uses `dashboard/.env.local`, so changing those values requires a dashboard restart.
 
 ## Required Keys
 
@@ -72,6 +94,8 @@ What the first DB errors mean:
 - `GET /control/status` should report the intended runtime mode.
 - `GET /control/runtime-status` should match the intended mode and posture.
 - `GET /control/release-gate` should show paper-safe for papertrade and live-eligible only for live-limited after preflight.
+- `GET /health` for the control service should respond on `127.0.0.1:3334` when the control shell is started with `PORT=3334`.
+- Dashboard should respond on `127.0.0.1:3000` with `NEXT_PUBLIC_USE_MOCK=false` for real local wiring.
 
 ## What Success Looks Like
 

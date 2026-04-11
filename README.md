@@ -88,6 +88,7 @@ BobbyExecute is a governance-first Solana trading system with one deterministic 
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/README.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/signing-architecture.md`
 - `C:/workspace/main_projects/dotBot/bobbyExecute/docs/architecture/journal-memory-casebook-architecture.md`
+- `C:/workspace/main_projects/dotBot/bobbyExecute/bot/README.md` for the local boot-only, papertrade, and live-limited startup split
 
 ## Verification Commands
 
