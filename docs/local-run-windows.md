@@ -1,18 +1,18 @@
-# Windows Papertrade Onboarding
+# Windows Papertrade Quickstart
 
-This page contains the Windows PowerShell commands for the papertrade path.
-Shared concepts, safety boundaries, and the live-limited index live in [docs/local-run.md](C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run.md).
+Use this first. Do not use the live-limited path until papertrade works.
+Shared concepts and the mode map live in `docs/local-run.md`.
 
-## Prerequisites
+## Before You Start
 
 - Windows PowerShell
 - Node 22
 - npm
-- local Postgres and Redis if you want truthful multi-process papertrade
+- A local Postgres and Redis only if you want truthful multi-process papertrade
 
-## Generate Local Auth Tokens
+## Step 1: Generate Local Tokens
 
-Run these in PowerShell to create two distinct local secrets:
+Run this once to create two distinct local secrets:
 
 ```powershell
 function New-LocalToken {
@@ -28,33 +28,16 @@ $controlToken
 $readToken
 ```
 
-Paste the generated values into `bot\.env.papertrade`:
+Copy the values into `bot\.env.papertrade`:
 
 ```dotenv
 CONTROL_TOKEN=<generated-token-1>
 OPERATOR_READ_TOKEN=<generated-token-2>
 ```
 
-If you are preparing live-limited mode later, paste the same style of generated values into `bot\.env.live-local`.
+Keep the two values different. Use the same style of generated values in `bot\.env.live-local` only when you are preparing live trade later.
 
-## Use Qwen 3.6 Free via OpenRouter
-
-Set these in `bot\.env.papertrade` before booting the bot services:
-
-```dotenv
-LAUNCH_MODE=openai
-OPENAI_API_KEY=<openrouter-api-key>
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-OPENAI_MODEL=qwen/qwen3.6-plus:free
-OPENROUTER_HTTP_REFERER=http://127.0.0.1
-OPENROUTER_X_TITLE=BobbyExecute
-ADVISORY_LLM_ENABLED=false
-ADVISORY_LLM_PROVIDER=openai
-```
-
-There is no separate `ADVISORY_LLM_MODEL` env key in this repo. If you intentionally switch the advisory provider to `qwen`, use `QWEN_API_KEY`, `QWEN_BASE_URL`, and `QWEN_MODEL=qwen/qwen3.6-plus:free`.
-
-## Helper: Import env file into the current PowerShell session
+## Helper: Import Env File Into The Current Shell
 
 ```powershell
 function Import-EnvFile {
@@ -72,21 +55,47 @@ function Import-EnvFile {
 }
 ```
 
-## PowerShell Window A: Bot Control
+## Step 2: Prepare `bot\.env.papertrade`
 
 ```powershell
 Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\bot
 npm install
 Copy-Item ..\.env.papertrade.example .env.papertrade
-# Fill the env file before continuing, including CONTROL_TOKEN, OPERATOR_READ_TOKEN,
-# and the OpenRouter/Qwen values above.
+# Fill the env file before continuing.
+# Required for papertrade:
+# - CONTROL_TOKEN
+# - OPERATOR_READ_TOKEN
+# - RUNTIME_POLICY_AUTHORITY=ts-env
+# - ROLLOUT_POSTURE=paper_only
+# - OPENAI_API_KEY if you want the main LLM path exercised
+# - DATABASE_URL and REDIS_URL only if you want truthful multi-process papertrade
 Import-EnvFile .\.env.papertrade
 npm run build
+```
+
+If `DATABASE_URL` is set, check schema readiness before starting anything:
+
+```powershell
+npm run db:status
+# If the status says missing_but_migratable or migration_required, run:
 npm run db:migrate
+```
+
+If `DATABASE_URL` is blank, skip the DB scripts. That only gives you a boot smoke test, not truthful multi-process papertrade.
+
+## Step 3: Start Papertrade Services
+
+Use the same `bot\.env.papertrade` values in every bot window.
+
+Window A: control service
+
+```powershell
+Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\bot
+Import-EnvFile .\.env.papertrade
 npm run start:control
 ```
 
-## PowerShell Window B: Bot Worker
+Window B: worker
 
 ```powershell
 Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\bot
@@ -94,7 +103,7 @@ Import-EnvFile .\.env.papertrade
 npm run start:worker
 ```
 
-## PowerShell Window C: Bot Server
+Window C: public API server
 
 ```powershell
 Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\bot
@@ -102,7 +111,7 @@ Import-EnvFile .\.env.papertrade
 npm run start:server
 ```
 
-## PowerShell Window D: Dashboard
+Window D: dashboard
 
 ```powershell
 Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\dashboard
@@ -113,7 +122,10 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-## Verification
+## Verify Papertrade
+
+Run these in the same PowerShell window where you executed `Import-EnvFile .\.env.papertrade`.
+If you open a new window, the loaded env values such as tokens, URLs, and mode flags are gone.
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:3333/health
@@ -125,25 +137,21 @@ Invoke-RestMethod http://127.0.0.1:3000/api/auth/session
 
 Success looks like:
 
-- `runtime-status` reports paper mode, not live.
-- `release-gate` does not allow live execution.
-- No signer process is running.
-- The logs describe paper or simulated behavior only.
+- `runtime-status` reports paper mode, not live
+- `release-gate` does not allow live execution
+- no signer process is running
+- the logs describe paper or simulated behavior only
 
-If `DATABASE_URL` and `REDIS_URL` are blank, stop after boot smoke testing.
-Do not claim full papertrade coverage.
+## Common Failures
 
-## Dry Mode
+- `db:status` fails because `DATABASE_URL` is blank. That is expected for smoke tests, not for truthful multi-process runs.
+- `db:status` and `db:migrate` are only needed when you have a real database URL configured, and `db:migrate` also accepts `DIRECT_URL`.
+- The dashboard cannot talk to control because `CONTROL_SERVICE_URL`, `CONTROL_TOKEN`, or `OPERATOR_READ_TOKEN` do not match the bot env.
+- The runtime behaves like a smoke test because `DATABASE_URL` or `REDIS_URL` are blank.
+- `DRY_RUN=true` was used by mistake. That is dry mode, not papertrade.
 
-Dry mode is separate from papertrade.
+## Live Trade
 
-- `LIVE_TRADING=false`
-- `DRY_RUN=true`
+Do not switch directly from this page into live execution.
 
-Do not label dry mode as papertrade.
-
-## Live-Limited Pointer
-
-Live-limited onboarding is separate.
-
-- Index: [docs/06_journal_replay/staging-live-preflight-runbook.md](C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook.md)
+- Live-limited Windows commands: `docs/06_journal_replay/staging-live-preflight-runbook-windows.md`

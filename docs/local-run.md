@@ -1,146 +1,108 @@
-# Papertrade Onboarding Index
+# Local Run Onboarding
 
-Scope: canonical entry point for local papertrade onboarding.
-This file is the shared concepts and routing map only. Shell-specific commands live in the OS docs.
+Start here.
 
-## Canonical Map
+Choose `papertrade` first. It is the safest first-run path because it keeps `LIVE_TRADING=false`, `DRY_RUN=false`, and `SIGNER_MODE=disabled`.
 
-| Path | Role |
-|---|---|
-| `docs/local-run.md` | Papertrade onboarding index |
-| `docs/local-run-macos.md` | macOS papertrade commands |
-| `docs/local-run-windows.md` | Windows papertrade commands |
-| `docs/06_journal_replay/staging-live-preflight-runbook.md` | Live-limited onboarding index |
-| `docs/06_journal_replay/staging-live-preflight-runbook-macos.md` | macOS live-limited commands |
-| `docs/06_journal_replay/staging-live-preflight-runbook-windows.md` | Windows live-limited commands |
-| `docs/06_journal_replay/operator-release-gate-and-incident-runbook.md` | Release / incident runbook |
-| `docs/06_journal_replay/staging-live-preflight-evidence-template.md` | Evidence template |
+`Live trade` in this repo means the live-limited path in `docs/06_journal_replay/staging-live-preflight-runbook.md`. It uses real capital controls, a remote signer, and a hard preflight gate. Do not start it until papertrade works.
 
-## Definitions
+## Mode Comparison
 
-- Papertrade means `LIVE_TRADING=false` and `DRY_RUN=false`.
-- Dry mode means `LIVE_TRADING=false` and `DRY_RUN=true`.
-- Live-limited means staged/live-limited: `LIVE_TRADING=true`, `DRY_RUN=false`, and `live:preflight` passes before any live start.
+| Mode | What it does | Safe for first run? | Working file |
+|---|---|---|---|
+| Papertrade | Simulated execution path, no real capital | Yes | `bot/.env.papertrade` |
+| Live trade | Real RPC, remote signer, live preflight gate | No | `bot/.env.live-local` |
+| Dry mode | No execution, not papertrade | No | `DRY_RUN=true` only |
 
-Do not use `DRY_RUN=true` as papertrade.
-Do not imply live readiness without `live:preflight`.
+## Before You Start
 
-## Shared Truth
+- Node 22. The repo pins it in `.nvmrc`.
+- npm.
+- A local Postgres and Redis only if you want truthful multi-process papertrade or live trade. Blank values fall back to local in-memory/file stores and are not a truthful multi-process run.
+- An OpenRouter API key if you want the main LLM path exercised.
+- For live trade only: a real Solana RPC endpoint, a remote signer, a matching wallet address, and a Jupiter API key.
+- Generate distinct `CONTROL_TOKEN` and `OPERATOR_READ_TOKEN` values locally.
+- Do not commit secrets.
 
-Truthful multi-process papertrade requires shared runtime truth:
-
-- `DATABASE_URL`
-- `REDIS_URL`
-
-For Supabase-backed local/runtime use:
-
-- `DATABASE_URL` points at the Supabase PostgreSQL connection string.
-- The repo automatically applies `sslmode=require` for Supabase hosts.
-- `REDIS_URL` remains separately required for the runtime-config store.
-- If either value is blank, the bot falls back to isolated local stores.
-
-If both are blank, the bot processes fall back to isolated local stores. That is only a boot smoke test, not truthful multi-process papertrade.
-
-## Papertrade Values
-
-Keep these set for papertrade:
-
-- `LIVE_TRADING=false`
-- `DRY_RUN=false`
-- `TRADING_ENABLED=false`
-- `LIVE_TEST_MODE=false`
-- `ROLLOUT_POSTURE=paper_only`
-- `SIGNER_MODE=disabled`
-
-Required for truthful multi-process papertrade:
-
-- `DATABASE_URL`
-- `REDIS_URL`
-- `CONTROL_TOKEN`
-- `OPERATOR_READ_TOKEN`
-- `CONTROL_SERVICE_URL`
-
-Required only if you want the main LLM path exercised:
-
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL=https://openrouter.ai/api/v1`
-- `OPENAI_MODEL=qwen/qwen3.6-plus:free`
-
-May remain blank for a boot smoke test:
-
-- `RPC_URL` when `RPC_MODE=stub`
-- `SIGNER_URL`
-- `SIGNER_AUTH_TOKEN`
-- `SIGNER_KEY_ID`
-- `JUPITER_API_KEY`
-- `MORALIS_API_KEY`
-- `DASHBOARD_SESSION_SECRET`
-- `DASHBOARD_OPERATOR_DIRECTORY_JSON`
-- `WALLET_ADDRESS` can stay as the placeholder in the example until you want wallet-snapshot validation
-
-## Local Files
+## Files To Copy
 
 - `bot/.env.papertrade` from `.env.papertrade.example`
 - `bot/.env.live-local` from `.env.live-local.example`
 - `dashboard/.env.local` from `dashboard/.env.example`
-- `signer/.env.local` from `signer/.env.example`
+- `signer/.env.local` from `signer/.env.example` for live trade only
 
-`bot/` processes do not dotenv-load on their own.
-`dashboard/.env.local` is auto-loaded by Next.
-The signer is required only for live-limited mode.
+## Required Keys
 
-## Generate Local Auth Tokens
+Papertrade:
 
-`CONTROL_TOKEN` and `OPERATOR_READ_TOKEN` are local secrets. They must be different values.
+- Required: `LIVE_TRADING=false`, `DRY_RUN=false`, `TRADING_ENABLED=false`, `LIVE_TEST_MODE=false`, `ROLLOUT_POSTURE=paper_only`, `RUNTIME_POLICY_AUTHORITY=ts-env`, `SIGNER_MODE=disabled`, `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, `CONTROL_SERVICE_URL`
+- Required if you want the main LLM path exercised: `OPENAI_API_KEY`
+- Required for truthful multi-process papertrade: `DATABASE_URL`, `REDIS_URL`
+- Optional or boot-smoke only: `RPC_URL` when `RPC_MODE=stub`, `SIGNER_URL`, `SIGNER_AUTH_TOKEN`, `SIGNER_KEY_ID`, `JUPITER_API_KEY`, `MORALIS_API_KEY`, `DASHBOARD_OPERATOR_DIRECTORY_JSON`, `DASHBOARD_SESSION_SECRET`
+- `WALLET_ADDRESS` may stay on the placeholder value in the example if you only want a boot smoke test. Use a real wallet address if you want wallet-snapshot validation.
 
-Create them with the OS-specific commands in:
+Live trade:
 
-- [`docs/local-run-macos.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run-macos.md)
-- [`docs/local-run-windows.md`](C:/workspace/main_projects/dotBot/bobbyExecute/docs/local-run-windows.md)
+- Required: `LIVE_TRADING=true`, `DRY_RUN=false`, `TRADING_ENABLED=true`, `LIVE_TEST_MODE=true`, `ROLLOUT_POSTURE=micro_live`, `RUNTIME_POLICY_AUTHORITY=ts-env`, `RPC_MODE=real`, `SIGNER_MODE=remote`, `SIGNER_URL`, `SIGNER_AUTH_TOKEN`, `WALLET_ADDRESS`, `CONTROL_TOKEN`, `OPERATOR_READ_TOKEN`, `JUPITER_API_KEY`, `CONTROL_SERVICE_URL`
+- Required in the signer env: `SIGNER_AUTH_TOKEN`, `SIGNER_WALLET_PRIVATE_KEY`, `SIGNER_WALLET_ADDRESS`
+- Required for truthful multi-process live trade: `DATABASE_URL`, `REDIS_URL`
 
-Write the generated values into:
+## Fallback Behavior
 
-- `bot/.env.papertrade`
-- `bot/.env.live-local`
-- `dashboard/.env.local` when the dashboard proxies control locally
+- If `DATABASE_URL` is blank, control/governance falls back to in-memory state.
+- If `REDIS_URL` is blank, runtime-config falls back to in-memory state.
+- These fallback paths are useful for a boot smoke test, but they are not truthful multi-process papertrade or live trade.
 
-Example values:
+## DB Checks
 
-- `CONTROL_TOKEN=<generated-token-1>`
-- `OPERATOR_READ_TOKEN=<generated-token-2>`
+- `db:status` and `db:migrate` are only needed when you have a real database URL configured.
+- `db:migrate` accepts `DIRECT_URL` or `DATABASE_URL`.
+- If no real DB is configured, those commands fail hard by design.
 
-Do not reuse the same value for both tokens.
+What the first DB errors mean:
 
-## Use Qwen 3.6 Free via OpenRouter
+- `DATABASE_URL is required.` means no real DB is configured yet. Skip the DB checks for a smoke test, or set a real database URL.
+- `DIRECT_URL or DATABASE_URL is required.` means migrations need a real database connection before they can run.
 
-The main LLM uses the `OPENAI_*` fields, even when the backend is OpenRouter:
+## Verify
 
-- `LAUNCH_MODE=openai`
-- `OPENAI_API_KEY=<openrouter-api-key>`
-- `OPENAI_BASE_URL=https://openrouter.ai/api/v1`
-- `OPENAI_MODEL=qwen/qwen3.6-plus:free`
-- `OPENROUTER_HTTP_REFERER=http://127.0.0.1`
-- `OPENROUTER_X_TITLE=BobbyExecute`
-- `LAUNCH_MODE=openai` is a profile label in the env examples; the runtime gate is the `OPENAI_*` block above.
+- `npm run db:status` reports the schema state when `DATABASE_URL` is set.
+- `npm run db:migrate` creates or updates schema state when `db:status` says migration is needed.
+- `GET /health` should return `200`.
+- `GET /control/status` should report the intended runtime mode.
+- `GET /control/runtime-status` should match the intended mode and posture.
+- `GET /control/release-gate` should show paper-safe for papertrade and live-eligible only for live-limited after preflight.
 
-Optional advisory LLM handling:
+## What Success Looks Like
 
-- `ADVISORY_LLM_ENABLED=false` by default
-- `ADVISORY_LLM_PROVIDER=openai` uses the same `OPENAI_*` settings above
-- There is no separate `ADVISORY_LLM_MODEL` env key in this repo
-- If you intentionally switch the advisory provider to `qwen`, use `QWEN_API_KEY`, `QWEN_BASE_URL`, and `QWEN_MODEL=qwen/qwen3.6-plus:free`
+Papertrade:
 
-For truthful local papertrade, keep `OPENAI_API_KEY` real if you want the main LLM path exercised.
-Leave `ADVISORY_LLM_ENABLED=false` unless you are intentionally testing the advisory path.
+- `runtime-status` shows paper mode, not live
+- `release-gate` does not allow live execution
+- no signer process is running
+- logs describe paper or simulated behavior only
 
-## What Belongs Where
+Live trade:
 
-- Shared concepts and safety boundaries belong here.
-- macOS shell commands belong in `docs/local-run-macos.md`.
-- Windows PowerShell commands belong in `docs/local-run-windows.md`.
+- `live:preflight` passes
+- `control/status` and `control/runtime-status` report live mode
+- `release-gate` is satisfied for the live posture
+- the signer is remote and healthy
+- runtime is armed only when you intentionally arm it
 
-## Operator Rules
+## Common Mistakes
 
-- Keep papertrade, dry mode, and live-limited separate.
-- Keep live-limited readiness gated by `live:preflight`.
-- Keep root onboarding references pointed at this index, not at OS-specific pages directly.
+- Copying the wrong env file
+- Leaving `CONTROL_TOKEN` and `OPERATOR_READ_TOKEN` the same
+- Running live trade with `SIGNER_MODE=disabled`
+- Expecting `DRY_RUN=true` to behave like papertrade
+- Using blank `DATABASE_URL` or `REDIS_URL` and then assuming you exercised shared state
+- Starting the dashboard with different tokens than the bot and control service
+- Thinking `npm run live:test` is only a test; it runs preflight and then starts the live-limited server
+
+## OS Docs
+
+- macOS papertrade: `docs/local-run-macos.md`
+- Windows papertrade: `docs/local-run-windows.md`
+- macOS live-limited: `docs/06_journal_replay/staging-live-preflight-runbook-macos.md`
+- Windows live-limited: `docs/06_journal_replay/staging-live-preflight-runbook-windows.md`

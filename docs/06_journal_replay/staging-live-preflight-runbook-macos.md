@@ -1,20 +1,20 @@
-# macOS Live-Limited Onboarding
+# macOS Live-Limited Quickstart
 
-This page contains the macOS shell commands for the live-limited path.
-Shared concepts and the gate map live in [staging-live-preflight-runbook.md](C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/staging-live-preflight-runbook.md).
+Use this only after papertrade works.
+Shared concepts and the gate map live in `docs/06_journal_replay/staging-live-preflight-runbook.md`.
 
-## Prerequisites
+## Before You Start
 
 - macOS `zsh` or `bash`
 - Node 22
 - npm
-- a real RPC endpoint
-- a remote signer service
-- shared Postgres and Redis if you want truthful multi-process live-limited state
+- A real RPC endpoint
+- A remote signer service
+- Shared Postgres and Redis if you want truthful multi-process live trade
 
-## Generate Local Auth Tokens
+## Step 1: Generate Local Tokens
 
-Run these in a macOS terminal to create two distinct local secrets:
+Run this in a macOS terminal to create two distinct local secrets:
 
 ```bash
 CONTROL_TOKEN="$(openssl rand -hex 32)"
@@ -22,33 +22,16 @@ OPERATOR_READ_TOKEN="$(openssl rand -hex 32)"
 printf 'CONTROL_TOKEN=%s\nOPERATOR_READ_TOKEN=%s\n' "$CONTROL_TOKEN" "$OPERATOR_READ_TOKEN"
 ```
 
-Paste the generated values into `bot/.env.live-local`:
+Copy the generated values into `bot/.env.live-local`:
 
 ```dotenv
 CONTROL_TOKEN=<generated-token-1>
 OPERATOR_READ_TOKEN=<generated-token-2>
 ```
 
-Also use the same generated values in `dashboard/.env.local` when the dashboard proxies control locally.
+Use the same generated values in `dashboard/.env.local` when the dashboard proxies control locally.
 
-## Use Qwen 3.6 Free via OpenRouter
-
-Set these in `bot/.env.live-local` before running live preflight:
-
-```dotenv
-LAUNCH_MODE=openai
-OPENAI_API_KEY=<openrouter-api-key>
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-OPENAI_MODEL=qwen/qwen3.6-plus:free
-OPENROUTER_HTTP_REFERER=http://127.0.0.1
-OPENROUTER_X_TITLE=BobbyExecute
-ADVISORY_LLM_ENABLED=false
-ADVISORY_LLM_PROVIDER=openai
-```
-
-There is no separate `ADVISORY_LLM_MODEL` env key in this repo. If you intentionally switch the advisory provider to `qwen`, use `QWEN_API_KEY`, `QWEN_BASE_URL`, and `QWEN_MODEL=qwen/qwen3.6-plus:free`.
-
-## Terminal 0: Signer
+## Step 2: Prepare the Signer
 
 ```bash
 cd /path/to/bobbyExecute/signer
@@ -62,22 +45,47 @@ npm run build
 npm start
 ```
 
-## Terminal A: Bot Preflight
+## Step 3: Prepare `bot/.env.live-local`
 
 ```bash
 cd /path/to/bobbyExecute/bot
 npm install
 cp ../.env.live-local.example .env.live-local
 # Fill the live-limited env values before continuing, including CONTROL_TOKEN,
-# OPERATOR_READ_TOKEN, and the OpenRouter/Qwen values above.
+# OPERATOR_READ_TOKEN, RUNTIME_POLICY_AUTHORITY=ts-env, ROLLOUT_POSTURE=micro_live,
+# RPC_URL, SIGNER_URL, SIGNER_AUTH_TOKEN, WALLET_ADDRESS, JUPITER_API_KEY, and
+# the OpenRouter/Qwen values above.
 set -a
 source ./.env.live-local
 set +a
 npm run build
+```
+
+If `DATABASE_URL` is set, check schema readiness before starting anything:
+
+```bash
+npm run db:status
+# If the status says missing_but_migratable or migration_required, run:
+npm run db:migrate
+```
+
+If `DATABASE_URL` is blank, skip the DB scripts. That only gives you a boot smoke test, not truthful multi-process live trade.
+
+Then run the hard live gate:
+
+```bash
 npm run live:preflight
 ```
 
-## Terminal B: Bot Control
+What the first live-preflight error means:
+
+- `Live-test preflight requires LIVE_TRADING=true.` usually means the wrong env file was loaded, or you are in the wrong terminal session. Load `bot/.env.live-local` in that same terminal and retry.
+
+## Step 4: Start Live-Limited Services
+
+Use the same `bot/.env.live-local` values in every bot terminal.
+
+Terminal B: bot control
 
 ```bash
 cd /path/to/bobbyExecute/bot
@@ -87,7 +95,7 @@ set +a
 npm run start:control
 ```
 
-## Terminal C: Bot Worker
+Terminal C: bot worker
 
 ```bash
 cd /path/to/bobbyExecute/bot
@@ -97,17 +105,18 @@ set +a
 npm run start:worker
 ```
 
-## Terminal D: Bot Server
+Terminal D: bot runtime server
 
 ```bash
 cd /path/to/bobbyExecute/bot
 set -a
 source ./.env.live-local
 set +a
+# This script repeats live:preflight and then starts the server.
 npm run live:test
 ```
 
-## Terminal E: Dashboard
+Terminal E: dashboard
 
 ```bash
 cd /path/to/bobbyExecute/dashboard
@@ -121,12 +130,13 @@ set +a
 npm run dev
 ```
 
-## Verification
+## Verify Live-Limited State
 
 ```bash
 curl -fsS -H "Authorization: Bearer $OPERATOR_READ_TOKEN" http://127.0.0.1:3334/control/runtime-config
 curl -fsS -H "Authorization: Bearer $OPERATOR_READ_TOKEN" http://127.0.0.1:3334/control/runtime-status
 curl -fsS -H "Authorization: Bearer $OPERATOR_READ_TOKEN" http://127.0.0.1:3334/control/release-gate
+curl -fsS http://127.0.0.1:3333/health
 ```
 
 What you want to see:
@@ -139,8 +149,16 @@ What you want to see:
 
 If `npm run live:preflight` fails, stop. Do not proceed to worker runtime.
 
-## Live-Limited Pointer
+## Common Failures
+
+- `CONTROL_TOKEN` and `OPERATOR_READ_TOKEN` are the same value.
+- `SIGNER_MODE` is not `remote`.
+- `RPC_MODE` is not `real`.
+- `DATABASE_URL` or `REDIS_URL` is blank and you assumed the run was multi-process truth rather than smoke-test fallback.
+- The signer env does not match the bot env, so the control and worker processes cannot complete the same live boundary.
+
+## Live Trade Pointer
 
 The release and incident runbook is separate:
 
-- [docs/06_journal_replay/operator-release-gate-and-incident-runbook.md](C:/workspace/main_projects/dotBot/bobbyExecute/docs/06_journal_replay/operator-release-gate-and-incident-runbook.md)
+- `docs/06_journal_replay/operator-release-gate-and-incident-runbook.md`
