@@ -57,6 +57,8 @@ npm run start:control
 - Repo-root env overlays exist at `.env.papertrade`, `.env.papertrade.example`, `.env.live-local`, and `.env.live-local.example`.
 - The bot runtime uses `bot/.env` as the operative local papertrade file.
 - Dashboard runtime uses `dashboard/.env.local`.
+- Dashboard operator auth is real, not mock: `DASHBOARD_SESSION_SECRET` and `DASHBOARD_OPERATOR_DIRECTORY_JSON` must both be present in `dashboard/.env.local` for truthful login/session checks.
+- `GET /api/auth/session` should report `configured: true` only when the dashboard auth env is actually loaded by the running process.
 - Verified full-pipeline local papertrade is `LIVE_TRADING=false`, `DRY_RUN=false`, `TRADING_ENABLED=true`, `LIVE_TEST_MODE=false`, and `ROLLOUT_POSTURE=paper_only`.
 - Boot-only dry/stub mode is narrower and may use `DRY_RUN=true` and `RPC_MODE=stub`.
 - Full-pipeline local papertrade and local live-limited both require separate terminals for server, worker, control, and dashboard.
@@ -201,6 +203,7 @@ npm run start:control
 
 - If the user asks why `CONTROL_PORT=3334` did not work, explain that the control process still reads `PORT`.
 - If the user asks why dashboard config did not take effect, explain that it reads `dashboard/.env.local` and needs a restart.
+- If the user asks about dashboard auth, explain that login is real local auth and a `401` means the supplied operator password did not match the configured directory entry.
 - If the user asks about dashboard OOM during dev, mention:
 
 ```powershell
@@ -240,6 +243,7 @@ When talking about Render paper/live differences:
 Use these patterns in support answers when they fit the user report:
 
 - Control binds to `PORT`, so local `CONTROL_PORT=3334` alone does not change startup behavior.
+- The real control read surface is `/control/status`; `/control/runtime-status` is stale documentation and should not be presented as a live route.
 - Dashboard returns `403` when control tokens, operator context, or dashboard auth config are not aligned.
 - Worker fails when `REDIS_URL` is malformed or missing.
 - Full-pipeline local validation can fail on tiny/free Postgres plans due to connection exhaustion.
