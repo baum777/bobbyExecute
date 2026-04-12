@@ -31,6 +31,7 @@
     "test:config": "vitest run tests/config",
     "db:status": "node dist/scripts/db-status.js",
     "db:migrate": "node dist/scripts/db-migrate.js",
+    "db:bootstrap": "node dist/scripts/db-bootstrap.js",
     "recovery:db-backup": "node dist/scripts/control-backup.js",
     "recovery:db-restore": "node dist/scripts/control-restore.js",
     "recovery:db-validate": "node dist/scripts/control-restore-validate.js",

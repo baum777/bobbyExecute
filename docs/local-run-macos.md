@@ -20,7 +20,7 @@ OPERATOR_READ_TOKEN="$(openssl rand -hex 32)"
 printf 'CONTROL_TOKEN=%s\nOPERATOR_READ_TOKEN=%s\n' "$CONTROL_TOKEN" "$OPERATOR_READ_TOKEN"
 ```
 
-Copy the values into `bot/.env.papertrade`:
+Copy the values into `bot/.env`:
 
 ```dotenv
 CONTROL_TOKEN=<generated-token-1>
@@ -29,12 +29,12 @@ OPERATOR_READ_TOKEN=<generated-token-2>
 
 Keep the two values different. Use the same style of generated values in `bot/.env.live-local` only when you are preparing live trade later.
 
-## Step 2: Prepare `bot/.env.papertrade`
+## Step 2: Prepare `bot/.env`
 
 ```bash
 cd /path/to/bobbyExecute/bot
 npm install
-cp ../.env.papertrade.example .env.papertrade
+cp ../.env.papertrade.example .env
 # Fill the env file before continuing.
 # Required for papertrade:
 # - CONTROL_TOKEN
@@ -44,7 +44,7 @@ cp ../.env.papertrade.example .env.papertrade
 # - OPENAI_API_KEY if you want the main LLM path exercised
 # - DATABASE_URL and REDIS_URL only if you want truthful multi-process papertrade
 set -a
-source ./.env.papertrade
+source ./.env
 set +a
 npm run build
 ```
@@ -61,14 +61,14 @@ If `DATABASE_URL` is blank, skip the DB scripts. That only gives you a boot smok
 
 ## Step 3: Start Papertrade Services
 
-Use the same `bot/.env.papertrade` values in every bot terminal.
+Use the same `bot/.env` values in every bot terminal.
 
 Terminal A: control service
 
 ```bash
 cd /path/to/bobbyExecute/bot
 set -a
-source ./.env.papertrade
+source ./.env
 set +a
 npm run start:control
 ```
@@ -78,7 +78,7 @@ Terminal B: worker
 ```bash
 cd /path/to/bobbyExecute/bot
 set -a
-source ./.env.papertrade
+source ./.env
 set +a
 npm run start:worker
 ```
@@ -88,7 +88,7 @@ Terminal C: public API server
 ```bash
 cd /path/to/bobbyExecute/bot
 set -a
-source ./.env.papertrade
+source ./.env
 set +a
 npm run start:server
 ```
@@ -100,7 +100,7 @@ cd /path/to/bobbyExecute/dashboard
 npm install
 cp .env.example .env.local
 # Fill CONTROL_SERVICE_URL, CONTROL_TOKEN, and OPERATOR_READ_TOKEN.
-# Use the same generated tokens from bot/.env.papertrade.
+# Use the same generated tokens from bot/.env.
 set -a
 source ./.env.local
 set +a
@@ -109,7 +109,7 @@ npm run dev
 
 ## Verify Papertrade
 
-Run these in the same terminal where you executed `source ./.env.papertrade`.
+Run these in the same terminal where you executed `source ./.env`.
 If you open a new terminal, the loaded env values such as tokens, URLs, and mode flags are gone.
 
 ```bash

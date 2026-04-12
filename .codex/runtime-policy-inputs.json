@@ -52,5 +52,5 @@
     "dist",
     "coverage"
   ],
-  "notes": "Consumer-local runtime-policy sources updated to the canonical governance and journal/replay docs."
+  "notes": "Runtime policy truth now reflects the verified local papertrade posture: bot/.env is the active local env, dashboard/.env.local must mirror control tokens and operator auth for real dashboard verification, papertrade remains paper_only with LIVE_TRADING=false and LIVE_TEST_MODE=false, and live remains blocked until live-preflight evidence exists."
 }

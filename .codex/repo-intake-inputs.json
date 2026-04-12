@@ -42,5 +42,5 @@
     "coverage",
     ".git"
   ],
-  "notes": "Consumer-local repo-intake sources updated to the canonical 01-06 documentation tree."
+  "notes": "Repo-intake truth now reflects the active local papertrade flow in bot/.env, the separate dashboard auth env in dashboard/.env.local, and the fail-closed Neon bootstrap path before db:migrate when DATABASE_URL is missing."
 }

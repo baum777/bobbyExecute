@@ -28,7 +28,7 @@ $controlToken
 $readToken
 ```
 
-Copy the values into `bot\.env.papertrade`:
+Copy the values into `bot\.env`:
 
 ```dotenv
 CONTROL_TOKEN=<generated-token-1>
@@ -55,12 +55,12 @@ function Import-EnvFile {
 }
 ```
 
-## Step 2: Prepare `bot\.env.papertrade`
+## Step 2: Prepare `bot\.env`
 
 ```powershell
 Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\bot
 npm install
-Copy-Item ..\.env.papertrade.example .env.papertrade
+Copy-Item ..\.env.papertrade.example .env
 # Fill the env file before continuing.
 # Required for papertrade:
 # - CONTROL_TOKEN
@@ -69,7 +69,7 @@ Copy-Item ..\.env.papertrade.example .env.papertrade
 # - ROLLOUT_POSTURE=paper_only
 # - OPENAI_API_KEY if you want the main LLM path exercised
 # - DATABASE_URL and REDIS_URL only if you want truthful multi-process papertrade
-Import-EnvFile .\.env.papertrade
+Import-EnvFile .\.env
 npm run build
 ```
 
@@ -85,13 +85,13 @@ If `DATABASE_URL` is blank, skip the DB scripts. That only gives you a boot smok
 
 ## Step 3: Start Papertrade Services
 
-Use the same `bot\.env.papertrade` values in every bot window.
+Use the same `bot\.env` values in every bot window.
 
 Window A: control service
 
 ```powershell
 Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\bot
-Import-EnvFile .\.env.papertrade
+Import-EnvFile .\.env
 npm run start:control
 ```
 
@@ -99,7 +99,7 @@ Window B: worker
 
 ```powershell
 Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\bot
-Import-EnvFile .\.env.papertrade
+Import-EnvFile .\.env
 npm run start:worker
 ```
 
@@ -107,7 +107,7 @@ Window C: public API server
 
 ```powershell
 Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\bot
-Import-EnvFile .\.env.papertrade
+Import-EnvFile .\.env
 npm run start:server
 ```
 
@@ -118,13 +118,13 @@ Set-Location C:\workspace\main_projects\dotBot\bobbyExecute\dashboard
 npm install
 Copy-Item .env.example .env.local
 # Fill CONTROL_SERVICE_URL, CONTROL_TOKEN, and OPERATOR_READ_TOKEN.
-# Use the same generated tokens from bot\.env.papertrade.
+# Use the same generated tokens from bot\.env.
 npm run dev
 ```
 
 ## Verify Papertrade
 
-Run these in the same PowerShell window where you executed `Import-EnvFile .\.env.papertrade`.
+Run these in the same PowerShell window where you executed `Import-EnvFile .\.env`.
 If you open a new window, the loaded env values such as tokens, URLs, and mode flags are gone.
 
 ```powershell

@@ -9,7 +9,7 @@ environments:
         branch: main
         autoDeployTrigger: commit
         rootDir: bot
-        preDeployCommand: npm run db:migrate
+        preDeployCommand: npm run db:bootstrap
         buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:server
         healthCheckPath: /health
@@ -84,7 +84,7 @@ environments:
         branch: main
         autoDeployTrigger: commit
         rootDir: bot
-        preDeployCommand: npm run db:migrate
+        preDeployCommand: npm run db:bootstrap
         buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:control
         healthCheckPath: /health
@@ -169,7 +169,7 @@ environments:
         branch: main
         autoDeployTrigger: commit
         rootDir: bot
-        preDeployCommand: npm run db:migrate
+        preDeployCommand: npm run db:bootstrap
         buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:worker
         envVars:
@@ -359,7 +359,7 @@ environments:
         branch: main
         autoDeployTrigger: off
         rootDir: bot
-        preDeployCommand: npm run db:migrate
+        preDeployCommand: npm run db:bootstrap
         buildCommand: npm ci --include=dev && npm run build
         startCommand: npm run start:server
         healthCheckPath: /health

@@ -1,10 +1,16 @@
-import { Pool } from "pg";
+import { Pool, type PoolConfig } from "pg";
 
 const SUPABASE_HOST_SUFFIXES = [".supabase.co", ".supabase.com", ".pooler.supabase.com"];
+const NEON_HOST_SUFFIXES = [".neon.tech", ".neon.build"];
 
 function isSupabaseHostname(hostname: string): boolean {
   const normalized = hostname.toLowerCase();
   return SUPABASE_HOST_SUFFIXES.some((suffix) => normalized === suffix.slice(1) || normalized.endsWith(suffix));
+}
+
+function isNeonHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return NEON_HOST_SUFFIXES.some((suffix) => normalized === suffix.slice(1) || normalized.endsWith(suffix));
 }
 
 export function normalizeDatabaseUrl(databaseUrl: string): string {
@@ -28,20 +34,27 @@ export function normalizeDatabaseUrl(databaseUrl: string): string {
   return url.toString();
 }
 
-export function createPostgresPool(databaseUrl: string): Pool {
+export function buildPostgresPoolConfig(databaseUrl: string): PoolConfig {
   const normalized = normalizeDatabaseUrl(databaseUrl);
   const url = new URL(normalized);
   const isSupabase = isSupabaseHostname(url.hostname);
+  const isNeon = isNeonHostname(url.hostname);
+  const sslmode = url.searchParams.get("sslmode");
+  const shouldUseSsl = isSupabase || isNeon || (sslmode != null && sslmode.toLowerCase() !== "disable");
 
   const port = url.port ? Number(url.port) : undefined;
   const database = url.pathname.replace(/^\/+/, "") || undefined;
 
-  return new Pool({
+  return {
     host: url.hostname,
     port: Number.isFinite(port) ? port : undefined,
     user: decodeURIComponent(url.username || ""),
     password: decodeURIComponent(url.password || ""),
     database,
-    ...(isSupabase ? { ssl: { rejectUnauthorized: false } } : {}),
-  });
+    ...(shouldUseSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+  };
+}
+
+export function createPostgresPool(databaseUrl: string): Pool {
+  return new Pool(buildPostgresPoolConfig(databaseUrl));
 }

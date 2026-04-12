@@ -44,5 +44,5 @@
     "repo-intake local input contract validates",
     "runtime-policy local input contract validates"
   ],
-  "notes": "Initial consumer overlay created from codex-workflow-core."
+  "notes": "Repo-local truth updated: bot/.env is the active local papertrade env, dashboard/.env.local must mirror control tokens and include dashboard operator auth for authenticated verification, and db:bootstrap is the fail-closed Neon path before db:migrate when DATABASE_URL is missing."
 }

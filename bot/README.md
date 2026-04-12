@@ -22,6 +22,7 @@ npm run test:integration
 npm run test:e2e
 npm run test:config
 npm run db:status
+npm run db:bootstrap
 npm run db:migrate
 npm run recovery:db-backup
 npm run recovery:db-restore
@@ -95,8 +96,18 @@ Private control mutation surfaces:
 - Missing control tokens cause protected routes to fail closed.
 - Schema mismatches and missing readiness state also fail closed.
 - The Postgres surfaces are shared operational state, not canonical runtime truth.
-- `DATABASE_URL` may point at Supabase PostgreSQL; the repo normalizes Supabase hosts to `sslmode=require`.
+- `DATABASE_URL` may point at Supabase PostgreSQL or Neon PostgreSQL; the repo normalizes managed hosts to TLS-required pool configuration.
 - `REDIS_URL` remains separately required for the runtime-config store; blank values fall back to local memory/file stores and are not truthful multi-process runtime.
+
+## Neon Bootstrap
+
+`npm run db:bootstrap` is the fail-closed connection-preparation path.
+
+- If `DATABASE_URL` already exists, the command leaves it unchanged and runs the existing migration command.
+- If `DATABASE_URL` is missing, the command requires `NEON_API_KEY` and resolves a connection from Neon API resources.
+- Optional disambiguation envs are `NEON_ORG_ID`, `NEON_PROJECT_ID`, `NEON_PROJECT_NAME`, `NEON_BRANCH_ID`, `NEON_BRANCH_NAME`, `NEON_DATABASE_NAME`, `NEON_ROLE_NAME`, and `NEON_ENDPOINT_ID`.
+- The bootstrap step emits `DATABASE_URL` and `DIRECT_URL` for the next step when `--emit-env` is used.
+- `DATABASE_URL` is the app/runtime URL; `DIRECT_URL` is only for migrations when present.
 
 ## Runbook Pointers
 

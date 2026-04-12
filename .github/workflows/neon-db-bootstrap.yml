@@ -1,0 +1,55 @@
+name: Neon DB Bootstrap
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  bootstrap-db:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bot
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_API_BASE_URL: ${{ secrets.NEON_API_BASE_URL }}
+      NEON_ORG_ID: ${{ secrets.NEON_ORG_ID }}
+      NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+      NEON_PROJECT_NAME: ${{ secrets.NEON_PROJECT_NAME }}
+      NEON_BRANCH_ID: ${{ secrets.NEON_BRANCH_ID }}
+      NEON_BRANCH_NAME: ${{ secrets.NEON_BRANCH_NAME }}
+      NEON_DATABASE_NAME: ${{ secrets.NEON_DATABASE_NAME }}
+      NEON_ROLE_NAME: ${{ secrets.NEON_ROLE_NAME }}
+      NEON_ENDPOINT_ID: ${{ secrets.NEON_ENDPOINT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: bot/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Skip when no DB secret is configured
+        if: ${{ env.DATABASE_URL == '' && env.NEON_API_KEY == '' }}
+        run: echo "No DATABASE_URL or NEON_API_KEY configured; Neon bootstrap job skipped."
+
+      - name: Export resolved DB env
+        if: ${{ env.DATABASE_URL != '' || env.NEON_API_KEY != '' }}
+        run: npm run db:bootstrap -- --emit-env >> "$GITHUB_ENV"
+
+      - name: Run migrations
+        if: ${{ env.DATABASE_URL != '' || env.NEON_API_KEY != '' }}
+        run: npm run db:migrate

@@ -14,6 +14,7 @@ Use this file as the stable knowledge base for answering BobbyExecute questions 
 - env file usage
 - common startup failures
 - control/server/worker/dashboard startup order
+- Neon bootstrap and DB preparation
 - what is verified vs inferred vs unverified
 
 Answer with repo truth first. Do not drift into generic trading, generic Next.js, or generic Render advice unless it is directly grounded in this repository.
@@ -25,8 +26,9 @@ This helpdesk memory should answer questions about:
 - which scripts actually exist
 - which env file belongs to which runtime mode
 - why local control uses `PORT=3334`
-- why dashboard config is separate from the bot root env
+- why dashboard config is separate from the bot env
 - why Redis and Postgres quality matter for local full-pipeline validation
+- how `DATABASE_URL` and `DIRECT_URL` are prepared when Neon is used
 - what Render still depends on
 - what changed in docs versus what changed in runtime
 
@@ -41,7 +43,7 @@ This helpdesk memory should not:
 
 Treat the following as locked facts for support answers:
 
-- `bot/package.json` exposes `start:server`, `start:control`, `start:worker`, `db:status`, `db:migrate`, and `build`.
+- `bot/package.json` exposes `start:server`, `start:control`, `start:worker`, `db:status`, `db:migrate`, `db:bootstrap`, and `build`.
 - There is no bot-local `npm run start` script.
 - Local control still binds `PORT` at startup.
 - `CONTROL_PORT=3334` alone does not retarget local startup.
@@ -52,7 +54,10 @@ $env:PORT = "3334"
 npm run start:control
 ```
 
-- Verified local papertrade is `LIVE_TRADING=false` and `DRY_RUN=false`.
+- Repo-root env overlays exist at `.env.papertrade`, `.env.papertrade.example`, `.env.live-local`, and `.env.live-local.example`.
+- The bot runtime uses `bot/.env` as the operative local papertrade file.
+- Dashboard runtime uses `dashboard/.env.local`.
+- Verified full-pipeline local papertrade is `LIVE_TRADING=false`, `DRY_RUN=false`, `TRADING_ENABLED=true`, `LIVE_TEST_MODE=false`, and `ROLLOUT_POSTURE=paper_only`.
 - Boot-only dry/stub mode is narrower and may use `DRY_RUN=true` and `RPC_MODE=stub`.
 - Full-pipeline local papertrade and local live-limited both require separate terminals for server, worker, control, and dashboard.
 - For real local flow, dashboard mock mode must be disabled.
@@ -62,8 +67,8 @@ npm run start:control
 - Root env values are not automatically enough for dashboard.
 - Env changes require restarting the affected process.
 - Tiny/free Postgres plans may fail under control-path audit load; do not claim they are always sufficient.
-- `render.yaml` was not changed in the review patch.
-- Render still uses the existing service commands and env names already present in `render.yaml`.
+- `db:bootstrap` is the fail-closed Neon path: it respects an existing `DATABASE_URL`, otherwise requires `NEON_API_KEY`, resolves Neon connection details, exports `DATABASE_URL` and `DIRECT_URL`, and then runs `db:migrate`.
+- `render.yaml` keeps the existing service commands and env names already present there.
 - The local `PORT=3334` workaround is local-only and must not be promoted into Render truth.
 
 ## 4. Mode Distinctions
@@ -85,8 +90,12 @@ Use this wording only when describing the real local papertrade path.
 
 - `LIVE_TRADING=false`
 - `DRY_RUN=false`
-- `TRADING_ENABLED=false` in the papertrade example/template
+- `TRADING_ENABLED=true`
 - `LIVE_TEST_MODE=false`
+- `ROLLOUT_POSTURE=paper_only`
+- `SIGNER_MODE=disabled`
+- shared `DATABASE_URL`
+- shared `REDIS_URL`
 - separate terminals for server, worker, control, dashboard
 - dashboard mock disabled
 - shared DB-backed runtime path
@@ -99,6 +108,9 @@ Use this wording only for constrained live testing on a local machine.
 - `DRY_RUN=false`
 - `TRADING_ENABLED=true`
 - `LIVE_TEST_MODE=true`
+- `ROLLOUT_POSTURE=micro_live`
+- `RPC_MODE=real`
+- `SIGNER_MODE=remote`
 - do not collapse this into papertrade
 - keep live safety guardrails explicit
 
@@ -114,10 +126,11 @@ Use this wording only for Render-backed deployment and runtime questions.
 
 When answering support questions, prefer these exact file paths:
 
+- `.env.papertrade`
 - `.env.papertrade.example`
+- `.env.live-local`
 - `.env.live-local.example`
-- `bot/.env.papertrade`
-- `bot/.env.live-local`
+- `bot/.env`
 - `dashboard/.env.local`
 - `dashboard/.env.example`
 - `docs/local-run.md`
@@ -129,10 +142,11 @@ When answering support questions, prefer these exact file paths:
 
 Use the file that matches the question:
 
+- `.env.papertrade` = repo-root papertrade overlay
 - `.env.papertrade.example` = papertrade template source
+- `.env.live-local` = repo-root live-limited overlay
 - `.env.live-local.example` = live-limited template source
-- `bot/.env.papertrade` = copied local papertrade overlay
-- `bot/.env.live-local` = copied local live-limited overlay
+- `bot/.env` = bot service runtime overlay used for local papertrade
 - `dashboard/.env.local` = dashboard runtime config
 - `dashboard/.env.example` = dashboard sample template
 - `docs/local-run.md` = shared local onboarding index
@@ -151,6 +165,7 @@ Use exact script names and never invent new ones.
 - `npm run build`
 - `npm run db:status`
 - `npm run db:migrate`
+- `npm run db:bootstrap`
 - `npm run start:server`
 - `npm run start:worker`
 - `npm run start:control`
@@ -194,6 +209,7 @@ npm run dev
 ```
 
 - If the user asks about local papertrade readiness, do not claim success unless the answer is explicitly based on verified runtime evidence.
+- If the user asks about Neon-backed DB prep, mention `npm run db:bootstrap` before `db:migrate` when `DATABASE_URL` is absent.
 
 ## 8. Render Support Guidance
 
@@ -210,9 +226,8 @@ When answering Render questions:
 - Do not recommend the local `PORT=3334` workaround for Render.
 - Do not imply local env templates are enough to validate Render runtime.
 - If asked whether deployability is broken, answer with the current review state:
-  - docs and local templates changed
-  - `render.yaml` was not changed
-  - Render compatibility is inspection-based, not runtime-verified
+  - docs and local templates may have changed
+  - Render compatibility is inspection-based unless runtime verification exists
 
 When talking about Render paper/live differences:
 
@@ -231,6 +246,7 @@ Use these patterns in support answers when they fit the user report:
 - Env changes appear ignored when the user forgot to restart the affected process.
 - Root env changes do not automatically update the dashboard because dashboard uses its own `.env.local`.
 - Papertrade confusion often comes from mixing boot-only dry/stub guidance with full-pipeline papertrade guidance.
+- Neon bootstrap can fail closed on missing `NEON_API_KEY` or ambiguous project/branch/database selection.
 
 ## 10. Response Rules
 
@@ -265,6 +281,7 @@ Update this memory file again if any of the following change:
 - dashboard stops using `dashboard/.env.local`
 - runtime verification changes the truth about Redis, Postgres, or startup order
 - Render service commands or env dependencies change
+- Neon bootstrap behavior changes
 
 ## 12. Short Answer Template
 
