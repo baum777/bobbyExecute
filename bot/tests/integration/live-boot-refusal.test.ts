@@ -44,6 +44,8 @@ function liveEnv(): Record<string, string | undefined> {
     JOURNAL_PATH: "data/journal.jsonl",
     RUNTIME_POLICY_AUTHORITY: "ts-env",
     RPC_URL: "https://api.mainnet-beta.solana.com",
+    DATABASE_URL: "postgresql://runtime:truth@localhost:5432/bobbyexecute",
+    REDIS_URL: "redis://localhost:6379",
   };
 }
 

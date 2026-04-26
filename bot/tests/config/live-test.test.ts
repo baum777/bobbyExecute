@@ -43,6 +43,8 @@ describe("Live test config (Wave 8)", () => {
     process.env.SIGNER_MODE = "remote";
     process.env.SIGNER_URL = "https://signer.example.com/sign";
     process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
+    process.env.DATABASE_URL = "postgresql://runtime:truth@localhost:5432/bobbyexecute";
+    process.env.REDIS_URL = "redis://localhost:6379";
   }
 
   function createValidWorkerStateFixture(): string {
@@ -135,6 +137,8 @@ describe("Live test config (Wave 8)", () => {
     process.env.SIGNER_MODE = "remote";
     process.env.SIGNER_URL = "https://signer.example.com/sign";
     process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
+    process.env.DATABASE_URL = "postgresql://runtime:truth@localhost:5432/bobbyexecute";
+    process.env.REDIS_URL = "redis://localhost:6379";
 
     const config = parseConfig(process.env as Record<string, string | undefined>);
     const liveTest = assertLiveTestPrerequisites(config);
@@ -235,6 +239,8 @@ describe("Live test config (Wave 8)", () => {
     process.env.SIGNER_MODE = "remote";
     process.env.SIGNER_URL = "https://signer.example.com/sign";
     process.env.SIGNER_AUTH_TOKEN = "phase10-signer-auth-token";
+    process.env.DATABASE_URL = "postgresql://runtime:truth@localhost:5432/bobbyexecute";
+    process.env.REDIS_URL = "redis://localhost:6379";
 
     const dir = mkdtempSync(join(tmpdir(), "bobbyexecute-live-preflight-missing-"));
     workerStateDirs.push(dir);

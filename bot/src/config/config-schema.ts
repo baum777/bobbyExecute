@@ -103,6 +103,8 @@ export const ConfigSchema = z
     walletAddress: z.string().min(32).optional(),
     controlToken: z.string().min(12).optional(),
     operatorReadToken: z.string().min(12).optional(),
+    databaseUrl: z.string().min(1).optional(),
+    redisUrl: z.string().min(1).optional(),
 
     // Journal
     journalPath: z.string().optional().default("data/journal.jsonl"),
@@ -214,6 +216,20 @@ export const ConfigSchema = z
         message: "LIVE_TRADING=true requires CONTROL_TOKEN and OPERATOR_READ_TOKEN to be distinct.",
       });
     }
+
+    if (!data.databaseUrl) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true requires DATABASE_URL for shared runtime/control truth.",
+      });
+    }
+
+    if (!data.redisUrl) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "LIVE_TRADING=true requires REDIS_URL for shared runtime control signals.",
+      });
+    }
   });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -296,6 +312,8 @@ export function parseConfig(env: Record<string, string | undefined>): Config {
     signerTimeoutMs: env.SIGNER_TIMEOUT_MS,
     controlToken: env.CONTROL_TOKEN,
     operatorReadToken: env.OPERATOR_READ_TOKEN,
+    databaseUrl: env.DATABASE_URL,
+    redisUrl: env.REDIS_URL,
     journalPath: env.JOURNAL_PATH,
     dashboardOrigin: env.DASHBOARD_ORIGIN,
     circuitBreakerFailureThreshold: env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,

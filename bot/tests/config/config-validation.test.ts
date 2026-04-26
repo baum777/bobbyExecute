@@ -27,6 +27,8 @@ describe("Config validation (P1)", () => {
     process.env.CONTROL_TOKEN = "phase10-live-control-token";
     process.env.OPERATOR_READ_TOKEN = "phase10-live-operator-token";
     process.env.JUPITER_API_KEY = "phase10-jupiter-api-key";
+    process.env.DATABASE_URL = "postgresql://runtime:truth@localhost:5432/bobbyexecute";
+    process.env.REDIS_URL = "redis://localhost:6379";
   }
 
   function setAdvisoryQwenPrereqs(): void {
@@ -83,6 +85,8 @@ describe("Config validation (P1)", () => {
     expect(config.signerKeyId).toBe("remote-key-1");
     expect(config.controlToken).toBe("phase10-live-control-token");
     expect(config.operatorReadToken).toBe("phase10-live-operator-token");
+    expect(config.databaseUrl).toBe("postgresql://runtime:truth@localhost:5432/bobbyexecute");
+    expect(config.redisUrl).toBe("redis://localhost:6379");
   });
 
   it("live config rejects missing explicit pre-live prerequisites", () => {
@@ -148,6 +152,16 @@ describe("Config validation (P1)", () => {
 
     expect(() => parseConfig(process.env as Record<string, string | undefined>)).toThrow(
       /CONTROL_TOKEN and OPERATOR_READ_TOKEN to be distinct/
+    );
+  });
+
+  it("live config rejects missing shared runtime truth dependencies", () => {
+    setLivePrereqs();
+    delete process.env.DATABASE_URL;
+    delete process.env.REDIS_URL;
+
+    expect(() => parseConfig(process.env as Record<string, string | undefined>)).toThrow(
+      /DATABASE_URL|REDIS_URL/
     );
   });
 

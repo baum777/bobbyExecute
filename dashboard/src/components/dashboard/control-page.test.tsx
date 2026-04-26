@@ -125,6 +125,7 @@ describe('ControlPage', () => {
     expect(html).toContain('Kill Switch');
     expect(html).toContain('Reset Kill Switch');
     expect(html).toContain('Halt Trading');
+    expect(html).toContain('CLEAR');
     expect(html).toContain('After restart');
     expect(html).not.toContain('Delivery Journal');
     expect(html).not.toContain('Restart Alerts');

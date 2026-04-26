@@ -251,4 +251,69 @@ describe("dashboard control proxy", () => {
       accepted: true,
     });
   });
+
+  it("refuses dashboard control read proxy access without an active operator session", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    const { GET } = await import("../../../dashboard/src/app/api/control/[...path]/route.ts");
+    const response = await GET(new Request("http://localhost/api/control/status") as unknown as import("next/server").NextRequest, {
+      params: Promise.resolve({ path: ["status"] }),
+    });
+
+    expect(response.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      message: "Dashboard operator session is required for control proxy access.",
+    });
+  });
+
+  it("forwards dashboard control reads only when an operator session is active", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ success: true, runtimeStatus: "running" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    const { GET } = await import("../../../dashboard/src/app/api/control/[...path]/route.ts");
+    const nowMs = Date.now();
+    const session: DashboardOperatorSession = {
+      sessionId: "session-read",
+      actorId: "viewer",
+      displayName: "Viewer Example",
+      role: "viewer",
+      issuedAt: new Date(nowMs - 5 * 60 * 1000).toISOString(),
+      expiresAt: new Date(nowMs + 60 * 60 * 1000).toISOString(),
+    };
+    const sessionCookie = buildDashboardSessionCookie(session, {
+      DASHBOARD_SESSION_SECRET,
+    });
+
+    const response = await GET(
+      new Request("http://localhost/api/control/status", {
+        headers: {
+          cookie: `${sessionCookie.name}=${sessionCookie.value}`,
+        },
+      }) as unknown as import("next/server").NextRequest,
+      {
+        params: Promise.resolve({ path: ["status"] }),
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [input, init] = fetchMock.mock.calls[0];
+    expect(String(input)).toBe(`${CONTROL_SERVICE_URL}/control/status`);
+    const headers = new Headers((init as RequestInit | undefined)?.headers);
+    expect(headers.get("authorization")).toBe(`Bearer ${CONTROL_SECRET}`);
+    expect(headers.get("x-dashboard-operator-assertion")).toBeNull();
+  });
 });

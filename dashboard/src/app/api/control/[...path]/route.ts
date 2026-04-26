@@ -139,22 +139,30 @@ async function proxy(request: NextRequest, context: RouteContext) {
   const proxyPath = search ? `${targetPath}${search}` : targetPath;
   const mutationAction = resolveMutationAction(targetPath);
   const session = parseDashboardSessionCookie(getRequestCookieValue(request, DASHBOARD_SESSION_COOKIE), process.env);
+  const activeSession = session && isDashboardSessionActive(session) ? session : null;
+  if (!activeSession) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Dashboard operator session is required for control proxy access.",
+      },
+      { status: 401 }
+    );
+  }
+
   const operatorHeaders: HeadersInit | undefined = mutationAction
     ? {
         "x-dashboard-operator-assertion": buildDashboardOperatorAssertion(
-          session && isDashboardSessionActive(session) ? session : null,
+          activeSession,
           {
             action: mutationAction.action,
             target: mutationAction.target,
             requestId: request.headers.get("x-request-id") ?? undefined,
-            authResult:
-              session && isDashboardSessionActive(session) && canRolePerformAction(session.role, mutationAction.action)
-                ? "authorized"
-                : "denied",
-            reason: session
-              ? canRolePerformAction(session.role, mutationAction.action)
+            authResult: canRolePerformAction(activeSession.role, mutationAction.action) ? "authorized" : "denied",
+            reason: activeSession
+              ? canRolePerformAction(activeSession.role, mutationAction.action)
                 ? undefined
-                : `role '${session.role}' cannot perform '${mutationAction.action}'`
+                : `role '${activeSession.role}' cannot perform '${mutationAction.action}'`
               : "missing operator session",
           },
           process.env

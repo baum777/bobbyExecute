@@ -59,6 +59,12 @@ class ApiError extends Error {
   }
 }
 
+function rejectMockControlMutation(action: string): Promise<never> {
+  return Promise.reject(
+    new ApiError(409, `${action} is disabled while NEXT_PUBLIC_USE_MOCK=true; mock mode must not mutate the control plane.`)
+  );
+}
+
 function buildDeliveryQueryString(query: WorkerRestartDeliveryQuery = {}): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
@@ -273,19 +279,19 @@ export const api = {
     }),
 
   emergencyStop: (): Promise<EmergencyStopResponse> =>
-    fetchProxyApi('/emergency-stop', { method: 'POST' }),
+    USE_MOCK ? rejectMockControlMutation('emergencyStop') : fetchProxyApi('/emergency-stop', { method: 'POST' }),
 
   reset: (): Promise<ResetResponse> =>
-    fetchProxyApi('/reset', { method: 'POST' }),
+    USE_MOCK ? rejectMockControlMutation('reset') : fetchProxyApi('/reset', { method: 'POST' }),
 
   acknowledgeRestartAlert: (id: string, input: RestartAlertActionRequest = {}): Promise<RestartAlertActionResponse> =>
-    fetchProxyApi(`/restart-alerts/${id}/acknowledge`, {
+    USE_MOCK ? rejectMockControlMutation('acknowledgeRestartAlert') : fetchProxyApi(`/restart-alerts/${id}/acknowledge`, {
       method: 'POST',
       body: JSON.stringify(input),
     }),
 
   resolveRestartAlert: (id: string, input: RestartAlertActionRequest = {}): Promise<RestartAlertActionResponse> =>
-    fetchProxyApi(`/restart-alerts/${id}/resolve`, {
+    USE_MOCK ? rejectMockControlMutation('resolveRestartAlert') : fetchProxyApi(`/restart-alerts/${id}/resolve`, {
       method: 'POST',
       body: JSON.stringify(input),
     }),

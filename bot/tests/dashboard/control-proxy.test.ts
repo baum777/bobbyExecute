@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildDashboardSessionCookie } from "../../../dashboard/src/lib/operator-auth.ts";
+import type { DashboardOperatorSession } from "../../../dashboard/src/types/api.ts";
 
 const { forwardControlRequestMock } = vi.hoisted(() => ({
   forwardControlRequestMock: vi.fn(),
@@ -11,9 +13,28 @@ vi.mock("../../../dashboard/src/lib/control-client.ts", () => ({
 
 import { GET, POST } from "../../../dashboard/src/app/api/control/[...path]/route.ts";
 
+const DASHBOARD_SESSION_SECRET = "dashboard-session-secret";
+
+function buildSessionCookie(role: DashboardOperatorSession["role"] = "admin"): string {
+  const nowMs = Date.now();
+  const session: DashboardOperatorSession = {
+    sessionId: `session-${role}`,
+    actorId: `operator-${role}`,
+    displayName: `Operator ${role}`,
+    role,
+    issuedAt: new Date(nowMs - 5 * 60 * 1000).toISOString(),
+    expiresAt: new Date(nowMs + 60 * 60 * 1000).toISOString(),
+  };
+  const cookie = buildDashboardSessionCookie(session, {
+    DASHBOARD_SESSION_SECRET,
+  });
+  return `${cookie.name}=${cookie.value}`;
+}
+
 describe("dashboard control proxy", () => {
   beforeEach(() => {
     forwardControlRequestMock.mockReset();
+    process.env.DASHBOARD_SESSION_SECRET = DASHBOARD_SESSION_SECRET;
   });
 
   it("forwards restart-worker through the server-side proxy without exposing secrets", async () => {
@@ -36,6 +57,7 @@ describe("dashboard control proxy", () => {
     const request = new Request("http://localhost/api/control/restart-worker", {
       method: "POST",
       headers: {
+        cookie: buildSessionCookie("admin"),
         "content-type": "application/json",
         "x-idempotency-key": "restart-123",
         "x-request-id": "request-abc",
@@ -181,6 +203,7 @@ describe("dashboard control proxy", () => {
     const getRequest = new Request("http://localhost/api/control/restart-alerts", {
       method: "GET",
       headers: {
+        cookie: buildSessionCookie("viewer"),
         "content-type": "application/json",
         "x-request-id": "request-read",
       },
@@ -234,6 +257,7 @@ describe("dashboard control proxy", () => {
     const postRequest = new Request("http://localhost/api/control/restart-alerts/alert-123/acknowledge", {
       method: "POST",
       headers: {
+        cookie: buildSessionCookie("admin"),
         "content-type": "application/json",
         "x-request-id": "request-ack",
       },
@@ -288,6 +312,7 @@ describe("dashboard control proxy", () => {
     const journalRequest = new Request("http://localhost/api/control/restart-alert-deliveries", {
       method: "GET",
       headers: {
+        cookie: buildSessionCookie("viewer"),
         "content-type": "application/json",
         "x-request-id": "request-delivery",
       },
@@ -349,6 +374,7 @@ describe("dashboard control proxy", () => {
     const summaryRequest = new Request("http://localhost/api/control/restart-alert-deliveries/summary", {
       method: "GET",
       headers: {
+        cookie: buildSessionCookie("viewer"),
         "content-type": "application/json",
         "x-request-id": "request-delivery-summary",
       },

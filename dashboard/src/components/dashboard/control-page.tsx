@@ -73,6 +73,11 @@ function safeLabel(value: unknown): string {
   return typeof value === 'string' && value.trim().length > 0 ? value : '—';
 }
 
+function optionalReason(value: string): { reason?: string } {
+  const reason = value.trim();
+  return reason ? { reason } : {};
+}
+
 export function ControlPage() {
   const [operatorUsername, setOperatorUsername] = useState('');
   const [operatorPassword, setOperatorPassword] = useState('');
@@ -205,7 +210,7 @@ export function ControlPage() {
             </div>
             <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-2">
               <p className="text-[10px] uppercase tracking-wide text-text-muted">kill_switch</p>
-              <p className="mt-1 text-text-primary">{killSwitch?.halted ? 'halted' : 'active'}</p>
+              <p className="mt-1 text-text-primary">{killSwitch?.halted ? 'halted' : 'clear'}</p>
             </div>
             <div className="rounded border border-border-subtle bg-bg-surface-hover/40 p-2">
               <p className="text-[10px] uppercase tracking-wide text-text-muted">blocked</p>
@@ -410,16 +415,16 @@ export function ControlPage() {
                             {request.approvalReason && <p className="text-xs text-accent-success">Approval: {request.approvalReason}</p>}
                             {request.rollbackReason && <p className="text-xs text-accent-warning">Rollback: {request.rollbackReason}</p>}
                             <div className="flex flex-wrap gap-2">
-                              <Button type="button" size="sm" variant="outline" disabled={!canApprove} onClick={() => approveLivePromotion.mutate({ id: request.id })}>
+                              <Button type="button" size="sm" variant="outline" disabled={!canApprove} onClick={() => approveLivePromotion.mutate({ id: request.id, input: optionalReason(promotionReason) })}>
                                 Approve
                               </Button>
-                              <Button type="button" size="sm" variant="ghost" disabled={!canDeny} onClick={() => denyLivePromotion.mutate({ id: request.id })}>
+                              <Button type="button" size="sm" variant="ghost" disabled={!canDeny} onClick={() => denyLivePromotion.mutate({ id: request.id, input: optionalReason(promotionReason) })}>
                                 Deny
                               </Button>
-                              <Button type="button" size="sm" variant="default" disabled={!canApply} onClick={() => applyLivePromotion.mutate({ id: request.id })}>
+                              <Button type="button" size="sm" variant="default" disabled={!canApply} onClick={() => applyLivePromotion.mutate({ id: request.id, input: optionalReason(promotionReason) })}>
                                 Apply
                               </Button>
-                              <Button type="button" size="sm" variant="danger" disabled={!canRollback} onClick={() => rollbackLivePromotion.mutate({ id: request.id })}>
+                              <Button type="button" size="sm" variant="danger" disabled={!canRollback} onClick={() => rollbackLivePromotion.mutate({ id: request.id, input: optionalReason(promotionReason) })}>
                                 Roll back
                               </Button>
                             </div>
@@ -534,7 +539,7 @@ export function ControlPage() {
           <CardContent className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <Badge variant={killSwitch?.halted ? 'danger' : 'success'} className="text-sm px-3 py-1">
-                {killSwitch?.halted ? 'HALTED' : 'ACTIVE'}
+                {killSwitch?.halted ? 'HALTED' : 'CLEAR'}
               </Badge>
               {killSwitch?.triggeredAt && <span className="text-xs text-text-muted">Since {safeTimestamp(killSwitch.triggeredAt)}</span>}
             </div>

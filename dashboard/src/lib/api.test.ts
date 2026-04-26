@@ -44,4 +44,17 @@ describe('dashboard api request building', () => {
     expect(init.body).toBe(JSON.stringify({ username: 'alice', password: 'secret' }));
     expect(new Headers(init.headers).get('content-type')).toBe('application/json');
   });
+
+  it('does not send real control mutations in mock mode', async () => {
+    process.env.NEXT_PUBLIC_USE_MOCK = 'true';
+    vi.resetModules();
+    const { api } = await import('./api');
+
+    await expect(api.emergencyStop()).rejects.toThrow(/mock mode must not mutate/i);
+    await expect(api.reset()).rejects.toThrow(/mock mode must not mutate/i);
+    await expect(api.acknowledgeRestartAlert('alert-1')).rejects.toThrow(/mock mode must not mutate/i);
+    await expect(api.resolveRestartAlert('alert-1')).rejects.toThrow(/mock mode must not mutate/i);
+
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
 });
