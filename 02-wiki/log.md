@@ -1,0 +1,2 @@
+## [2026-05-10] create-surfaces | Initialized governance surface files [[00-schema/AGENTS]] [[00-schema/mspr-spec]] [[02-wiki/index]] [[03-mspr/packets/packet-template]]
+## [2026-05-10] accept-journal-delta | Adopted runtime journal deltas from verified premerge run [[bot/data/journal.jsonl]] [[bot/data/journal.incidents.jsonl]] [[bot/data/journal.runtime-cycles.jsonl]] [[bot/data/journal.live-preflight.json]]

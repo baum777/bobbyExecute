@@ -1,0 +1,17 @@
+id: mspr-YYYYMMDD-sample
+created_at: YYYY-MM-DD
+status: open
+severity: medium
+trigger: missing_validation
+scope_paths:
+  - path/to/file
+observed:
+  - evidence
+inferred:
+  - inference
+open_questions:
+  - decision_needed
+risks:
+  - potential_drift
+required_review: true
+review_owner: unassigned
