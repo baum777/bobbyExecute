@@ -1,0 +1,30 @@
+id: mspr-20260516-control-refactor-data-side-effect
+created_at: 2026-05-16
+status: open
+severity: medium
+trigger: side_effect_risk
+scope_paths:
+  - bot/data/journal.jsonl
+  - bot/data/journal.incidents.jsonl
+  - bot/data/journal.runtime-cycles.jsonl
+  - bot/data/journal.live-preflight.json
+  - bot/src/server/routes/control.ts
+  - bot/src/server/routes/control-auth.ts
+  - bot/src/server/routes/control-query.ts
+  - bot/src/server/routes/control-response-builders.ts
+observed:
+  - bot_data_files_were_dirty_before_control_refactor_implementation
+  - required_premerge_verification_was_executed_after_refactor
+  - bot_data_files_remain_dirty_after_premerge_verification
+  - no_destructive_revert_was_performed
+inferred:
+  - some_bot_data_diff_may_preexist_the_refactor_session
+  - some_bot_data_diff_may_have_been_extended_by_verification_runs
+open_questions:
+  - should_current_bot_data_journal_deltas_be_accepted_as_verification_evidence
+  - should_future_premerge_runs_redirect_test_journal_outputs_to_temp_paths
+risks:
+  - unrelated_dirty_journal_changes_could_be_accidentally_committed_with_refactor
+  - verification_side_effects_are_not_cleanly_separable_from_preexisting_dirty_state
+required_review: true
+review_owner: unassigned

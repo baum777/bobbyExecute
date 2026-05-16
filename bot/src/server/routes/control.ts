@@ -1,7 +1,7 @@
 /**
  * Runtime control routes.
  */
-import type { FastifyPluginAsync, FastifyReply } from "fastify";
+import type { FastifyPluginAsync } from "fastify";
 import { getKillSwitchState } from "../../governance/kill-switch.js";
 import type {
   RuntimeConfigControlView,
@@ -13,7 +13,6 @@ import type {
   RuntimeConfigHistorySnapshot,
   RuntimeConfigMutationResult,
 } from "../../runtime/runtime-config-manager.js";
-import { buildRuntimeReadiness } from "../runtime-truth.js";
 import { getMicroLiveControlSnapshot } from "../../runtime/live-control.js";
 import type { MicroLiveControlSnapshot } from "../../runtime/live-control.js";
 import { loadVisibleRuntimeState } from "../runtime-visibility.js";
@@ -28,14 +27,11 @@ import type {
   WorkerRestartAlertSummary,
 } from "../../control/worker-restart-alert-service.js";
 import type {
-  ControlAuditEvent,
   ControlGovernanceRepositoryWithAudits,
   ControlLivePromotionGate,
   ControlLivePromotionRecord,
-  ControlOperatorAssertion,
   ControlOperatorAuthContext,
   ControlOperatorIdentity,
-  ControlAction,
   ControlLivePromotionTargetMode,
   ControlRecoveryRehearsalOperationalStatus,
   ControlRecoveryRehearsalEvidenceRecord,
@@ -43,8 +39,6 @@ import type {
 } from "../../control/control-governance.js";
 import {
   CONTROL_OPERATOR_ASSERTION_HEADER,
-  buildControlAuditActor,
-  buildAuditEventId,
   buildDatabaseRehearsalFreshnessStatus,
   canRolePerformControlAction,
   classifyControlAction,
@@ -54,22 +48,40 @@ import {
   requiredRoleForControlAction,
   syncDatabaseRehearsalFreshnessState,
 } from "../../control/control-governance.js";
-import type { WorkerRestartMethod, WorkerRestartRequestRecord } from "../../persistence/worker-restart-repository.js";
+import type { WorkerRestartMethod } from "../../persistence/worker-restart-repository.js";
 import type {
-  WorkerRestartAlertNotificationEventType,
-  WorkerRestartAlertNotificationStatus,
-  WorkerRestartAlertSeverity,
   WorkerRestartAlertRepository,
-  WorkerRestartDeliveryJournalFilters,
   WorkerRestartDeliveryJournalResult,
   WorkerRestartDeliverySummaryResult,
-  WorkerRestartDeliveryTrendFilters,
   WorkerRestartDeliveryTrendResult,
 } from "../../persistence/worker-restart-alert-repository.js";
 import type { RuntimeVisibilityRepository } from "../../persistence/runtime-visibility-repository.js";
 import type { RuntimeConfigManager } from "../../runtime/runtime-config-manager.js";
 import type { RuntimeSnapshot } from "../../runtime/dry-run-runtime.js";
 import type { RuntimeReadiness } from "../contracts/kpi.js";
+import {
+  denyWhenKillSwitchActive,
+  getOperatorContext,
+  isControlMutation,
+  isReadOnlyControlRequest,
+  readPresentedToken,
+  recordAuthFailure,
+  recordOperatorAudit,
+  resolveRequestId,
+  resolveRequestPath,
+} from "./control-auth.js";
+import { buildDeliveryFilters, buildTrendFilters } from "./control-query.js";
+import {
+  buildFallbackRestartAlerts,
+  buildFallbackRestartStatus,
+  buildLivePromotionRecord,
+  buildMutationResponse,
+  buildOperatorReleaseGateResponse,
+  buildRuntimeConfigReadResponse,
+  buildRuntimeConfigStatusResponse,
+  mergeLivePromotionRecord,
+  toReadiness,
+} from "./control-response-builders.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -243,533 +255,6 @@ export interface RuntimeConfigMutationResponse extends RuntimeConfigMutationResu
   readiness?: RuntimeReadiness;
 }
 
-function readPresentedToken(headers: Record<string, unknown>): string | undefined {
-  const controlToken = headers["x-control-token"];
-  if (typeof controlToken === "string" && controlToken.length > 0) {
-    return controlToken;
-  }
-
-  const authorization = headers.authorization;
-  if (typeof authorization === "string") {
-    const match = authorization.match(/^Bearer\s+(.+)$/i);
-    if (match) {
-      return match[1];
-    }
-  }
-
-  return undefined;
-}
-
-function resolveRequestPath(url: string): string {
-  try {
-    return new URL(url, "http://control.local").pathname;
-  } catch {
-    return url.split("?")[0] ?? url;
-  }
-}
-
-function resolveRequestId(headers: Record<string, unknown>): string | undefined {
-  const requestId = headers["x-request-id"];
-  return typeof requestId === "string" && requestId.length > 0 ? requestId : undefined;
-}
-
-function isReadOnlyControlRequest(method: string): boolean {
-  return method === "GET" || method === "HEAD";
-}
-
-function isControlMutation(method: string, targetPath: string): boolean {
-  if (method === "GET" || method === "HEAD") {
-    return false;
-  }
-  return Boolean(classifyControlAction(targetPath));
-}
-
-async function recordAuthFailure(
-  deps: ControlRouteDeps,
-  action: string,
-  target: string,
-  reason: string,
-  context?: ControlOperatorAuthContext,
-  requestId?: string
-): Promise<void> {
-  if (deps.runtimeConfigManager) {
-    await deps.runtimeConfigManager.recordAuthFailure({
-      actor: context?.identity.actorId ?? "control_api",
-      action,
-      reason,
-    });
-  }
-
-  if (deps.governanceRepository) {
-    const actor = buildControlAuditActor(context?.identity ?? null);
-    await deps.governanceRepository.recordAuditEvent({
-      id: buildAuditEventId(),
-      environment: deps.runtimeEnvironment ?? "development",
-      action: "auth_failure",
-      target,
-      result: "denied",
-      actorId: actor.actorId,
-      actorDisplayName: actor.actorDisplayName,
-      actorRole: actor.actorRole,
-      sessionId: actor.sessionId,
-      requestId,
-      reason,
-      note: action,
-      createdAt: new Date().toISOString(),
-      metadata: context
-        ? {
-            authResult: context.authResult,
-            requestedAction: context.action,
-            requestedTarget: context.target,
-            deniedReason: context.reason,
-          }
-        : undefined,
-      });
-  }
-}
-
-function getOperatorContext(request: import("fastify").FastifyRequest): ControlOperatorAuthContext {
-  if (!request.controlOperatorContext) {
-    throw new Error("operator context missing after authorization");
-  }
-
-  return request.controlOperatorContext;
-}
-
-function buildLivePromotionRecord(input: {
-  environment: string;
-  gate: ControlLivePromotionGate;
-  context: ControlOperatorAuthContext;
-  targetMode: ControlLivePromotionTargetMode;
-  previousMode: string;
-  requestReason: string;
-  workflowStatus: ControlLivePromotionRecord["workflowStatus"];
-  applicationStatus: ControlLivePromotionRecord["applicationStatus"];
-  blockedReason?: string;
-  approvalReason?: string;
-  rollbackReason?: string;
-  approved?: boolean;
-  denied?: boolean;
-  applied?: boolean;
-  rolledBack?: boolean;
-  requestedAt?: string;
-  updatedAt?: string;
-}): ControlLivePromotionRecord {
-  const now = input.updatedAt ?? new Date().toISOString();
-  return {
-    id: input.context.requestId ?? buildAuditEventId(),
-    environment: input.environment,
-    targetMode: input.targetMode,
-    previousMode: input.previousMode,
-    workflowStatus: input.workflowStatus,
-    applicationStatus: input.applicationStatus,
-    requestReason: input.requestReason,
-    blockedReason: input.blockedReason,
-    approvalReason: input.approvalReason,
-    rollbackReason: input.rollbackReason,
-    requestedByActorId: input.context.identity.actorId,
-    requestedByDisplayName: input.context.identity.displayName,
-    requestedByRole: input.context.identity.role,
-    requestedBySessionId: input.context.identity.sessionId,
-    requestedAt: input.requestedAt ?? now,
-    approvedByActorId: input.approved ? input.context.identity.actorId : undefined,
-    approvedByDisplayName: input.approved ? input.context.identity.displayName : undefined,
-    approvedByRole: input.approved ? input.context.identity.role : undefined,
-    approvedBySessionId: input.approved ? input.context.identity.sessionId : undefined,
-    approvedAt: input.approved ? now : undefined,
-    deniedByActorId: input.denied ? input.context.identity.actorId : undefined,
-    deniedByDisplayName: input.denied ? input.context.identity.displayName : undefined,
-    deniedByRole: input.denied ? input.context.identity.role : undefined,
-    deniedBySessionId: input.denied ? input.context.identity.sessionId : undefined,
-    deniedAt: input.denied ? now : undefined,
-    appliedByActorId: input.applied ? input.context.identity.actorId : undefined,
-    appliedByDisplayName: input.applied ? input.context.identity.displayName : undefined,
-    appliedByRole: input.applied ? input.context.identity.role : undefined,
-    appliedBySessionId: input.applied ? input.context.identity.sessionId : undefined,
-    appliedAt: input.applied ? now : undefined,
-    rolledBackByActorId: input.rolledBack ? input.context.identity.actorId : undefined,
-    rolledBackByDisplayName: input.rolledBack ? input.context.identity.displayName : undefined,
-    rolledBackByRole: input.rolledBack ? input.context.identity.role : undefined,
-    rolledBackBySessionId: input.rolledBack ? input.context.identity.sessionId : undefined,
-    rolledBackAt: input.rolledBack ? now : undefined,
-    gateSnapshot: input.gate,
-    updatedAt: now,
-  };
-}
-
-function mergeLivePromotionRecord(
-  record: ControlLivePromotionRecord,
-  patch: Partial<ControlLivePromotionRecord>
-): ControlLivePromotionRecord {
-  return {
-    ...record,
-    ...patch,
-    gateSnapshot: patch.gateSnapshot ?? record.gateSnapshot,
-    updatedAt: patch.updatedAt ?? new Date().toISOString(),
-  };
-}
-
-const KILL_SWITCH_DISABLED_ACTIONS = new Set<ControlAction>([
-  "pause",
-  "resume",
-  "mode_change",
-  "runtime_config_change",
-  "reload",
-  "live_promotion_request",
-  "live_promotion_approve",
-  "live_promotion_deny",
-  "live_promotion_apply",
-  "live_promotion_rollback",
-]);
-
-async function denyWhenKillSwitchActive(
-  deps: ControlRouteDeps,
-  context: ControlOperatorAuthContext,
-  target: string,
-  action: ControlAction,
-  reply: FastifyReply
-): Promise<boolean> {
-  if (!KILL_SWITCH_DISABLED_ACTIONS.has(action)) {
-    return false;
-  }
-
-  const killSwitch = getKillSwitchState();
-  if (!killSwitch.halted) {
-    return false;
-  }
-
-  const message = "Control route disabled while kill switch is active.";
-  await recordOperatorAudit(deps, context, {
-    action,
-    target,
-    result: "blocked",
-    reason: killSwitch.reason ?? "kill switch active",
-    note: message,
-    requestId: context.requestId,
-    metadata: {
-      killSwitch,
-    },
-  });
-
-  reply.status(409).send({
-    success: false,
-    message,
-    killSwitch,
-    liveControl: getMicroLiveControlSnapshot(),
-  });
-  return true;
-}
-
-async function recordOperatorAudit(
-  deps: ControlRouteDeps,
-  context: ControlOperatorAuthContext | undefined,
-  input: {
-    action: ControlAuditEvent["action"];
-    target: string;
-    result: ControlAuditEvent["result"];
-    reason?: string;
-    note?: string;
-    requestId?: string;
-    metadata?: Record<string, unknown>;
-  }
-): Promise<void> {
-  if (!deps.governanceRepository) {
-    return;
-  }
-
-  const actor = buildControlAuditActor(context?.identity ?? null);
-  await deps.governanceRepository.recordAuditEvent({
-    id: buildAuditEventId(),
-    environment: deps.runtimeEnvironment ?? "development",
-    action: input.action,
-    target: input.target,
-    result: input.result,
-    actorId: actor.actorId,
-    actorDisplayName: actor.actorDisplayName,
-    actorRole: actor.actorRole,
-    sessionId: actor.sessionId,
-    requestId: input.requestId,
-    reason: input.reason,
-    note: input.note,
-    createdAt: new Date().toISOString(),
-    metadata: input.metadata,
-  });
-}
-
-function buildRuntimeConfigReadResponse(manager: RuntimeConfigManager): RuntimeConfigReadResponse {
-  return {
-    success: true,
-    runtimeConfig: manager.getRuntimeConfigStatus(),
-    controlView: manager.getRuntimeControlView(),
-    document: manager.getRuntimeConfigDocument(),
-  };
-}
-
-function buildMutationResponse(
-  result: RuntimeConfigMutationResult,
-  snapshot: WorkerRestartSnapshot,
-  readiness?: RuntimeReadiness
-): RuntimeConfigMutationResponse {
-  return {
-    ...result,
-    success: result.accepted,
-    status: snapshot.runtimeConfig,
-    runtimeConfig: snapshot.runtimeConfig,
-    controlView: snapshot.controlView,
-    restart: snapshot.restart,
-    restartAlerts: snapshot.restartAlerts,
-    killSwitch: getKillSwitchState(),
-    liveControl: getMicroLiveControlSnapshot(),
-    readiness,
-  };
-}
-
-function buildRuntimeConfigStatusResponse(
-  snapshot: WorkerRestartSnapshot,
-  readiness?: RuntimeReadiness,
-  databaseRehearsal?: ControlRecoveryRehearsalGate,
-  databaseRehearsalStatus?: ControlRecoveryRehearsalOperationalStatus
-): RuntimeConfigStatusResponse {
-  return {
-    success: true,
-    runtime: snapshot.runtime,
-    worker: snapshot.worker,
-    runtimeConfig: snapshot.runtimeConfig,
-    controlView: snapshot.controlView,
-    restart: snapshot.restart,
-    restartAlerts: snapshot.restartAlerts,
-    databaseRehearsal,
-    databaseRehearsalStatus,
-    readiness,
-    killSwitch: getKillSwitchState(),
-    liveControl: getMicroLiveControlSnapshot(),
-  };
-}
-
-function toReadiness(runtime?: RuntimeSnapshot): RuntimeReadiness | undefined {
-  return buildRuntimeReadiness(runtime);
-}
-
-function canArmMicroLiveReleaseGate(snapshot: WorkerRestartSnapshot, readiness?: RuntimeReadiness): boolean {
-  const liveControl = snapshot.runtime?.liveControl ?? getMicroLiveControlSnapshot();
-  return Boolean(
-    readiness &&
-      liveControl.liveEnabled === true &&
-      liveControl.rolloutPosture === "micro_live" &&
-      liveControl.rolloutConfigValid !== false &&
-      liveControl.rolloutConfigured &&
-      liveControl.killSwitchActive !== true &&
-      liveControl.blocked !== true &&
-      liveControl.roundStatus !== "failed" &&
-      liveControl.roundStatus !== "stopped" &&
-      liveControl.roundStatus !== "completed" &&
-      snapshot.runtime?.status !== "error" &&
-      snapshot.runtime?.adapterHealth?.degraded !== true
-  );
-}
-
-function canUseStagedLiveCandidateReleaseGate(snapshot: WorkerRestartSnapshot, readiness?: RuntimeReadiness): boolean {
-  const liveControl = snapshot.runtime?.liveControl ?? getMicroLiveControlSnapshot();
-  return Boolean(
-    readiness &&
-      liveControl.liveEnabled === true &&
-      liveControl.rolloutPosture === "staged_live_candidate" &&
-      liveControl.rolloutConfigValid !== false &&
-      liveControl.rolloutConfigured &&
-      liveControl.killSwitchActive !== true &&
-      liveControl.blocked !== true &&
-      snapshot.runtime?.status !== "error" &&
-      snapshot.runtime?.adapterHealth?.degraded !== true &&
-      snapshot.runtime?.degradedState?.active !== true
-  );
-}
-
-function deriveOperatorReleaseStage(snapshot: WorkerRestartSnapshot, readiness?: RuntimeReadiness): OperatorReleaseStage {
-  if (!readiness) {
-    return "blocked";
-  }
-  if (canUseStagedLiveCandidateReleaseGate(snapshot, readiness)) {
-    return "constrained_live";
-  }
-  if (canArmMicroLiveReleaseGate(snapshot, readiness)) {
-    return "micro_live";
-  }
-  if (readiness.paperSafe) {
-    return "paper_safe";
-  }
-  return "blocked";
-}
-
-function buildOperatorEvidenceChecklist(): OperatorEvidenceChecklistItem[] {
-  return [
-    {
-      id: "live-preflight",
-      label: "Capture live preflight evidence",
-      required: true,
-      surfaceKind: "command",
-      surfaceRef: "npm --prefix bot run live:preflight",
-      note: "Creates the persisted live-preflight evidence sidecar next to JOURNAL_PATH.",
-    },
-    {
-      id: "worker-state",
-      label: "Capture boot-critical worker state",
-      required: true,
-      surfaceKind: "command",
-      surfaceRef: "npm --prefix bot run recovery:worker-state",
-      note: "Use the boot-critical artifact report before any rollout decision.",
-    },
-    {
-      id: "health-surface",
-      label: "Inspect runtime health",
-      required: true,
-      surfaceKind: "route",
-      surfaceRef: "GET /health",
-    },
-    {
-      id: "control-status",
-      label: "Inspect control and readiness state",
-      required: true,
-      surfaceKind: "route",
-      surfaceRef: "GET /control/status",
-    },
-    {
-      id: "release-gate",
-      label: "Record the release-gate checklist surface",
-      required: true,
-      surfaceKind: "route",
-      surfaceRef: "GET /control/release-gate",
-    },
-  ];
-}
-
-function buildIncidentRunbook(): OperatorIncidentProcedure[] {
-  return [
-    {
-      id: "provider_outage",
-      trigger: "Adapter health degrades or provider data becomes unavailable.",
-      operatorAction: "Hold rollout, inspect GET /health and GET /kpi/adapters, then pause or stop live operation.",
-      controlSurfaces: ["POST /control/pause", "POST /control/emergency-stop"],
-      evidenceSurfaces: ["GET /health", "GET /kpi/adapters", "GET /control/status"],
-    },
-    {
-      id: "signer_failure",
-      trigger: "Signer URL or signer authorization fails during live-preflight or runtime start.",
-      operatorAction: "Fail closed, stop live operation, and re-run live preflight after the signer boundary is restored.",
-      controlSurfaces: ["POST /control/emergency-stop", "POST /control/halt"],
-      evidenceSurfaces: ["GET /control/status", "GET /health", "npm --prefix bot run live:preflight"],
-    },
-    {
-      id: "degraded_mode",
-      trigger: "Runtime or adapter state degrades but paper-safe operation remains available.",
-      operatorAction: "Keep live disabled, review readiness blockers, and resume only after explicit evidence-backed review.",
-      controlSurfaces: ["POST /control/pause", "POST /control/resume"],
-      evidenceSurfaces: ["GET /control/status", "GET /health"],
-    },
-    {
-      id: "kill_switch",
-      trigger: "Emergency stop or control halt is required.",
-      operatorAction: "Use the emergency stop surface first, then preserve the audit trail and do not re-arm until review completes.",
-      controlSurfaces: ["POST /control/emergency-stop", "POST /control/halt"],
-      evidenceSurfaces: ["GET /control/status", "GET /health"],
-    },
-    {
-      id: "rollback",
-      trigger: "A live promotion must be reversed after application or a bad rollout must be reversed.",
-      operatorAction: "Use the live-promotion rollback surface tied to the specific request id and record the rollback reason.",
-      controlSurfaces: ["POST /control/live-promotion/:id/rollback"],
-      evidenceSurfaces: ["GET /control/live-promotion", "GET /control/status"],
-    },
-  ];
-}
-
-function buildReleaseGateChecklist(
-  snapshot: WorkerRestartSnapshot,
-  readiness: RuntimeReadiness | undefined
-): OperatorReleaseGateChecklistItem[] {
-  const liveControl = snapshot.runtime?.liveControl ?? getMicroLiveControlSnapshot();
-  const checklist: OperatorReleaseGateChecklistItem[] = [
-    {
-      id: "paper-safe",
-      label: "Paper-safe runtime posture",
-      status: readiness ? (readiness.paperSafe === false ? "fail" : "pass") : "manual_review_required",
-      evidence: ["GET /health", "GET /control/status"],
-      note: readiness ? (readiness.paperSafe === false ? "Runtime is not paper-safe." : undefined) : "Readiness is not available.",
-    },
-    {
-      id: "explicit-rollout-stage",
-      label: "Explicit rollout posture is set",
-      status:
-        liveControl.rolloutConfigured && liveControl.rolloutPosture !== "paused_or_rolled_back" ? "pass" : "fail",
-      evidence: ["GET /control/status", "GET /control/release-gate"],
-      note:
-        liveControl.rolloutConfigured
-          ? `Rollout posture is ${liveControl.rolloutPosture}.`
-          : "Rollout posture is not explicitly configured.",
-    },
-    {
-      id: "micro-live-gate",
-      label: "Micro-live gate is available",
-      status: canArmMicroLiveReleaseGate(snapshot, readiness) ? "pass" : readiness ? "fail" : "manual_review_required",
-      evidence: ["GET /control/status", "GET /control/release-gate"],
-      note: canArmMicroLiveReleaseGate(snapshot, readiness) ? "Micro-live can be armed." : "Micro-live remains blocked.",
-    },
-    {
-      id: "staged-live-gate",
-      label: "Staged-live candidate gate is available",
-      status: canUseStagedLiveCandidateReleaseGate(snapshot, readiness) ? "pass" : readiness ? "fail" : "manual_review_required",
-      evidence: ["GET /control/status", "GET /control/release-gate"],
-      note: canUseStagedLiveCandidateReleaseGate(snapshot, readiness) ? "Staged-live candidate is eligible." : "Staged-live candidate remains blocked.",
-    },
-    {
-      id: "kill-switch-clear",
-      label: "Kill switch is not active",
-      status: liveControl.killSwitchActive ? "fail" : "pass",
-      evidence: ["GET /control/status", "GET /health"],
-      note: liveControl.killSwitchActive ? "Emergency stop is active." : undefined,
-    },
-  ];
-
-  if (readiness?.posture === "degraded_but_safe_in_paper") {
-    checklist.push({
-      id: "degraded-paper-safe",
-      label: "Degraded mode is limited to paper-safe operation",
-      status: "manual_review_required",
-      evidence: ["GET /health", "GET /control/status"],
-      note: "Degraded runtime requires operator review before any live progression.",
-    });
-  }
-
-  return checklist;
-}
-
-function buildOperatorReleaseGateResponse(
-  snapshot: WorkerRestartSnapshot,
-  readiness: RuntimeReadiness | undefined
-): OperatorReleaseGateResponse {
-  const liveControl = snapshot.runtime?.liveControl ?? getMicroLiveControlSnapshot();
-  const surfaceKind: OperatorReleaseGateResponse["surfaceKind"] =
-    snapshot.runtime || snapshot.worker || snapshot.runtimeConfig ? "operational" : "unwired";
-  const rolloutStage = deriveOperatorReleaseStage(snapshot, readiness);
-  const checklist = buildReleaseGateChecklist(snapshot, readiness);
-  return {
-    success: true,
-    surfaceKind,
-    rolloutStage,
-    readiness,
-    releaseGate: {
-      recommendedStage: rolloutStage,
-      canArmMicroLive: canArmMicroLiveReleaseGate(snapshot, readiness),
-      canUseStagedLiveCandidate: canUseStagedLiveCandidateReleaseGate(snapshot, readiness),
-      blockers: readiness?.blockers ?? [],
-      checklist,
-    },
-    operatorEvidenceChecklist: buildOperatorEvidenceChecklist(),
-    incidentRunbook: buildIncidentRunbook(),
-    killSwitch: getKillSwitchState(),
-    liveControl,
-  };
-}
-
 async function loadLatestDatabaseRehearsalEvidenceForSnapshot(
   deps: ControlRouteDeps,
   snapshot: WorkerRestartSnapshot
@@ -834,227 +319,6 @@ async function evaluateLivePromotionGateWithRehearsalEvidence(
   return evaluateLivePromotionGate(snapshot, toReadiness(snapshot.runtime), targetMode, {
     latestDatabaseRehearsal,
   });
-}
-
-function buildFallbackRestartStatus(
-  runtimeConfig: RuntimeConfigStatus,
-  worker?: import("../../persistence/runtime-visibility-repository.js").RuntimeWorkerVisibility
-): WorkerRestartStatus {
-  return {
-    required: runtimeConfig.requiresRestart,
-    requested: false,
-    inProgress: false,
-    pendingVersionId: runtimeConfig.requiresRestart ? runtimeConfig.requestedVersionId : undefined,
-    restartRequiredReason: runtimeConfig.pendingReason,
-    lastHeartbeatAt: worker?.lastHeartbeatAt,
-    lastAppliedVersionId: worker?.lastAppliedVersionId,
-  };
-}
-
-function buildFallbackRestartAlerts(
-  runtimeConfig: RuntimeConfigStatus,
-  worker?: import("../../persistence/runtime-visibility-repository.js").RuntimeWorkerVisibility,
-  request?: WorkerRestartRequestRecord | null
-): WorkerRestartAlertSummary {
-  return {
-    environment: runtimeConfig.environment,
-    workerService: request?.targetService ?? runtimeConfig.environment,
-    latestRestartRequestStatus: request?.status,
-    lastSuccessfulRestartConvergenceAt: request?.convergenceObservedAt,
-    openAlertCount: 0,
-    acknowledgedAlertCount: 0,
-    resolvedAlertCount: 0,
-    activeAlertCount: 0,
-    stalledRestartCount: 0,
-    highestOpenSeverity: undefined,
-    divergenceAlerting: false,
-    openSourceCategories: [],
-    externalNotificationCount: 0,
-    notificationFailureCount: 0,
-    notificationSuppressedCount: 0,
-    latestNotificationStatus: undefined,
-    latestNotificationAt: undefined,
-    latestNotificationFailureReason: undefined,
-    latestNotificationSuppressionReason: undefined,
-    lastEvaluatedAt: worker?.observedAt ?? new Date().toISOString(),
-  };
-}
-
-const DELIVERY_EVENT_TYPES = new Set<WorkerRestartAlertNotificationEventType>([
-  "alert_opened",
-  "alert_escalated",
-  "alert_acknowledged",
-  "alert_resolved",
-  "alert_repeated_failure_summary",
-]);
-const DELIVERY_STATUSES = new Set<WorkerRestartAlertNotificationStatus>([
-  "sent",
-  "failed",
-  "suppressed",
-  "skipped",
-  "pending",
-]);
-const DELIVERY_SEVERITIES = new Set<WorkerRestartAlertSeverity>(["info", "warning", "critical"]);
-
-function parseDelimitedValues(value: string | undefined): string[] | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return undefined;
-  }
-
-  return trimmed
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
-}
-
-function parseIsoTimestamp(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return undefined;
-  }
-
-  const parsed = Date.parse(trimmed);
-  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : undefined;
-}
-
-function parseBoundedInteger(value: string | undefined, fallback: number, minimum: number, maximum: number): number {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return fallback;
-  }
-
-  const parsed = Number.parseInt(trimmed, 10);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-
-  return Math.min(Math.max(parsed, minimum), maximum);
-}
-
-function buildDeliveryFilters(query: Record<string, unknown>, defaults: { windowMs: number; limit: number }): WorkerRestartDeliveryJournalFilters {
-  const environment = typeof query.environment === "string" ? query.environment.trim() : undefined;
-  const destinationName = typeof query.destinationName === "string" ? query.destinationName.trim() : undefined;
-  const alertId = typeof query.alertId === "string" ? query.alertId.trim() : undefined;
-  const restartRequestId = typeof query.restartRequestId === "string" ? query.restartRequestId.trim() : undefined;
-  const formatterProfile = typeof query.formatterProfile === "string" ? query.formatterProfile.trim() : undefined;
-  const statuses = parseDelimitedValues(typeof query.status === "string" ? query.status : undefined);
-  const rawEventType = query.eventType == null ? undefined : typeof query.eventType === "string" ? query.eventType : null;
-  const rawSeverity = query.severity == null ? undefined : typeof query.severity === "string" ? query.severity : null;
-  if (rawEventType === null || rawSeverity === null) {
-    throw new Error("trend query parameters must be strings");
-  }
-  const eventTypes = parseDelimitedValues(rawEventType);
-  const severities = parseDelimitedValues(rawSeverity);
-
-  if (statuses && statuses.some((status) => !DELIVERY_STATUSES.has(status as WorkerRestartAlertNotificationStatus))) {
-    throw new Error("invalid delivery status filter");
-  }
-  if (eventTypes && eventTypes.some((eventType) => !DELIVERY_EVENT_TYPES.has(eventType as WorkerRestartAlertNotificationEventType))) {
-    throw new Error("invalid delivery event type filter");
-  }
-  if (severities && severities.some((severity) => !DELIVERY_SEVERITIES.has(severity as WorkerRestartAlertSeverity))) {
-    throw new Error("invalid delivery severity filter");
-  }
-
-  const now = Date.now();
-  const toAt = parseIsoTimestamp(typeof query.to === "string" ? query.to : undefined) ?? new Date(now).toISOString();
-  const fromAt =
-    parseIsoTimestamp(typeof query.from === "string" ? query.from : undefined) ??
-    new Date(Date.parse(toAt) - defaults.windowMs).toISOString();
-
-  if (Date.parse(fromAt) > Date.parse(toAt)) {
-    throw new Error("delivery window start must be before the end");
-  }
-
-  const maxWindowMs = 30 * 24 * 60 * 60 * 1000;
-  if (Date.parse(toAt) - Date.parse(fromAt) > maxWindowMs) {
-    throw new Error("delivery window is too large");
-  }
-
-  return {
-    environment: environment || undefined,
-    destinationName: destinationName || undefined,
-    deliveryStatuses: statuses as WorkerRestartAlertNotificationStatus[] | undefined,
-    eventTypes: eventTypes as WorkerRestartAlertNotificationEventType[] | undefined,
-    severities: severities as WorkerRestartAlertSeverity[] | undefined,
-    alertId: alertId || undefined,
-    restartRequestId: restartRequestId || undefined,
-    formatterProfile: formatterProfile || undefined,
-    windowStartAt: fromAt,
-    windowEndAt: toAt,
-    limit: parseBoundedInteger(typeof query.limit === "string" ? query.limit : undefined, defaults.limit, 1, 200),
-    offset: parseBoundedInteger(typeof query.offset === "string" ? query.offset : undefined, 0, 0, 50_000),
-  };
-}
-
-function buildTrendFilters(query: Record<string, unknown>): WorkerRestartDeliveryTrendFilters {
-  const allowedKeys = new Set([
-    "environment",
-    "destinationName",
-    "eventType",
-    "severity",
-    "formatterProfile",
-    "referenceEndAt",
-    "limit",
-  ]);
-  for (const key of Object.keys(query)) {
-    if (!allowedKeys.has(key)) {
-      throw new Error(`invalid trend query parameter: ${key}`);
-    }
-  }
-
-  const environment =
-    query.environment == null ? undefined : typeof query.environment === "string" ? query.environment.trim() : null;
-  const destinationName =
-    query.destinationName == null ? undefined : typeof query.destinationName === "string" ? query.destinationName.trim() : null;
-  const formatterProfile =
-    query.formatterProfile == null ? undefined : typeof query.formatterProfile === "string" ? query.formatterProfile.trim() : null;
-  if (environment === null || destinationName === null || formatterProfile === null) {
-    throw new Error("trend query parameters must be strings");
-  }
-  const eventTypes = parseDelimitedValues(typeof query.eventType === "string" ? query.eventType : undefined);
-  const severities = parseDelimitedValues(typeof query.severity === "string" ? query.severity : undefined);
-
-  if (eventTypes && eventTypes.some((eventType) => !DELIVERY_EVENT_TYPES.has(eventType as WorkerRestartAlertNotificationEventType))) {
-    throw new Error("invalid trend event type filter");
-  }
-  if (severities && severities.some((severity) => !DELIVERY_SEVERITIES.has(severity as WorkerRestartAlertSeverity))) {
-    throw new Error("invalid trend severity filter");
-  }
-
-  const rawReferenceEndAt =
-    query.referenceEndAt == null ? undefined : typeof query.referenceEndAt === "string" ? query.referenceEndAt : null;
-  if (rawReferenceEndAt === null) {
-    throw new Error("trend query parameters must be strings");
-  }
-  const referenceEndAt = parseIsoTimestamp(rawReferenceEndAt);
-  if (rawReferenceEndAt && !referenceEndAt) {
-    throw new Error("trend reference end must be a valid ISO timestamp");
-  }
-
-  const rawLimit = query.limit == null ? undefined : typeof query.limit === "string" ? query.limit : null;
-  if (rawLimit === null) {
-    throw new Error("trend query parameters must be strings");
-  }
-  let limit = 50;
-  if (rawLimit) {
-    const parsedLimit = Number.parseInt(rawLimit, 10);
-    if (!Number.isFinite(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
-      throw new Error("trend limit must be an integer between 1 and 100");
-    }
-    limit = parsedLimit;
-  }
-
-  return {
-    environment: environment || undefined,
-    destinationName: destinationName || undefined,
-    eventTypes: eventTypes as WorkerRestartAlertNotificationEventType[] | undefined,
-    severities: severities as WorkerRestartAlertSeverity[] | undefined,
-    formatterProfile: formatterProfile || undefined,
-    referenceEndAt: referenceEndAt ?? undefined,
-    limit,
-  };
 }
 
 async function readControlSnapshot(deps: ControlRouteDeps): Promise<WorkerRestartSnapshot> {

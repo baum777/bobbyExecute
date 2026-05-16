@@ -1,2 +1,5 @@
 ## [2026-05-10] create-surfaces | Initialized governance surface files [[00-schema/AGENTS]] [[00-schema/mspr-spec]] [[02-wiki/index]] [[03-mspr/packets/packet-template]]
 ## [2026-05-10] accept-journal-delta | Adopted runtime journal deltas from verified premerge run [[bot/data/journal.jsonl]] [[bot/data/journal.incidents.jsonl]] [[bot/data/journal.runtime-cycles.jsonl]] [[bot/data/journal.live-preflight.json]]
+## [2026-05-10] audit-live-readiness | Routed blocked live-readiness audit to MSPR [[03-mspr/packets/mspr-20260510-live-readiness-audit]] [[bot/data/journal.live-preflight.json]]
+## [2026-05-16] refactor-control-route | Split control route helpers while preserving HTTP contracts and authority boundaries [[bot/src/server/routes/control]] [[bot/src/server/routes/control-auth]] [[bot/src/server/routes/control-query]] [[bot/src/server/routes/control-response-builders]]
+## [2026-05-16] route-side-effect-risk | Routed dirty journal side-effect uncertainty from required verification to MSPR [[03-mspr/packets/mspr-20260516-control-refactor-data-side-effect]] [[bot/data/journal.jsonl]]
